@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+  <h2 class="text-xl font-bold mb-4">Confirm Delete</h2>
+  <p class="mb-4">
+    Are you sure you want to delete agent: <strong>{{ object.full_name }}</strong>?
+  </p>
+
+  <form method="post" class="flex space-x-4">
+    {% csrf_token %}
+    <a href="{% url 'settings:agent' %}" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</a>
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+  </form>
+</div>
+{% endblock %}

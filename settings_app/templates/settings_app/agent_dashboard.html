@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Agent Dashboard - Share Your Link{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="bg-white shadow rounded-lg overflow-hidden mb-8">
+    <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-white">Agent Dashboard</h1>
+          <p class="mt-1 text-blue-100">Share your unique link to get started</p>
+        </div>
+        <div class="bg-white/10 rounded-full p-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <h3 class="font-medium text-gray-700">Total Referrals</h3>
+          <p class="text-3xl font-bold text-blue-600">{{ agent.referral_count|default:0 }}</p>
+          <p class="text-sm text-gray-500 mt-1">People signed up</p>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg">
+          <h3 class="font-medium text-gray-700">Active Policies</h3>
+          <p class="text-3xl font-bold text-green-600">{{ agent.active_policies|default:0 }}</p>
+          <p class="text-sm text-gray-500 mt-1">Active policies</p>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+          <h3 class="font-medium text-gray-700">Commission</h3>
+          <p class="text-3xl font-bold text-purple-600">R{{ agent.commission_earned|default:0|floatformat:2 }}</p>
+          <p class="text-sm text-gray-500 mt-1">Earned this month</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shareable Link Section -->
+  <div class="bg-white shadow rounded-lg overflow-hidden mb-8">
+    <div class="px-6 py-5 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Your Shareable Link</h2>
+      <p class="mt-1 text-sm text-gray-500">Share this link with your clients to track referrals</p>
+    </div>
+    <div class="p-6">
+      {% if agent.diy_token %}
+        <div class="space-y-4">
+          <!-- Link with copy button -->
+          <div>
+            <label for="agent-link" class="block text-sm font-medium text-gray-700 mb-1">Your unique link</label>
+            <div class="mt-1 flex rounded-md shadow-sm">
+              <input 
+                type="text" 
+                id="agent-link" 
+                readonly
+                value="{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                class="flex-1 min-w-0 block w-full px-3 py-3 rounded-l-md border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <button 
+                onclick="copyToClipboard('agent-link')"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Copy Link
+              </button>
+            </div>
+          </div>
+          
+          <!-- QR Code Section -->
+          <div class="pt-4 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+              <div class="bg-white p-2 border rounded-lg shadow-sm">
+                <img 
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token|urlencode %}"
+                  alt="QR Code"
+                  class="w-40 h-40">
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-medium text-gray-900">QR Code</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                  Scan this QR code with a mobile device to open your signup link.
+                  Perfect for sharing on printed materials or in-person meetings.
+                </p>
+                <div class="mt-4 space-x-3">
+                  <button 
+                    onclick="downloadQRCode()"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Download QR Code
+                  </button>
+                  <a 
+                    href="{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                    target="_blank"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                    Open Link
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Share Buttons -->
+          <div class="pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-medium text-gray-900 mb-3">Share via</h3>
+            <div class="flex space-x-3">
+              <!-- WhatsApp -->
+              <a 
+                href="https://wa.me/?text={{ 'Sign up for insurance using my referral link: '|urlencode }}{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                target="_blank"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.966-.273-.099-.471-.148-.67.15-.197.297-.767.963-.94 1.16-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.795-1.48-1.77-1.653-2.07-.174-.298-.018-.46.13-.606.136-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.508-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.492.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.016a9.07 9.07 0 01-5.031-1.516l-.361-.214-3.741.982.998-3.648-.235-.375a9.1 9.1 0 01-1.415-4.858c.001-5.028 4.109-9.12 9.158-9.12 2.447 0 4.746.953 6.474 2.682a9.06 9.06 0 012.68 6.453c-.002 5.031-4.112 9.124-9.16 9.124"/>
+                </svg>
+                WhatsApp
+              </a>
+              
+              <!-- Email -->
+              <a 
+                href="mailto:?subject=Sign up for insurance&body=Hi, I'd like to invite you to sign up for insurance using my referral link: {{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                </svg>
+                Email
+              </a>
+              
+              <!-- Copy to Clipboard -->
+              <button 
+                onclick="copyToClipboard('agent-link')"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                Copy Link
+              </button>
+            </div>
+          </div>
+      {% else %}
+        <div class="text-center py-8">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No shareable link available</h3>
+          <p class="mt-1 text-sm text-gray-500">Please contact support to generate your agent link.</p>
+          <div class="mt-6">
+            <a href="mailto:support@example.com" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+              Contact Support
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Recent Activity</h2>
+    </div>
+    <div class="divide-y divide-gray-200">
+      {% if recent_activity %}
+        {% for activity in recent_activity %}
+          <div class="px-6 py-4">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-900">{{ activity.title }}</p>
+                <p class="text-sm text-gray-500">{{ activity.description }}</p>
+              </div>
+              <div class="ml-auto text-sm text-gray-500">
+                {{ activity.timestamp|timesince }} ago
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="px-6 py-12 text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No activity yet</h3>
+          <p class="mt-1 text-sm text-gray-500">Your recent activity will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    element.setSelectionRange(0, 99999); // For mobile devices
+    document.execCommand('copy');
+    
+    // Show tooltip
+    const tooltip = document.createElement('div');
+    tooltip.textContent = 'Copied!';
+    tooltip.className = 'fixed bg-black text-white text-xs py-1 px-2 rounded z-50';
+    document.body.appendChild(tooltip);
+    
+    // Position tooltip near the button
+    const rect = element.getBoundingClientRect();
+    tooltip.style.top = (rect.top - 30) + 'px';
+    tooltip.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+    
+    // Remove tooltip after 2 seconds
+    setTimeout(() => {
+      tooltip.remove();
+    }, 2000);
+  }
+  
+  function downloadQRCode() {
+    const qrCodeUrl = document.querySelector('#qrcode img').src;
+    const link = document.createElement('a');
+    link.href = qrCodeUrl;
+    link.download = 'my-referral-qr-code.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  
+  // Initialize tooltips
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add any initialization code here if needed
+  });
+</script>
+{% endblock %}

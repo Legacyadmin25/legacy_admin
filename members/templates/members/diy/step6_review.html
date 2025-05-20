@@ -1,0 +1,389 @@
+{% extends "diy/base_application.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Review & Submit - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  formData: {
+    consent_terms: false,
+    consent_marketing: false,
+    ...(typeof $store !== 'undefined' ? $store.formData : {})
+  },
+  
+  // Terms display
+  showTermsModal: false,
+  
+  // Submit application
+  isSubmitting: false,
+  submitError: null,
+  
+  // Format currency
+  formatCurrency(amount) {
+    if (!amount && amount !== 0) return 'R0.00';
+    return 'R' + parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  },
+  
+  // Format date
+  formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
+  },
+  
+  // Submit the application
+  submitApplication() {
+    if (!this.formData.consent_terms) {
+      this.submitError = 'You must agree to the terms and conditions to proceed.';
+      return;
+    }
+    
+    this.isSubmitting = true;
+    this.submitError = null;
+    
+    // Submit the form
+    document.getElementById('application-form').submit();
+  }
+}">
+  <h2 class="text-xl font-semibold text-gray-800 mb-6">Review Your Application</h2>
+  
+  <!-- Application Summary -->
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
+    <div class="bg-gray-50 p-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Application Summary</h3>
+    </div>
+    
+    <div class="p-4 space-y-6">
+      <!-- Personal Details -->
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Personal Details</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span class="block text-xs text-gray-500">Full Name</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.title }} {{ applicant.first_name }} {{ applicant.last_name }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">ID Number</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.id_number }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Date of Birth</span>
+            <span class="block text-sm font-medium text-gray-900" x-text="formatDate('{{ applicant.date_of_birth|date:'Y-m-d' }}')"></span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Gender</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.get_gender_display }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Marital Status</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.get_marital_status_display }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Contact Information -->
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Contact Information</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span class="block text-xs text-gray-500">Email</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.email }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Phone</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.phone }}</span>
+          </div>
+          <div class="md:col-span-2">
+            <span class="block text-xs text-gray-500">Address</span>
+            <span class="block text-sm font-medium text-gray-900">{{ applicant.address }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Plan Details -->
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Plan Details</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span class="block text-xs text-gray-500">Plan Name</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.plan.name }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Monthly Premium</span>
+            <span class="block text-sm font-medium text-gray-900" x-text="formatCurrency({{ application.monthly_premium }})"></span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Payment Frequency</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.get_premium_frequency_display }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Beneficiaries -->
+      {% if beneficiaries %}
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Beneficiaries</h4>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for beneficiary in beneficiaries %}
+              <tr>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ beneficiary.first_name }} {{ beneficiary.last_name }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ beneficiary.get_relationship_display }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ beneficiary.id_number }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ beneficiary.percentage }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Payment Details -->
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Payment Details</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span class="block text-xs text-gray-500">Payment Method</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.get_payment_method_display }}</span>
+          </div>
+          {% if application.payment_method == 'debit_order' %}
+          <div>
+            <span class="block text-xs text-gray-500">Bank</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.bank_name }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Account Number</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.account_number }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Account Type</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.get_account_type_display }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Debit Day</span>
+            <span class="block text-sm font-medium text-gray-900">{{ application.debit_day }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Terms and Conditions -->
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
+    <div class="bg-gray-50 p-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Terms and Conditions</h3>
+    </div>
+    
+    <div class="p-4">
+      <div class="mb-4">
+        <p class="text-sm text-gray-600">Please review the terms and conditions of your selected plan before submitting your application.</p>
+      </div>
+      
+      <!-- Terms Preview -->
+      <div class="mb-4">
+        {% if application.plan.terms_pdf %}
+          <a href="{{ application.plan.terms_pdf.url }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+            </svg>
+            View Terms and Conditions (PDF)
+          </a>
+        {% elif application.plan.terms_text %}
+          <button 
+            @click="showTermsModal = true" 
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+            </svg>
+            View Terms and Conditions
+          </button>
+          
+          <!-- Terms Modal -->
+          <div 
+            x-show="showTermsModal" 
+            class="fixed inset-0 z-10 overflow-y-auto" 
+            aria-labelledby="modal-title" 
+            role="dialog" 
+            aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div 
+                x-show="showTermsModal" 
+                x-transition:enter="ease-out duration-300" 
+                x-transition:enter-start="opacity-0" 
+                x-transition:enter-end="opacity-100" 
+                x-transition:leave="ease-in duration-200" 
+                x-transition:leave-start="opacity-100" 
+                x-transition:leave-end="opacity-0" 
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+                aria-hidden="true"></div>
+              
+              <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <div 
+                x-show="showTermsModal" 
+                x-transition:enter="ease-out duration-300" 
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                x-transition:leave="ease-in duration-200" 
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                      <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Terms and Conditions
+                      </h3>
+                      <div class="mt-2">
+                        <div class="text-sm text-gray-500 h-96 overflow-y-auto p-4 border border-gray-200 rounded-md">
+                          {{ application.plan.terms_text|linebreaks }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button 
+                    type="button" 
+                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    @click="showTermsModal = false">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <p class="text-sm text-yellow-600">
+            <svg class="inline-block h-5 w-5 text-yellow-500 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Please contact our customer service for a copy of the terms and conditions.
+          </p>
+        {% endif %}
+      </div>
+      
+      <!-- Consent Checkboxes -->
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input 
+              id="consent_terms" 
+              name="consent_terms" 
+              type="checkbox" 
+              x-model="formData.consent_terms"
+              class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="consent_terms" class="font-medium text-gray-700">I agree to the terms and conditions</label>
+            <p class="text-gray-500">By checking this box, you confirm that you have read and agree to the terms and conditions of the policy.</p>
+          </div>
+        </div>
+        
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input 
+              id="consent_marketing" 
+              name="consent_marketing" 
+              type="checkbox" 
+              x-model="formData.consent_marketing"
+              class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="consent_marketing" class="font-medium text-gray-700">I agree to receive marketing communications</label>
+            <p class="text-gray-500">We'll send you information about our products and services. You can unsubscribe at any time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Disclaimer -->
+  <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-yellow-800">Important Notice</h3>
+        <div class="mt-2 text-sm text-yellow-700">
+          <p>Please ensure all information provided is accurate and complete. Submitting false information may result in your policy being voided. If you need assistance, please contact our customer service.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Error message -->
+  <div x-show="submitError" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm text-red-700" x-text="submitError"></p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Submit Button -->
+  <div class="flex justify-between items-center">
+    <a 
+      href="{% url 'members:diy_payment_options' %}" 
+      class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+      </svg>
+      Back to Payment Options
+    </a>
+    
+    <button 
+      @click="submitApplication()"
+      :disabled="isSubmitting"
+      :class="{'opacity-50 cursor-not-allowed': isSubmitting}"
+      class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <span x-show="!isSubmitting">Submit Application</span>
+      <div x-show="isSubmitting" class="flex items-center">
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Processing...
+      </div>
+    </button>
+  </div>
+  
+  <!-- Hidden Form -->
+  <form id="application-form" method="post" action="{% url 'members:diy_review' %}" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="consent_terms" :value="formData.consent_terms">
+    <input type="hidden" name="consent_marketing" :value="formData.consent_marketing">
+  </form>
+</div>
+
+<script>
+// Add validation function to parent component
+document.addEventListener('alpine:init', () => {
+  if (typeof Alpine.store('stepValidation') !== 'undefined') {
+    Alpine.store('stepValidation').validateStep6 = function() {
+      const component = document.querySelector('[x-data]').__x.$data;
+      return component.formData.consent_terms;
+    };
+  }
+});
+</script>
+{% endblock %}

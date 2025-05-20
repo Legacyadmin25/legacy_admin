@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+  <!-- Form Card -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-8">
+    <h1 class="text-2xl font-bold border-b pb-2">
+      {% if editing %}Edit User{% else %}New User{% endif %}
+    </h1>
+
+    <form method="post"
+          action="{% if editing %}{% url 'settings:user_setup_edit' form.instance.pk %}{% else %}{% url 'settings:user_setup_add' %}{% endif %}"
+          class="space-y-8">
+      {% csrf_token %}
+
+      <!-- Personal Details -->
+      <section class="space-y-4">
+        <h2 class="text-lg font-semibold">Personal Details</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <label class="block font-semibold">First Name <span class="text-red-600">*</span></label>
+            {% render_field form.first_name class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Last Name <span class="text-red-600">*</span></label>
+            {% render_field form.last_name class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">ID / Passport</label>
+            {% render_field form.id_number class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Cell Number</label>
+            {% render_field form.cell_no class="w-full px-4 py-2 border rounded" %}
+          </div>
+
+          <div class="space-y-4">
+            <label class="block font-semibold">Physical Address</label>
+            {% render_field form.physical_address class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Street</label>
+            {% render_field form.street class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Town</label>
+            {% render_field form.town class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Province</label>
+            {% render_field form.province class="w-full px-4 py-2 border rounded" %}
+
+            <label class="block font-semibold">Postal Code</label>
+            {% render_field form.code class="w-full px-4 py-2 border rounded" %}
+          </div>
+        </div>
+      </section>
+
+      <!-- Access Details -->
+      <section class="space-y-4">
+        <h2 class="text-lg font-semibold">Access Details</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label class="block font-semibold">Username <span class="text-red-600">*</span></label>
+            {% render_field form.username class="w-full px-4 py-2 border rounded" %}
+          </div>
+          <div>
+            <label class="block font-semibold">Password <span class="text-red-600">*</span></label>
+            {% render_field form.password class="w-full px-4 py-2 border rounded" %}
+          </div>
+          <div>
+            <label class="block font-semibold">Confirm Password <span class="text-red-600">*</span></label>
+            {% render_field form.confirm_password class="w-full px-4 py-2 border rounded" %}
+            {% if form.confirm_password.errors %}
+              <p class="text-sm text-red-600 mt-1">{{ form.confirm_password.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block font-semibold">Active</label>
+            {% render_field form.is_active class="w-6 h-6 text-green-500 border-gray-300 rounded" %}
+            <span class="text-sm ml-2 text-gray-700">Allow user to log in</span>
+          </div>
+          <div class="lg:col-span-2">
+            <label class="block font-semibold">Select Branch</label>
+            {% render_field form.branch class="w-full px-4 py-2 border rounded" %}
+          </div>
+        </div>
+      </section>
+
+      <!-- Security Groups -->
+      <section class="space-y-4">
+        <h2 class="text-lg font-semibold">Security Groups</h2>
+        {{ form.security_groups.errors }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for checkbox in form.security_groups %}
+            <label class="flex items-center space-x-2">
+              {{ checkbox.tag }}
+              <span class="text-sm text-gray-800">{{ checkbox.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Buttons -->
+      <div class="pt-4 flex justify-end space-x-4">
+        <a href="{% url 'settings:user_setup' %}"
+           class="px-6 py-2 border rounded hover:bg-gray-100">
+          Cancel
+        </a>
+        <button type="submit"
+                class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          {% if editing %}Save Changes{% else %}Create User{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Existing Users -->
+  <div class="bg-white p-6 rounded-lg shadow mt-8">
+    <h2 class="text-xl font-bold mb-4">Existing Users</h2>
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Username</th>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Name</th>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Branch</th>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Active</th>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Joined</th>
+          <th class="px-6 py-2 text-right font-medium text-gray-500 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for u in users %}
+        <tr>
+          <td class="px-6 py-2">{{ u.username }}</td>
+          <td class="px-6 py-2">{{ u.first_name }} {{ u.last_name }}</td>
+          <td class="px-6 py-2">{{ u.userprofile.branch.name|default:"—" }}</td>
+          <td class="px-6 py-2">
+            {% if u.is_active %}
+              <span class="text-green-600 font-semibold">Yes</span>
+            {% else %}
+              <span class="text-red-500">No</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-2">{{ u.date_joined|date:"d-m-Y" }}</td>
+          <td class="px-6 py-2 text-right space-x-2">
+            <a href="{% url 'settings:user_setup_edit' u.pk %}" class="hover:text-blue-600">✏️</a>
+            <a href="{% url 'settings:user_setup_delete' u.pk %}" class="hover:text-red-600">🗑️</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-6 py-4 text-center text-gray-500">No users yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

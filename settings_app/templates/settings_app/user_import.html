@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
+
+  <h2 class="text-2xl font-bold border-b pb-2">🧾 Import Users via CSV</h2>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    <input type="file" name="csv_file" accept=".csv" required class="block w-full border p-2 rounded">
+    <div class="flex justify-between items-center">
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+        Upload & Import
+      </button>
+      <a href="{% url 'settings:user_template_download' %}" class="text-blue-600 text-sm underline hover:text-blue-800">
+        ⬇ Download CSV Template
+      </a>
+    </div>
+  </form>
+
+  {% if success %}
+    <div class="text-green-600 font-medium">✅ {{ success }} users imported successfully.</div>
+  {% endif %}
+
+  {% if errors %}
+    <div class="mt-4 text-red-600">
+      <h4 class="font-bold">Errors:</h4>
+      <ul class="list-disc ml-6 text-sm space-y-1">
+        {% for err in errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="mt-6 text-sm text-gray-600 border-t pt-4">
+    <p>CSV headers required:</p>
+    <code class="block mt-2 bg-gray-100 p-2 rounded text-xs">
+      first_name,last_name,username,email,password,is_active,id_number,cell_no,physical_address,street,town,province,code,branch_name,groups
+    </code>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Payment Receipt</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+        }
+        .logo {
+            max-height: 80px;
+            margin-bottom: 10px;
+        }
+        .receipt-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+        .receipt-number {
+            font-size: 16px;
+            color: #666;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .info-item {
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .info-value {
+            color: #333;
+        }
+        .payment-details {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9fafb;
+            margin-bottom: 20px;
+        }
+        .payment-amount {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2563eb;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .thank-you {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .company-info {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="{{ company_logo }}" alt="Company Logo" class="logo">
+            <div class="receipt-title">Payment Receipt</div>
+            <div class="receipt-number">Receipt #: {{ payment.receipt_set.first.receipt_number }}</div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Member Information</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Name:</div>
+                    <div class="info-value">{{ member.first_name }} {{ member.last_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ID Number:</div>
+                    <div class="info-value">{{ member.id_number }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Policy Number:</div>
+                    <div class="info-value">{{ policy.unique_policy_number }}</div>
+                </div>
+                {% if policy.easypay_number %}
+                <div class="info-item">
+                    <div class="info-label">EasyPay Number:</div>
+                    <div class="info-value">{{ policy.easypay_number }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Payment Details</div>
+            <div class="payment-details">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Payment Date:</div>
+                        <div class="info-value">{{ payment.date|date:"d F Y" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Payment Method:</div>
+                        <div class="info-value">{{ payment.get_payment_method_display }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Reference:</div>
+                        <div class="info-value">{{ payment.reference_number|default:"N/A" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status:</div>
+                        <div class="info-value">{{ payment.get_status_display }}</div>
+                    </div>
+                </div>
+                <div class="payment-amount">R {{ payment.amount }}</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="thank-you">Thank You For Your Payment</div>
+            <div class="company-info">
+                <p>{{ company_name }}</p>
+                <p>{{ company_address }}</p>
+                <p>{{ company_phone }} | {{ company_email }}</p>
+                <p>{{ company_website }}</p>
+            </div>
+            <p>Generated on: {{ generated_at|date:"d F Y H:i" }}</p>
+            {% if payment.created_by %}
+            <p>Captured by: {{ payment.created_by.get_full_name|default:payment.created_by.username }}</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

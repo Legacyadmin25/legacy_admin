@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Policy #{{ policy.uw_membership_number|default:policy.id }} - {{ policy.member.full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Policy Header -->
+  <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">
+            {{ policy.member.full_name }}
+            <span class="text-sm font-normal text-gray-500 ml-2">#{{ policy.uw_membership_number|default:'-' }}</span>
+          </h1>
+          <p class="mt-1 text-sm text-gray-500">
+            {{ policy.plan.name }} • {{ policy.plan.scheme.name }}
+          </p>
+        </div>
+        <div class="flex space-x-2">
+          <a href="{% url 'members:download_policy_certificate' policy.id %}" 
+             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <i class="fa-solid fa-file-pdf mr-2"></i> Download
+          </a>
+          <a href="{% url 'members:find_policy' %}" 
+             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Back to Search
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+        <a href="?tab=personal" 
+           class="{% if active_tab == 'personal' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Personal
+        </a>
+        <a href="?tab=address" 
+           class="{% if active_tab == 'address' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Address
+        </a>
+        <a href="?tab=policy" 
+           class="{% if active_tab == 'policy' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Policy Details
+        </a>
+        <a href="?tab=dependents" 
+           class="{% if active_tab == 'dependents' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Dependents
+        </a>
+        <a href="?tab=beneficiaries" 
+           class="{% if active_tab == 'beneficiaries' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Beneficiaries
+        </a>
+        <a href="?tab=payment" 
+           class="{% if active_tab == 'payment' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Payment
+        </a>
+        <a href="?tab=communications" 
+           class="{% if active_tab == 'communications' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Communications
+        </a>
+        <a href="?tab=notes" 
+           class="{% if active_tab == 'notes' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          Notes
+        </a>
+        {% if request.user.role.role_type == 'internal_admin' or request.user.role.role_type == 'scheme_manager' %}
+        <a href="?tab=ai_summary" 
+           class="{% if active_tab == 'ai_summary' %}border-purple-500 text-purple-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center">
+          <i class="fas fa-brain mr-1"></i> AI Summary
+        </a>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    {% include 'members/find_policy/tabs/personal.html' %}
+    
+    {% if active_tab == 'address' %}
+      {% include 'members/find_policy/tabs/address.html' %}
+    {% elif active_tab == 'policy' %}
+      {% include 'members/find_policy/tabs/policy.html' %}
+    {% elif active_tab == 'dependents' %}
+      {% include 'members/find_policy/tabs/dependents_beneficiaries_tab.html' with type='dependents' %}
+    {% elif active_tab == 'beneficiaries' %}
+      {% include 'members/find_policy/tabs/dependents_beneficiaries_tab.html' with type='beneficiaries' %}
+    {% elif active_tab == 'payment' %}
+      {% include 'members/find_policy/tabs/payment_summary.html' %}
+    {% elif active_tab == 'communications' %}
+      {% include 'members/find_policy/tabs/comms.html' %}
+    {% elif active_tab == 'notes' %}
+      {% include 'members/find_policy/tabs/notes.html' %}
+    {% elif active_tab == 'ai_summary' %}
+      {% include 'members/find_policy/tabs/ai_summary_tab.html' %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include marked.js for markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+$(document).ready(function() {
+  // Initialize tooltips
+  $('[data-toggle="tooltip"]').tooltip();
+  
+  // Handle form submissions with tabs
+  $('form[data-tab-submit]').on('submit', function(e) {
+    e.preventDefault();
+    var $form = $(this);
+    var $submitBtn = $form.find('button[type="submit"]');
+    var originalText = $submitBtn.html();
+    
+    // Show loading state
+    $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-2"></i>Saving...');
+    
+    // Submit form via AJAX
+    $.ajax({
+      type: 'POST',
+      url: $form.attr('action'),
+      data: $form.serialize(),
+      success: function(response) {
+        if (response.success) {
+          // Show success message
+          showAlert('success', response.message || 'Changes saved successfully.');
+          
+          // If there's a redirect, follow it after a short delay
+          if (response.redirect) {
+            setTimeout(function() {
+              window.location.href = response.redirect;
+            }, 1000);
+          }
+        } else {
+          // Show error message
+          showAlert('error', response.message || 'An error occurred. Please try again.');
+        }
+      },
+      error: function(xhr) {
+        var errorMsg = 'An error occurred. Please try again.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        showAlert('error', errorMsg);
+      },
+      complete: function() {
+        // Reset button state
+        $submitBtn.prop('disabled', false).html(originalText);
+      }
+    });
+  });
+  
+  // Show alert message
+  function showAlert(type, message) {
+    var alertHtml = `
+      <div class="rounded-md p-4 mb-4 alert-${type} animate-fade-in">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} text-${type === 'success' ? 'green' : 'red'}-400"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-${type === 'success' ? 'green' : 'red'}-800">
+              ${message}
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Remove any existing alerts
+    $('.alert-messages').remove();
+    
+    // Add new alert
+    $('.content-wrapper').prepend('<div class="alert-messages">' + alertHtml + '</div>');
+    
+    // Auto-remove after 5 seconds
+    setTimeout(function() {
+      $('.alert-messages').fadeOut(300, function() { $(this).remove(); });
+    }, 5000);
+  }
+});
+</script>
+{% endblock %}

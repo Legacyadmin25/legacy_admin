@@ -1,0 +1,85 @@
+/* Full width layout overrides - AGGRESSIVE VERSION */
+
+/* Force all containers to be full width */
+.container,
+div[class*="container"],
+div[class*="max-w-"],
+.max-w-3xl, 
+.max-w-4xl, 
+.max-w-5xl, 
+.max-w-6xl, 
+.max-w-7xl,
+.mx-auto {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Make all form containers full width */
+form,
+.form-container,
+.bg-white,
+div[class*="bg-white"],
+div[class*="rounded-lg"],
+div[class*="shadow"],
+div[class*="overflow-hidden"] {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Ensure form inputs use available space */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Make grid layouts more flexible and wider */
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  width: 100% !important;
+}
+
+/* Force specific grid layouts to use more columns on larger screens */
+.grid-cols-1.md\:grid-cols-2 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 768px) {
+  .grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Ensure all content areas fill available space */
+.content-area,
+main,
+section,
+article,
+div[class*="flex-1"],
+div[class*="overflow"] {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Remove unnecessary padding that reduces usable width */
+.px-4, .px-6, .px-8,
+.py-4, .py-6, .py-8,
+.p-4, .p-6, .p-8 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}

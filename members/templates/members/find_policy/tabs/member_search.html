@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Find Policy{% endblock %}
+
+{% block extra_css %}
+<style>
+  .suggestions-container {
+    position: absolute;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    z-index: 50;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .suggestion-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+  .suggestion-item:hover {
+    background-color: #f3f4f6;
+  }
+  .highlight {
+    font-weight: bold;
+    color: #3b82f6;
+  }
+  .advanced-filters {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+  }
+  .advanced-filters.show {
+    max-height: 1000px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg shadow p-6 space-y-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Find Policy</h1>
+      {% if request.user.role.role_type == 'internal_admin' or request.user.role.role_type == 'scheme_manager' %}
+      <button 
+        id="ai-search-button" 
+        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center shadow-md"
+        type="button"
+      >
+        <i class="fas fa-robot mr-2"></i> 💬 Use AI Search Assistant
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Smart Search Input -->
+    <div class="relative">
+      <form id="search-form" method="get" action="{% url 'members:find_policy' %}" class="mb-4">
+        <div class="relative">
+          <div class="flex items-center border rounded-lg overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+            <div class="pl-3 pr-2 text-gray-400">
+              <i class="fas fa-search"></i>
+            </div>
+            <input 
+              type="text" 
+              id="smart-search" 
+              name="q" 
+              value="{{ q }}" 
+              placeholder="Search by name, ID number, phone, or policy number..." 
+              class="w-full py-3 px-2 outline-none text-gray-700"
+              autocomplete="off"
+            />
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3">
+              Search
+            </button>
+          </div>
+          <div id="search-suggestions" class="suggestions-container hidden"></div>
+        </div>
+
+        <!-- Advanced Filters Toggle -->
+        <div class="mt-3 flex justify-end">
+          <button 
+            type="button" 
+            id="toggle-filters" 
+            class="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+          >
+            <i class="fas fa-sliders-h mr-1"></i> Advanced Filters
+            <i class="fas fa-chevron-down ml-1 transition-transform duration-200" id="filter-chevron"></i>
+          </button>
+        </div>
+
+        <!-- Advanced Filters (Hidden by Default) -->
+        <div id="advanced-filters" class="advanced-filters mt-3 bg-gray-50 p-4 rounded-lg">
+          <!-- Filter content will be added in the next implementation phase -->
+          <p class="text-gray-500 text-center italic">Advanced filters coming soon...</p>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results will be shown here -->
+    {% if members %}
+      <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+        <ul class="divide-y divide-gray-200">
+          {% for member in members %}
+            <li class="p-4 hover:bg-gray-50 transition duration-150">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="text-lg font-medium text-gray-900">{{ member.first_name }} {{ member.last_name }}</h3>
+                  <p class="text-sm text-gray-500">ID: {{ member.id_number|default:"Not provided" }}</p>
+                </div>
+                <a href="{% url 'members:policy_detail' member.policies.first.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                  View Profile
+                </a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% elif q %}
+      <div class="text-center py-8">
+        <i class="fas fa-search text-4xl text-gray-300 mb-2"></i>
+        <p class="text-gray-500">No results found for "{{ q }}". Try adjusting your search criteria.</p>
+      </div>
+    {% else %}
+      <div class="text-center py-8">
+        <i class="fas fa-search text-4xl text-gray-300 mb-2"></i>
+        <p class="text-gray-500">Enter a search term to find policies.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+<!-- AI Search Assistant Modal -->
+<div id="ai-search-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 overflow-hidden">
+    <!-- Modal Header -->
+    <div class="bg-purple-600 text-white px-6 py-4 flex justify-between items-center">
+      <h3 class="text-xl font-semibold flex items-center">
+        <i class="fas fa-robot mr-2"></i> AI Search Assistant
+      </h3>
+      <button id="close-ai-modal" class="text-white hover:text-gray-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="p-6">
+      <p class="mb-4 text-gray-600">
+        Ask in plain English what you're looking for. For example:
+      </p>
+      <div class="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
+        <ul class="space-y-2">
+          <li><i class="fas fa-quote-left text-gray-400 mr-1"></i> Find all members with EasyPay payments who joined this year</li>
+          <li><i class="fas fa-quote-left text-gray-400 mr-1"></i> Show policies on Plan A with dependents but no spouse</li>
+          <li><i class="fas fa-quote-left text-gray-400 mr-1"></i> Give me all lapsed clients under Greytown branch</li>
+        </ul>
+      </div>
+      
+      <form id="ai-search-form" class="space-y-4">
+        <div>
+          <label for="ai-query" class="block text-sm font-medium text-gray-700 mb-1">Your search query:</label>
+          <textarea 
+            id="ai-query" 
+            name="query" 
+            rows="3" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+            placeholder="Describe what you're looking for..."
+          ></textarea>
+        </div>
+        
+        <div id="ai-search-error" class="text-red-600 text-sm hidden"></div>
+        
+        <div id="ai-search-filters" class="bg-blue-50 p-3 rounded-lg text-sm hidden">
+          <p class="font-medium text-blue-800 mb-2">Filters applied:</p>
+          <p id="ai-filter-description" class="text-blue-700"></p>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button 
+            type="button" 
+            id="cancel-ai-search" 
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            id="submit-ai-search" 
+            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex items-center"
+          >
+            <span id="ai-search-button-text">Search</span>
+            <span id="ai-search-spinner" class="ml-2 hidden">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('smart-search');
+    const suggestionsContainer = document.getElementById('search-suggestions');
+    const toggleFiltersBtn = document.getElementById('toggle-filters');
+    
+    // AI Search Assistant Elements
+    const aiSearchButton = document.getElementById('ai-search-button');
+    const aiSearchModal = document.getElementById('ai-search-modal');
+    const closeAiModalButton = document.getElementById('close-ai-modal');
+    const cancelAiSearchButton = document.getElementById('cancel-ai-search');
+    const aiSearchForm = document.getElementById('ai-search-form');
+    const aiQueryInput = document.getElementById('ai-query');
+    const aiSearchError = document.getElementById('ai-search-error');
+    const aiSearchFilters = document.getElementById('ai-search-filters');
+    const aiFilterDescription = document.getElementById('ai-filter-description');
+    const aiSearchButtonText = document.getElementById('ai-search-button-text');
+    const aiSearchSpinner = document.getElementById('ai-search-spinner');
+    const advancedFilters = document.getElementById('advanced-filters');
+    const filterChevron = document.getElementById('filter-chevron');
+    
+    // Toggle advanced filters
+    toggleFiltersBtn.addEventListener('click', function() {
+      advancedFilters.classList.toggle('show');
+      filterChevron.classList.toggle('transform');
+      filterChevron.classList.toggle('rotate-180');
+    });
+    
+    // AJAX search suggestions
+    let debounceTimer;
+    
+    searchInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      const query = this.value.trim();
+      
+      if (query.length < 2) {
+        suggestionsContainer.classList.add('hidden');
+        return;
+      }
+      
+      debounceTimer = setTimeout(() => {
+        fetch(`/members/api/search-suggestions/?q=${encodeURIComponent(query)}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.suggestions && data.suggestions.length > 0) {
+              renderSuggestions(data.suggestions, query);
+              suggestionsContainer.classList.remove('hidden');
+              
+              // Check for exact match and redirect if found
+              if (data.exact_match) {
+                window.location.href = data.redirect_url;
+              }
+            } else {
+              suggestionsContainer.classList.add('hidden');
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching suggestions:', error);
+            suggestionsContainer.classList.add('hidden');
+          });
+      }, 300);
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target !== searchInput && e.target !== suggestionsContainer) {
+        suggestionsContainer.classList.add('hidden');
+      }
+    });
+    
+    // AI Search Assistant Modal Handlers
+    if (aiSearchButton) {
+      // Open modal
+      aiSearchButton.addEventListener('click', function() {
+        aiSearchModal.classList.remove('hidden');
+        aiQueryInput.focus();
+        // Reset form
+        aiSearchForm.reset();
+        aiSearchError.classList.add('hidden');
+        aiSearchFilters.classList.add('hidden');
+      });
+      
+      // Close modal
+      closeAiModalButton.addEventListener('click', function() {
+        aiSearchModal.classList.add('hidden');
+      });
+      
+      // Cancel button
+      cancelAiSearchButton.addEventListener('click', function() {
+        aiSearchModal.classList.add('hidden');
+      });
+      
+      // Handle form submission
+      aiSearchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get the query
+        const query = aiQueryInput.value.trim();
+        if (!query) {
+          aiSearchError.textContent = 'Please enter a search query.';
+          aiSearchError.classList.remove('hidden');
+          return;
+        }
+        
+        // Show loading state
+        aiSearchButtonText.textContent = 'Processing...';
+        aiSearchSpinner.classList.remove('hidden');
+        aiSearchError.classList.add('hidden');
+        
+        // Send the query to the AI Search Assistant
+        fetch('{% url "members:ai_search_assistant" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: new URLSearchParams({
+            'query': query
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Reset loading state
+          aiSearchButtonText.textContent = 'Search';
+          aiSearchSpinner.classList.add('hidden');
+          
+          if (data.success) {
+            // Show the filters
+            aiFilterDescription.textContent = data.filter_description;
+            aiSearchFilters.classList.remove('hidden');
+            
+            // Build the search URL with the filters
+            const searchParams = new URLSearchParams();
+            for (const [key, value] of Object.entries(data.filters)) {
+              searchParams.append(key, value);
+            }
+            
+            // Redirect to the search results
+            setTimeout(() => {
+              window.location.href = '{% url "members:find_policy" %}?' + searchParams.toString();
+            }, 1500); // Short delay to show the filters
+          } else {
+            // Show error
+            aiSearchError.textContent = data.error || 'An error occurred. Please try again.';
+            aiSearchError.classList.remove('hidden');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          aiSearchButtonText.textContent = 'Search';
+          aiSearchSpinner.classList.add('hidden');
+          aiSearchError.textContent = 'An error occurred. Please try again.';
+          aiSearchError.classList.remove('hidden');
+        });
+      });
+    }
+    
+    // Render suggestions with highlighting
+    function renderSuggestions(suggestions, query) {
+      suggestionsContainer.innerHTML = '';
+      
+      suggestions.forEach(suggestion => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        
+        // Highlight matching text
+        const displayText = highlightMatch(suggestion.text, query);
+        item.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-medium">${displayText}</div>
+              <div class="text-xs text-gray-500">${suggestion.type}: ${suggestion.id}</div>
+            </div>
+            <div class="text-xs text-gray-400">${suggestion.extra || ''}</div>
+          </div>
+        `;
+        
+        item.addEventListener('click', function() {
+          if (suggestion.redirect_url) {
+            window.location.href = suggestion.redirect_url;
+          } else {
+            searchInput.value = suggestion.text;
+            suggestionsContainer.classList.add('hidden');
+            document.getElementById('search-form').submit();
+          }
+        });
+        
+        suggestionsContainer.appendChild(item);
+      });
+    }
+    
+    // Highlight matching text
+    function highlightMatch(text, query) {
+      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+      return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+    
+    // Escape special regex characters
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base_diy.html" %}
+{% block title %}Welcome to {{ scheme.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow space-y-6 text-center">
+
+  {# Agent avatar, if set #}
+  {% if agent.profile_image %}
+    <img
+      src="{{ agent.profile_image.url }}"
+      alt="{{ agent.get_full_name }}"
+      class="w-24 h-24 rounded-full mx-auto mb-4"
+    />
+  {% endif %}
+
+  {# Greeting #}
+  <h1 class="text-2xl font-bold text-blue-700">
+    Welcome to {{ scheme.name }}
+  </h1>
+  <p class="text-gray-700 text-lg">
+    Hi {{ agent.first_name }}, you’re just a few simple steps away from securing funeral cover for you and your loved ones.
+  </p>
+
+  {# How it works box #}
+  <div class="bg-gray-50 border border-gray-200 rounded p-4 text-left text-sm space-y-2">
+    <p>Here’s how it works:</p>
+    <ul class="list-disc pl-6 text-gray-600 space-y-1">
+      <li>💡 This is a quick and easy 5-minute sign-up form.</li>
+      <li>📱 You’ll need your personal details, ID or passport number, and contact info.</li>
+      <li>👨‍👩‍👧 You can also add dependents and choose your payment method.</li>
+      <li>📄 At the end, your policy will be sent to you via SMS, email, or WhatsApp.</li>
+    </ul>
+  </div>
+
+  {# Call-to-action button #}
+  <a
+    href="{% url 'members:policy_create_step1' %}"
+    class="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow"
+  >
+    Start My Application
+  </a>
+</div>
+{% endblock %}

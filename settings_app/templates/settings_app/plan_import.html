@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+  <h1 class="text-2xl font-bold">Import Plans</h1>
+
+  <!-- Download Template Button -->
+  <div class="flex justify-end">
+    <a href="{% url 'settings:plan_template' %}"
+       class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+      ⬇️ Download CSV Template
+    </a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-6 mt-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block font-medium mb-1">{{ form.scheme.label_tag }}</label>
+        {% render_field form.scheme %}
+        {{ form.scheme.errors }}
+      </div>
+      <div>
+        <label class="block font-medium mb-1">{{ form.file.label_tag }}</label>
+        {% render_field form.file %}
+        {{ form.file.errors }}
+      </div>
+    </div>
+
+    <div class="flex space-x-2">
+      <a href="{% url 'settings:plan' %}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</a>
+      <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">Upload</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

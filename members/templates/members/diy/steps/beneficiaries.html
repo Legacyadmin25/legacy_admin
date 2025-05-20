@@ -1,0 +1,390 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<form method="post" action="{% url 'members_diy:diy_beneficiaries' %}" x-data="beneficiariesHandler" @submit.prevent="submitForm">
+  {% csrf_token %}
+  
+  <!-- Hidden fields for form state -->
+  <input type="hidden" name="form_type" value="beneficiaries">
+  
+  <div class="space-y-6">
+    <!-- Beneficiary Management -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900">Beneficiaries</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Add the people who will receive the funeral cover benefit in the event of your passing.
+        You can add up to 5 beneficiaries with a minimum allocation of 10% each.
+      </p>
+      
+      <!-- Beneficiaries List -->
+      <div class="mt-6 space-y-4">
+        <template x-for="(beneficiary, index) in beneficiaries" :key="index">
+          <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 relative">
+            <button type="button" @click="removeBeneficiary(index)" 
+                    class="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    :disabled="beneficiaries.length <= 1">
+              <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+              <!-- Full Name -->
+              <div class="sm:col-span-3">
+                <label :for="'beneficiary_name_' + index" class="block text-sm font-medium text-gray-700">
+                  Full Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" :id="'beneficiary_name_' + index" 
+                       x-model="beneficiary.full_name"
+                       @change="updateBeneficiary(index, $event)"
+                       :name="'beneficiary_name_' + index"
+                       class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                       required>
+              </div>
+              
+              <!-- ID Number -->
+              <div class="sm:col-span-2">
+                <label :for="'beneficiary_id_' + index" class="block text-sm font-medium text-gray-700">
+                  ID Number <span class="text-red-500">*</span>
+                </label>
+                <input type="text" :id="'beneficiary_id_' + index"
+                       x-model="beneficiary.id_number"
+                       @change="updateBeneficiary(index, $event)"
+                       :name="'beneficiary_id_' + index"
+                       class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                       pattern="[0-9]{13}"
+                       title="Please enter a valid 13-digit ID number"
+                       required>
+              </div>
+              
+              <!-- Percentage -->
+              <div class="sm:col-span-1">
+                <label :for="'beneficiary_percentage_' + index" class="block text-sm font-medium text-gray-700">
+                  % <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <input type="number" :id="'beneficiary_percentage_' + index"
+                         x-model="beneficiary.percentage"
+                         @change="updateBeneficiaryPercentage(index, $event)"
+                         :name="'beneficiary_percentage_' + index"
+                         min="10" max="100" step="1"
+                         class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                         required>
+                  <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Relationship -->
+              <div class="sm:col-span-3">
+                <label :for="'beneficiary_relationship_' + index" class="block text-sm font-medium text-gray-700">
+                  Relationship <span class="text-red-500">*</span>
+                </label>
+                <select :id="'beneficiary_relationship_' + index"
+                        x-model="beneficiary.relationship"
+                        @change="updateBeneficiary(index, $event)"
+                        :name="'beneficiary_relationship_' + index"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        required>
+                  <option value="">Select relationship</option>
+                  <option value="spouse">Spouse</option>
+                  <option value="child">Child</option>
+                  <option value="parent">Parent</option>
+                  <option value="sibling">Sibling</option>
+                  <option value="other_relative">Other Relative</option>
+                  <option value="friend">Friend</option>
+                  <option value="business_partner">Business Partner</option>
+                  <option value="trust">Trust</option>
+                  <option value="estate">Estate</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              <!-- Contact Number -->
+              <div class="sm:col-span-2">
+                <label :for="'beneficiary_contact_' + index" class="block text-sm font-medium text-gray-700">
+                  Contact Number
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">+27</span>
+                  </div>
+                  <input type="tel" :id="'beneficiary_contact_' + index"
+                         x-model="beneficiary.contact_number"
+                         @change="updateBeneficiary(index, $event)"
+                         :name="'beneficiary_contact_' + index"
+                         class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md"
+                         placeholder="82 123 4567" pattern="[0-9]{9}"
+                         title="Please enter a valid 9-digit phone number">
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        
+        <!-- Add Beneficiary Button -->
+        <div class="mt-2">
+          <button type="button" @click="addBeneficiary" 
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  :disabled="beneficiaries.length >= 5">
+            <i class="fas fa-plus-circle mr-2"></i> Add Beneficiary
+          </button>
+          <p class="mt-1 text-xs text-gray-500" x-show="beneficiaries.length === 0">
+            You must add at least one beneficiary.
+          </p>
+          <p class="mt-1 text-xs text-gray-500" x-show="beneficiaries.length >= 5">
+            Maximum of 5 beneficiaries allowed.
+          </p>
+        </div>
+        
+        <!-- Total Percentage -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-gray-700">Total Allocation</span>
+            <span class="text-lg font-semibold" :class="{'text-green-600': totalPercentage === 100, 'text-red-600': totalPercentage !== 100}">
+              <span x-text="totalPercentage"></span>%
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-gray-500" :class="{'text-red-500': totalPercentage !== 100}">
+            <span x-show="totalPercentage < 100">
+              Total allocation must be 100%. You still need to allocate <span x-text="100 - totalPercentage"></span>%.
+            </span>
+            <span x-show="totalPercentage > 100">
+              Total allocation cannot exceed 100%. Please reduce allocation by <span x-text="totalPercentage - 100"></span>%.
+            </span>
+            <span x-show="totalPercentage === 100">
+              Allocation is complete. The total is 100%.
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Additional Notes -->
+    <div class="pt-4 border-t border-gray-200">
+      <label for="beneficiary_notes" class="block text-sm font-medium text-gray-700">
+        Additional Notes (Optional)
+      </label>
+      <div class="mt-1">
+        <textarea id="beneficiary_notes" name="beneficiary_notes" rows="3" 
+                  x-model="notes"
+                  class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Any additional information about your beneficiaries..."></textarea>
+      </div>
+      <p class="mt-1 text-xs text-gray-500">
+        You can provide any special instructions or notes regarding your beneficiaries here.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Form actions are handled by the parent template -->
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('beneficiariesHandler', () => ({
+    beneficiaries: [],
+    notes: '',
+    
+    init() {
+      // Load beneficiaries from store or initialize with one empty beneficiary
+      if (this.$store.formData.beneficiaries && this.$store.formData.beneficiaries.length > 0) {
+        this.beneficiaries = [...this.$store.formData.beneficiaries];
+      } else {
+        this.addBeneficiary();
+      }
+      
+      // Load notes
+      if (this.$store.formData.beneficiary_notes) {
+        this.notes = this.$store.formData.beneficiary_notes;
+      }
+      
+      // Watch for changes in notes
+      this.$watch('notes', value => {
+        this.$store.formData.beneficiary_notes = value;
+      });
+    },
+    
+    get totalPercentage() {
+      return this.beneficiaries.reduce((total, beneficiary) => {
+        return total + (parseInt(beneficiary.percentage) || 0);
+      }, 0);
+    },
+    
+    addBeneficiary() {
+      if (this.beneficiaries.length >= 5) return;
+      
+      const newBeneficiary = {
+        id: Date.now(),
+        full_name: '',
+        id_number: '',
+        relationship: '',
+        contact_number: '',
+        percentage: this.calculateDefaultPercentage()
+      };
+      
+      this.beneficiaries.push(newBeneficiary);
+      this.updateStore();
+    },
+    
+    removeBeneficiary(index) {
+      if (this.beneficiaries.length <= 1) return;
+      
+      this.beneficiaries.splice(index, 1);
+      this.redistributePercentages();
+      this.updateStore();
+    },
+    
+    updateBeneficiary(index, event) {
+      const field = event.target.name.replace(`beneficiary_${index}_`, '');
+      const value = event.target.value;
+      
+      if (field in this.beneficiaries[index]) {
+        this.beneficiaries[index][field] = value;
+        this.updateStore();
+      }
+    },
+    
+    updateBeneficiaryPercentage(index, event) {
+      const value = parseInt(event.target.value) || 0;
+      this.beneficiaries[index].percentage = Math.min(100, Math.max(10, value));
+      
+      // If this is the only beneficiary, set to 100%
+      if (this.beneficiaries.length === 1) {
+        this.beneficiaries[0].percentage = 100;
+      }
+      
+      this.updateStore();
+    },
+    
+    calculateDefaultPercentage() {
+      if (this.beneficiaries.length === 0) return 100;
+      
+      const remaining = 100 - this.totalPercentage;
+      return Math.max(10, Math.min(remaining, 100));
+    },
+    
+    redistributePercentages() {
+      if (this.beneficiaries.length === 0) return;
+      
+      const total = this.totalPercentage;
+      if (total === 100) return;
+      
+      // If no beneficiaries have a percentage set, distribute equally
+      if (total === 0) {
+        const equalShare = Math.floor(100 / this.beneficiaries.length);
+        this.beneficiaries.forEach((b, i) => {
+          // Last beneficiary gets the remainder
+          b.percentage = i === this.beneficiaries.length - 1 
+            ? 100 - (equalShare * (this.beneficiaries.length - 1))
+            : equalShare;
+        });
+      } else {
+        // Scale existing percentages to total 100%
+        const scale = 100 / total;
+        this.beneficiaries.forEach(b => {
+          b.percentage = Math.round(b.percentage * scale);
+        });
+        
+        // Adjust for rounding errors
+        const newTotal = this.totalPercentage;
+        if (newTotal !== 100 && this.beneficiaries.length > 0) {
+          this.beneficiaries[this.beneficiaries.length - 1].percentage += 100 - newTotal;
+        }
+      }
+      
+      this.updateStore();
+    },
+    
+    updateStore() {
+      // Update the store with current beneficiaries
+      this.$store.formData.beneficiaries = this.beneficiaries.map(b => ({
+        full_name: b.full_name,
+        id_number: b.id_number,
+        relationship: b.relationship,
+        contact_number: b.contact_number,
+        percentage: b.percentage
+      }));
+    },
+    
+    async submitForm() {
+      // Validate total percentage is 100%
+      if (this.totalPercentage !== 100) {
+        showToast('Total allocation must be exactly 100%', 'error');
+        return;
+      }
+      
+      // Validate all required fields
+      for (const [index, beneficiary] of this.beneficiaries.entries()) {
+        if (!beneficiary.full_name || !beneficiary.id_number || !beneficiary.relationship) {
+          showToast(`Please fill in all required fields for Beneficiary ${index + 1}`, 'error');
+          return;
+        }
+        
+        // Validate ID number
+        if (beneficiary.id_number && !/^\d{13}$/.test(beneficiary.id_number)) {
+          showToast(`Please enter a valid 13-digit ID number for Beneficiary ${index + 1}`, 'error');
+          return;
+        }
+      }
+      
+      // If validation passes, submit the form
+      const form = this.$el;
+      const formData = new FormData(form);
+      
+      try {
+        showLoading();
+        
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          window.location.href = data.redirect_url;
+        } else {
+          showToast(data.message || 'An error occurred. Please try again.', 'error');
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
+        showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+  }));
+  
+  // Format ID numbers as user types
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[id^="beneficiary_id_"]')) {
+      let value = e.target.value.replace(/\D/g, '');
+      
+      // Format as ID number (e.g., 900101 1234 088)
+      let formatted = '';
+      if (value.length > 0) {
+        formatted = value.substring(0, Math.min(value.length, 6));
+      }
+      if (value.length > 6) {
+        formatted += ' ' + value.substring(6, Math.min(value.length, 10));
+      }
+      if (value.length > 10) {
+        formatted += ' ' + value.substring(10, Math.min(value.length, 13));
+      }
+      
+      if (formatted !== e.target.value) {
+        e.target.value = formatted;
+        
+        // Trigger change event to update the model
+        const event = new Event('change');
+        e.target.dispatchEvent(event);
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

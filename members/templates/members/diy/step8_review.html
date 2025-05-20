@@ -1,0 +1,345 @@
+{% extends "members/diy/base_application.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Review & Consent - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  showTerms: false,
+  termsAccepted: false,
+  marketingConsent: false,
+  
+  toggleTerms() {
+    this.showTerms = !this.showTerms;
+  }
+}">
+  <h2 class="text-xl font-semibold text-gray-800 mb-6">Review & Consent</h2>
+  
+  <!-- Application Summary -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Application Summary</h3>
+      <p class="mt-1 max-w-2xl text-sm text-gray-500">Please review your application details before submission.</p>
+    </div>
+    <div class="border-t border-gray-200">
+      <dl>
+        <!-- Personal Information -->
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Personal Information</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-1">
+              <p>{{ applicant.title|title }} {{ applicant.first_name }} {{ applicant.last_name }}</p>
+              <p>ID: {{ applicant.id_number }}</p>
+              <p>Date of Birth: {{ applicant.date_of_birth|date:"d F Y" }}</p>
+              <p>Gender: {{ applicant.gender|title }}</p>
+            </div>
+          </dd>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Contact Information</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-1">
+              <p>Email: {{ applicant.email }}</p>
+              <p>Phone: {{ applicant.phone_number }}</p>
+              <p>Address: {{ applicant.address }}</p>
+              <p>City: {{ applicant.city }}</p>
+              <p>Postal Code: {{ applicant.postal_code }}</p>
+            </div>
+          </dd>
+        </div>
+        
+        <!-- Policy Information -->
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Policy Information</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-1">
+              <p>Plan: {{ plan.name }}</p>
+              <p>Cover Amount: R{{ plan.main_cover|floatformat:2 }}</p>
+              <p>Premium: R{{ application.premium_amount|floatformat:2 }} per month</p>
+              <p>Reference Number: {{ application.reference_number }}</p>
+            </div>
+          </dd>
+        </div>
+        
+        <!-- Spouse Information (if applicable) -->
+        {% if application.spouse %}
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Spouse Information</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-1">
+              <p>{{ application.spouse.title|title }} {{ application.spouse.first_name }} {{ application.spouse.last_name }}</p>
+              <p>ID: {{ application.spouse.id_number }}</p>
+              <p>Date of Birth: {{ application.spouse.date_of_birth|date:"d F Y" }}</p>
+              <p>Gender: {{ application.spouse.gender|title }}</p>
+            </div>
+          </dd>
+        </div>
+        {% endif %}
+        
+        <!-- Dependents Information (if applicable) -->
+        {% if application.dependents.all %}
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Dependents</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-3">
+              {% for dependent in application.dependents.all %}
+              <div class="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
+                <p class="font-medium">{{ dependent.first_name }} {{ dependent.last_name }} ({{ dependent.get_relationship_display }})</p>
+                <p>ID: {{ dependent.id_number }}</p>
+                <p>Date of Birth: {{ dependent.date_of_birth|date:"d F Y" }}</p>
+                <p>Cover Amount: R{{ dependent.cover_amount|floatformat:2 }}</p>
+              </div>
+              {% endfor %}
+            </div>
+          </dd>
+        </div>
+        {% endif %}
+        
+        <!-- Beneficiaries Information -->
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Beneficiaries</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-3">
+              {% for beneficiary in beneficiaries %}
+              <div class="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
+                <p class="font-medium">{{ beneficiary.first_name }} {{ beneficiary.last_name }}</p>
+                <p>ID: {{ beneficiary.id_number }}</p>
+                <p>Relationship: {{ beneficiary.get_relationship_display }}</p>
+                <p>Percentage: {{ beneficiary.percentage }}%</p>
+              </div>
+              {% endfor %}
+            </div>
+          </dd>
+        </div>
+        
+        <!-- Payment Information -->
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Payment Information</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="space-y-1">
+              <p>Payment Method: {{ application.get_payment_method_display }}</p>
+              {% if application.payment_method == 'debit' %}
+              <p>Account Holder: {{ application.bank_account_holder }}</p>
+              <p>Bank: {{ application.bank_name }}</p>
+              <p>Account Number: {{ application.bank_account_number|slice:"-4"|stringformat:"•••• %s" }}</p>
+              <p>Account Type: {{ application.get_bank_account_type_display }}</p>
+              <p>Debit Day: {{ application.debit_day }}</p>
+              {% endif %}
+            </div>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+  
+  <!-- Terms and Conditions -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Terms and Conditions</h3>
+        <button 
+          @click="toggleTerms"
+          type="button" 
+          class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <span x-text="showTerms ? 'Hide Terms' : 'View Terms'"></span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Terms Content -->
+    <div x-show="showTerms" class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      {% if has_terms_pdf %}
+      <div class="mb-4">
+        <a 
+          href="{{ plan.terms_pdf.url }}" 
+          target="_blank"
+          class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+          </svg>
+          Download Terms & Conditions (PDF)
+        </a>
+      </div>
+      {% endif %}
+      
+      {% if has_terms_text %}
+      <div class="prose max-w-none text-sm text-gray-700 overflow-auto max-h-96 border border-gray-200 rounded-md p-4 bg-gray-50">
+        {{ plan.terms_text|linebreaks }}
+      </div>
+      {% else %}
+      <div class="prose max-w-none text-sm text-gray-700">
+        <h4>Standard Terms and Conditions</h4>
+        <p>This policy is underwritten by Legacy Life Insurance Company, registration number 1999/012345/06, an authorized financial services provider (FSP No. 12345).</p>
+        
+        <h5>1. Definitions</h5>
+        <p>In this policy, unless inconsistent with or otherwise indicated by the context:</p>
+        <ul>
+          <li>"Company" means Legacy Life Insurance Company;</li>
+          <li>"Policyholder" means the person in whose name this policy is effected;</li>
+          <li>"Insured Person" means the Policyholder and/or any other person whose life is insured under this policy;</li>
+          <li>"Beneficiary" means the person(s) nominated by the Policyholder to receive the benefits payable under this policy upon the death of an Insured Person;</li>
+          <li>"Premium" means the amount payable as stated in the Policy Schedule;</li>
+          <li>"Policy Schedule" means the schedule issued to the Policyholder setting out the details of the cover provided.</li>
+        </ul>
+        
+        <h5>2. Benefits</h5>
+        <p>The Company will pay the benefits as set out in the Policy Schedule to the nominated Beneficiary upon the death of an Insured Person, subject to the terms, conditions, and exclusions contained in this policy.</p>
+        
+        <h5>3. Premium Payments</h5>
+        <p>3.1 The Policyholder shall pay the Premium on the due date as stated in the Policy Schedule.</p>
+        <p>3.2 A grace period of 30 days from the Premium due date is allowed for the payment of each Premium.</p>
+        <p>3.3 If a Premium is not paid within the grace period, the policy will lapse, and all benefits will cease.</p>
+        
+        <h5>4. Waiting Period</h5>
+        <p>4.1 A waiting period of 6 months from the commencement date applies to all natural causes of death.</p>
+        <p>4.2 No waiting period applies to accidental death.</p>
+        
+        <h5>5. Exclusions</h5>
+        <p>No benefit will be payable if the death of an Insured Person is directly or indirectly caused by or attributable to:</p>
+        <ul>
+          <li>Suicide within the first 24 months from the commencement date;</li>
+          <li>The abuse of alcohol, drugs, or narcotics;</li>
+          <li>Active participation in war, invasion, act of foreign enemy, hostilities, civil war, rebellion, riot, strike, or civil commotion;</li>
+          <li>Participation in criminal activity;</li>
+          <li>Hazardous pursuits such as mountaineering, skydiving, or motor racing.</li>
+        </ul>
+        
+        <h5>6. Claims</h5>
+        <p>6.1 Written notice of a claim must be given to the Company within 6 months of the date of death of an Insured Person.</p>
+        <p>6.2 The Company reserves the right to request any documentation it deems necessary to verify a claim.</p>
+        
+        <h5>7. Termination</h5>
+        <p>This policy will terminate upon:</p>
+        <ul>
+          <li>The death of the Policyholder;</li>
+          <li>Non-payment of Premiums as set out in clause 3.3;</li>
+          <li>Written request by the Policyholder to terminate the policy;</li>
+          <li>Fraud or material misrepresentation.</li>
+        </ul>
+        
+        <h5>8. General</h5>
+        <p>8.1 This policy is issued on the basis that the statements and declarations made by the Policyholder are true and correct.</p>
+        <p>8.2 Any misrepresentation or non-disclosure of material information may result in the policy being voided, benefits being refused, and Premiums being forfeited.</p>
+        <p>8.3 The Company reserves the right to amend the terms and conditions of this policy by giving 30 days written notice to the Policyholder.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- Consent Form -->
+  <form method="post" action="{% url 'members:diy_review' %}" class="space-y-6">
+    {% csrf_token %}
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Consent Declaration</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">Please read and accept the following to proceed.</p>
+      </div>
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div class="space-y-4">
+          <!-- Terms Acceptance -->
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input 
+                id="terms_accepted" 
+                name="terms_accepted" 
+                type="checkbox" 
+                x-model="termsAccepted"
+                required
+                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="terms_accepted" class="font-medium text-gray-700">I accept the Terms and Conditions</label>
+              <p class="text-gray-500">I confirm that I have read, understood, and agree to be bound by the terms and conditions of this policy.</p>
+            </div>
+          </div>
+          
+          <!-- POPIA Consent -->
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input 
+                id="popia_consent" 
+                name="popia_consent" 
+                type="checkbox" 
+                required
+                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="popia_consent" class="font-medium text-gray-700">POPIA Consent</label>
+              <p class="text-gray-500">I consent to the processing of my personal information in accordance with the Protection of Personal Information Act (POPIA) for the purpose of providing insurance services.</p>
+            </div>
+          </div>
+          
+          <!-- FSCA Disclosure -->
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input 
+                id="fsca_disclosure" 
+                name="fsca_disclosure" 
+                type="checkbox" 
+                required
+                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="fsca_disclosure" class="font-medium text-gray-700">FSCA Disclosure</label>
+              <p class="text-gray-500">I acknowledge receipt of the Financial Services Provider (FSP) disclosure as required by the Financial Sector Conduct Authority (FSCA).</p>
+            </div>
+          </div>
+          
+          <!-- Marketing Consent (Optional) -->
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input 
+                id="marketing_consent" 
+                name="marketing_consent" 
+                type="checkbox" 
+                x-model="marketingConsent"
+                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="marketing_consent" class="font-medium text-gray-700">Marketing Consent (Optional)</label>
+              <p class="text-gray-500">I consent to receive marketing communications about products, services, and promotions from Legacy Life Insurance Company and its partners.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex justify-between pt-4">
+      <a 
+        href="{% url 'members:diy_otp_verification' %}" 
+        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Back
+      </a>
+      
+      <button 
+        type="submit"
+        :disabled="!termsAccepted"
+        :class="{'bg-blue-600 hover:bg-blue-700': termsAccepted, 'bg-gray-400 cursor-not-allowed': !termsAccepted}"
+        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        Submit Application
+        <svg class="ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Add validation function to parent component
+document.addEventListener('alpine:init', () => {
+  if (typeof Alpine.store('stepValidation') !== 'undefined') {
+    Alpine.store('stepValidation').validateStep8 = function() {
+      const component = document.querySelector('[x-data]').__x.$data;
+      return component.termsAccepted;
+    };
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base_diy.html" %}
+{% load static %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="{
+  currentStep: 1,
+  totalSteps: 9,
+  isSubmitting: false,
+  formData: {},
+  agentCode: '{{ agent_code|default:'' }}',
+  plan: null,
+  
+  init() {
+    // Load saved form data if available
+    const savedData = localStorage.getItem('diyFormData');
+    if (savedData) {
+      this.formData = JSON.parse(savedData);
+    }
+    
+    // Check URL for step parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const step = urlParams.get('step');
+    if (step && !isNaN(step) && step > 0 && step <= this.totalSteps) {
+      this.currentStep = parseInt(step);
+    }
+  },
+  
+  saveProgress() {
+    localStorage.setItem('diyFormData', JSON.stringify(this.formData));
+  },
+  
+  nextStep() {
+    if (this.validateStep(this.currentStep)) {
+      this.saveProgress();
+      this.currentStep++;
+      window.scrollTo(0, 0);
+    }
+  },
+  
+  prevStep() {
+    this.currentStep--;
+    window.scrollTo(0, 0);
+  },
+  
+  goToStep(step) {
+    if (step > 0 && step <= this.totalSteps) {
+      this.currentStep = step;
+      window.scrollTo(0, 0);
+    }
+  },
+  
+  validateStep(step) {
+    // Implement validation for each step
+    // Return true if validation passes
+    return true;
+  },
+  
+  submitForm() {
+    this.isSubmitting = true;
+    // Handle form submission
+    setTimeout(() => {
+      this.isSubmitting = false;
+      // Redirect to success page or next step
+      this.currentStep++;
+    }, 1000);
+  }
+}">
+  <!-- Progress Steps -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-lg font-semibold text-gray-800">Step <span x-text="currentStep"></span> of <span x-text="totalSteps"></span></h2>
+      <span x-show="agentCode" class="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+        Agent: <span x-text="agentCode"></span>
+      </span>
+    </div>
+    
+    <div class="w-full bg-gray-200 rounded-full h-2.5">
+      <div 
+        class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+        :style="`width: ${(currentStep / totalSteps) * 100}%`">
+      </div>
+    </div>
+    
+    <div class="flex justify-between mt-2 text-xs text-gray-500">
+      <template x-for="step in totalSteps" :key="step">
+        <div 
+          @click="goToStep(step)"
+          :class="{
+            'text-blue-600 font-medium': step <= currentStep,
+            'cursor-pointer hover:text-blue-800': step <= currentStep
+          }"
+          class="text-center flex-1 truncate"
+          x-text="getStepName(step)">
+        </div>
+      </template>
+    </div>
+  </div>
+  
+  <!-- Step Content -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    {% block step_content %}{% endblock %}
+  </div>
+  
+  <!-- Navigation Buttons -->
+  <div class="flex justify-between mt-6">
+    <button
+      x-show="currentStep > 1"
+      @click="prevStep()"
+      type="button"
+      class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      :disabled="isSubmitting">
+      &larr; Previous
+    </button>
+    
+    <div class="ml-auto">
+      <button
+        x-show="currentStep < totalSteps"
+        @click="nextStep()"
+        type="button"
+        class="px-6 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        :disabled="isSubmitting">
+        Save & Continue &rarr;
+      </button>
+      
+      <button
+        x-show="currentStep === totalSteps"
+        @click="submitForm()"
+        type="button"
+        class="px-6 py-2 border border-transparent rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        :disabled="isSubmitting">
+        <span x-show="!isSubmitting">Submit Application</span>
+        <span x-show="isSubmitting">Processing...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Helper function to get step name
+function getStepName(step) {
+  const steps = [
+    "Personal Details",
+    "Policy Selection",
+    "Spouse Information",
+    "Children & Extended",
+    "Beneficiaries",
+    "Payment Options",
+    "OTP Verification",
+    "Review & Consent",
+    "Confirmation"
+  ];
+  return steps[step - 1] || `Step ${step}`;
+}
+</script>
+
+{% endblock %}

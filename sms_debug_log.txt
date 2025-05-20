@@ -1,0 +1,20 @@
+
+📡 send_sms() was called at 2025-04-29 17:46:49.347460 to: +27789809050
+
+📡 send_sms() was called at 2025-04-29 17:47:02.678687 to: +27789809050
+
+📡 send_sms() was called at 2025-04-29 17:49:07.380278 to: +27789809050
+
+📡 send_sms() was called at 2025-04-29 17:49:51.807629 to: +27789809050
+
+📡 send_sms() was called at 2025-04-29 17:53:21.721411 to: +27789809050
+
+📡 send_sms() was called at 2025-04-29 17:58:17.865371 to: +27789809050
+🧾 Payload: {'to': ['+27789809050'], 'body': 'Legacy Guard Brokers: Your OTP is 001078.\nBy entering this OTP, you confirm your acceptance of the Policy Terms & Conditions and authorize electronic signature under the ECT Act.\nView full terms here: https://legacyguard.co.za/policy-terms-and-conditions/', 'encoding': 'UNICODE'}
+📬 HTTP Response Code: 400
+📬 Response Body: {
+  "type" : "https://developer.bulksms.com/json/v1/errors#invalid-body-length",
+  "title" : "Invalid Body Length",
+  "status" : 400,
+  "detail" : "Maximum length of Text message of 3 parts is 201 characters"
+}

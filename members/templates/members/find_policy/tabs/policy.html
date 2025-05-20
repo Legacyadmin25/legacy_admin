@@ -1,0 +1,251 @@
+{% load widget_tweaks %}
+
+<div class="space-y-6">
+  <!-- Policy Header -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-5 sm:px-6 border-b border-gray-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900">Policy #{{ policy.policy_number }}</h2>
+          <div class="mt-1 flex items-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                <circle cx="4" cy="4" r="3" />
+              </svg>
+              Active
+            </span>
+            <span class="ml-2 text-sm text-gray-500">
+              Since {{ policy.start_date|date:"M d, Y" }}
+            </span>
+          </div>
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-3">
+          <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+            </svg>
+            View Policy
+          </button>
+          <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Summary Cards -->
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Plan Type Card -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Plan</dt>
+              <dd class="text-lg font-semibold text-gray-900">{{ policy.plan.name }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Premium Card -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Monthly Premium</dt>
+              <dd class="text-lg font-semibold text-gray-900">R{{ policy.plan.premium|floatformat:2 }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coverage Card -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Coverage</dt>
+              <dd class="text-lg font-semibold text-gray-900">R{{ policy.plan.coverage_amount|floatformat:2|default:"-" }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Next Payment</dt>
+              <dd class="text-lg font-semibold text-gray-900">{{ policy.next_payment_date|date:"M d, Y"|default:"-" }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Details Form -->
+  <div class="mt-8">
+    <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+      {% csrf_token %}
+      <input type="hidden" name="tab" value="policy">
+      
+      <div class="shadow overflow-hidden sm:rounded-lg">
+        <!-- Form Sections Header -->
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6 bg-gray-50">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Policy Details</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">Manage policy information and settings</p>
+        </div>
+        
+        <div class="px-4 py-5 sm:p-6">
+          <!-- Plan Information Section -->
+          <div class="mb-8">
+            <h4 class="text-md font-medium text-gray-700 mb-4 pb-2 border-b border-gray-200">Plan Information</h4>
+            <div class="grid grid-cols-6 gap-6">
+              <div class="col-span-6 sm:col-span-3">
+                <label for="id_plan" class="block text-sm font-medium text-gray-700">Plan Type</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  {% render_field policy_form.plan class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                </div>
+                {{ policy_form.plan.errors }}
+                <p class="mt-1 text-xs text-gray-500">Select the insurance plan type</p>
+              </div>
+
+              <div class="col-span-6 sm:col-span-3">
+                <label class="block text-sm font-medium text-gray-700">Monthly Premium</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">R</span>
+                  </div>
+                  <input type="text" 
+                         value="{{ policy.plan.premium|floatformat:2 }}" 
+                         class="bg-gray-50 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" 
+                         readonly />
+                  <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">/month</span>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Automatically calculated based on plan</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Policy Dates Section -->
+          <div class="mb-8">
+            <h4 class="text-md font-medium text-gray-700 mb-4 pb-2 border-b border-gray-200">Policy Dates</h4>
+            <div class="grid grid-cols-6 gap-6">
+              <div class="col-span-6 sm:col-span-2">
+                <label for="id_start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                <div class="mt-1">
+                  {% render_field policy_form.start_date type="date" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                </div>
+                {{ policy_form.start_date.errors }}
+                <p class="mt-1 text-xs text-gray-500">When coverage begins</p>
+              </div>
+
+              <div class="col-span-6 sm:col-span-2">
+                <label for="id_inception_date" class="block text-sm font-medium text-gray-700">Inception Date</label>
+                <div class="mt-1">
+                  {% render_field policy_form.inception_date type="date" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                </div>
+                {{ policy_form.inception_date.errors }}
+                <p class="mt-1 text-xs text-gray-500">Original policy start</p>
+              </div>
+
+              <div class="col-span-6 sm:col-span-2">
+                <label for="id_cover_date" class="block text-sm font-medium text-gray-700">Cover Date</label>
+                <div class="mt-1">
+                  {% render_field policy_form.cover_date type="date" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                </div>
+                {{ policy_form.cover_date.errors }}
+                <p class="mt-1 text-xs text-gray-500">When coverage is active from</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information Section -->
+          <div class="mb-8">
+            <h4 class="text-md font-medium text-gray-700 mb-4 pb-2 border-b border-gray-200">Additional Information</h4>
+            <div class="grid grid-cols-6 gap-6">
+              <div class="col-span-6 sm:col-span-3">
+                <label for="id_underwritten_by" class="block text-sm font-medium text-gray-700">Underwritten By</label>
+                <div class="mt-1">
+                  <input type="text" 
+                         value="{{ policy.underwritten_by }}" 
+                         class="bg-gray-50 block w-full sm:text-sm border-gray-300 rounded-md" 
+                         readonly />
+                </div>
+                {{ policy_form.underwritten_by.errors }}
+                <p class="mt-1 text-xs text-gray-500">Insurance provider</p>
+              </div>
+
+              <div class="col-span-6 sm:col-span-3">
+                <label for="id_status" class="block text-sm font-medium text-gray-700">Policy Status</label>
+                <div class="mt-1">
+                  <select id="id_status" class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white">
+                    <option>Active</option>
+                    <option>Pending</option>
+                    <option>Lapsed</option>
+                    <option>Cancelled</option>
+                  </select>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Current policy status</p>
+              </div>
+
+              <div class="col-span-6">
+                <label for="id_notes" class="block text-sm font-medium text-gray-700">Policy Notes</label>
+                <div class="mt-1">
+                  {% render_field policy_form.notes class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" rows="3" %}
+                </div>
+                {{ policy_form.notes.errors }}
+                <p class="mt-1 text-xs text-gray-500">Additional notes or special instructions</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 border-t border-gray-200">
+          <button type="button" class="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Cancel
+          </button>
+          <button type="submit" name="save_policy" class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

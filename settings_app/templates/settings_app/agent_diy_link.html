@@ -1,0 +1,34 @@
+{# templates/settings_app/agent_diy_link.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-lg mx-auto p-6 bg-white rounded shadow">
+  <h2 class="text-xl font-semibold mb-4">DIY Sign-Up Link</h2>
+
+  {% if diy_link %}
+    <p class="mb-2"><strong>Your current link:</strong></p>
+    <a href="{{ diy_link }}" target="_blank"
+       class="block mb-4 text-blue-600 underline break-all">
+      {{ diy_link }}
+    </a>
+    <form method="post" class="inline">
+      {% csrf_token %}
+      <button name="action" value="revoke"
+              class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+        Revoke Link
+      </button>
+    </form>
+  {% else %}
+    <p class="mb-4 text-gray-600">You don’t have a DIY link yet.</p>
+  {% endif %}
+
+  <form method="post" class="mt-4">
+    {% csrf_token %}
+    <button name="action" value="generate"
+            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+      {% if diy_link %}Refresh Link{% else %}Generate Link{% endif %}
+    </button>
+  </form>
+</div>
+{% endblock %}

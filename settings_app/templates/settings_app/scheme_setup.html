@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+  {# ─── SCHEME SETUP FORM ─────────────────────────────────────────────────── #}
+  <div class="bg-white p-6 rounded-lg shadow space-y-6">
+    <h1 class="text-2xl font-bold">Scheme Setup</h1>
+
+    <form
+      method="post"
+      enctype="multipart/form-data"
+      action="{% if form.instance.pk %}
+                {% url 'settings:scheme_edit' form.instance.pk %}
+              {% else %}
+                {% url 'settings:scheme_create' %}
+              {% endif %}"
+    >
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="bg-red-100 text-red-700 p-4 rounded mb-4">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- LEFT COLUMN -->
+        <div class="space-y-6">
+          <div>
+            <label for="id_branch" class="block font-semibold mb-1">Branch</label>
+            {% render_field form.branch class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.branch.errors }}
+          </div>
+          <div>
+            <label for="id_name" class="block font-semibold mb-1">Name</label>
+            {% render_field form.name class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.name.errors }}
+          </div>
+          <div>
+            <label for="id_prefix" class="block font-semibold mb-1">Prefix</label>
+            {% render_field form.prefix class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.prefix.errors }}
+          </div>
+          <div>
+            <label for="id_registration_no" class="block font-semibold mb-1">Registration no</label>
+            {% render_field form.registration_no class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.registration_no.errors }}
+          </div>
+          <div>
+            <label for="id_fsp_number" class="block font-semibold mb-1">Fsp number</label>
+            {% render_field form.fsp_number class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.fsp_number.errors }}
+          </div>
+          <h3 class="text-xl font-semibold pt-4">Scheme Address</h3>
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label for="id_address" class="block font-semibold mb-1">Street Address</label>
+              {% render_field form.address class="w-full px-4 py-2 border rounded focus:ring" %}
+              {{ form.address.errors }}
+            </div>
+            <div>
+              <label for="id_city" class="block font-semibold mb-1">Town/City</label>
+              {% render_field form.city class="w-full px-4 py-2 border rounded focus:ring" %}
+              {{ form.city.errors }}
+            </div>
+            <div>
+              <label for="id_province" class="block font-semibold mb-1">Province</label>
+              {% render_field form.province class="w-full px-4 py-2 border rounded focus:ring" %}
+              {{ form.province.errors }}
+            </div>
+            <div>
+              <label for="id_postal_code" class="block font-semibold mb-1">Postal Code</label>
+              {% render_field form.postal_code class="w-full px-4 py-2 border rounded focus:ring" %}
+              {{ form.postal_code.errors }}
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 mt-4">
+            {% render_field form.allow_auto_policy_number class="mr-2" %}
+            <label for="id_allow_auto_policy_number" class="font-semibold">Allow auto‑generate policy number</label>
+            {{ form.allow_auto_policy_number.errors }}
+          </div>
+          <div class="flex items-center space-x-2 mt-4">
+            {% render_field form.active class="mr-2" %}
+            <label for="id_active" class="font-semibold">Active Status</label>
+            {{ form.active.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Scheme Logo</label>
+            <input
+              type="file"
+              name="logo"
+              id="logo-input"
+              class="w-full px-4 py-2 border rounded focus:ring"
+            />
+            {{ form.logo.errors }}
+          </div>
+        </div>
+        <!-- RIGHT COLUMN -->
+        <div class="space-y-6">
+          <div>
+            <label for="id_phone" class="block font-semibold mb-1">Cellphone Number</label>
+            {% render_field form.phone class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.phone.errors }}
+          </div>
+          <div>
+            <label for="id_email" class="block font-semibold mb-1">Email Address</label>
+            {% render_field form.email class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.email.errors }}
+          </div>
+          <div>
+            <label for="id_terms" class="block font-semibold mb-1">Terms</label>
+            {% render_field form.terms class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.terms.errors }}
+          </div>
+          <div>
+            <label for="id_bank_name" class="block font-semibold mb-1">Bank name</label>
+            {% render_field form.bank_name class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.bank_name.errors }}
+          </div>
+          <div>
+            <label for="id_branch_code" class="block font-semibold mb-1">Branch code</label>
+            {% render_field form.branch_code class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.branch_code.errors }}
+          </div>
+          <div>
+            <label for="id_account_no" class="block font-semibold mb-1">Account no</label>
+            {% render_field form.account_no class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.account_no.errors }}
+          </div>
+          <div>
+            <label for="id_account_type" class="block font-semibold mb-1">Account type</label>
+            {% render_field form.account_type class="w-full px-4 py-2 border rounded focus:ring" %}
+            {{ form.account_type.errors }}
+          </div>
+        </div>
+      </div><!-- /grid -->
+
+      <div class="mt-8 flex justify-end space-x-4">
+        {% if form.instance.pk %}
+          <a href="{% url 'settings:scheme_delete' form.instance.pk %}"
+             class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+            Delete Scheme
+          </a>
+        {% endif %}
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          Save Scheme
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# ─── SCHEME LIST ─────────────────────────────────────────────────────────── #}
+  <div class="bg-white p-6 rounded-lg shadow">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Scheme List</h2>
+      <a href="{% url 'settings:scheme_create' %}"
+         class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        New Scheme
+      </a>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-4 py-2">Name</th>
+          <th class="px-4 py-2">Scheme Number</th>
+          <th class="px-4 py-2">Active</th>
+          <th class="px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for scheme in schemes %}
+          <tr>
+            <td class="px-4 py-2">{{ scheme.name }}</td>
+            <td class="px-4 py-2">{{ scheme.scheme_number }}</td>
+            <td class="px-4 py-2">{{ scheme.is_active|yesno:"Yes,No" }}</td>
+            <td class="px-4 py-2 space-x-2">
+              <a href="{% url 'settings:scheme_edit' scheme.pk %}" class="text-blue-600 hover:underline">Edit</a>
+              <a href="{% url 'settings:scheme_delete' scheme.pk %}" class="text-red-600 hover:underline">Delete</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">No schemes yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const inp = document.getElementById('logo-input');
+    if (!inp) return;
+    inp.addEventListener('change', function(e){
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = document.getElementById('logo-preview');
+          img.src = evt.target.result;
+          img.classList.remove('hidden');
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+  });
+</script>
+{% endblock %}

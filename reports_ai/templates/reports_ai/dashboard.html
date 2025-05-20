@@ -1,0 +1,233 @@
+{% extends 'reports_ai/base.html' %}
+
+{% block title %}AI Report Dashboard - Legacy Admin{% endblock %}
+
+{% block report_content %}
+<div class="report-container">
+    <div class="report-header">
+        <h2 class="report-title">AI Report Generator</h2>
+        <p class="report-subtitle">Ask for any report in plain English and our AI will generate it for you</p>
+    </div>
+    
+    <div class="mb-6">
+        <form id="report-query-form" method="post" action="{% url 'reports_ai:process_query' %}">
+            {% csrf_token %}
+            <div class="flex space-x-2">
+                <div class="flex-grow">
+                    <div class="relative">
+                        <input type="text" 
+                               id="query-input"
+                               name="query"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="E.g., 'Show me commissions for agents in March 2024'"
+                               autocomplete="off"
+                               required>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <button type="submit" 
+                                    class="p-1 text-gray-500 hover:text-blue-600 focus:outline-none"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="left"
+                                    title="Generate Report">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2 text-sm text-gray-500">
+                Try: "<span class="sample-question" onclick="useSampleQuestion(this)" data-question="Show me commissions for agents in March 2024">commissions for agents in March 2024</span>"
+                or "<span class="sample-question" onclick="useSampleQuestion(this)" data-question="List all lapsed policies this month">lapsed policies this month</span>"
+            </div>
+        </form>
+    </div>
+    
+    <!-- Results Area -->
+    <div id="report-results" class="mt-8">
+        {% if recent_reports %}
+        <div class="mb-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Reports</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for report in recent_reports %}
+                <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ report.name|truncatechars:30 }}</h4>
+                            <p class="text-sm text-gray-500">{{ report.report_type|title }} Report</p>
+                            <p class="text-xs text-gray-400 mt-1">Created {{ report.created_at|timesince }} ago</p>
+                        </div>
+                        <div class="flex space-x-1">
+                            <a href="{% url 'reports_ai:view_saved_report' report.id %}" 
+                               class="p-1 text-blue-600 hover:text-blue-800"
+                               data-bs-toggle="tooltip"
+                               title="View Report">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Report Types -->
+        <div class="mt-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Report Types</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Commission Reports -->
+                <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-2">
+                        <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h4 class="font-medium">Commission Reports</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">Track agent commissions, bonuses, and performance metrics.</p>
+                    <button onclick="useSampleQuestion(this)" 
+                            data-question="Show agent commissions for Q1 2024"
+                            class="text-sm text-blue-600 hover:underline">
+                        Try: "Show agent commissions for Q1 2024"
+                    </button>
+                </div>
+                
+                <!-- Lapse Reports -->
+                <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-2">
+                        <div class="p-2 rounded-full bg-red-100 text-red-600 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
+                            </svg>
+                        </div>
+                        <h4 class="font-medium">Lapse Reports</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">Monitor policy lapses, cancellations, and retention metrics.</p>
+                    <button onclick="useSampleQuestion(this)" 
+                            data-question="Show lapsed policies this month by reason"
+                            class="text-sm text-blue-600 hover:underline">
+                        Try: "Show lapsed policies this month by reason"
+                    </button>
+                </div>
+                
+                <!-- Claims Reports -->
+                <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-2">
+                        <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                        </div>
+                        <h4 class="font-medium">Claims Reports</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">Analyze claims data, status, and processing times.</p>
+                    <button onclick="useSampleQuestion(this)" 
+                            data-question="Show claims paid last quarter by type"
+                            class="text-sm text-blue-600 hover:underline">
+                        Try: "Show claims paid last quarter by type"
+                    </button>
+                </div>
+                
+                <!-- Payment Reports -->
+                <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-2">
+                        <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <h4 class="font-medium">Payment Reports</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">View payment collections, outstanding amounts, and payment methods.</p>
+                    <button onclick="useSampleQuestion(this)" 
+                            data-question="Show payment collections for April 2024 by method"
+                            class="text-sm text-blue-600 hover:underline">
+                        Try: "Show payment collections for April 2024 by method"
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator (initially hidden) -->
+<div id="loading-indicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p class="text-gray-700">Generating your report...</p>
+        <p class="text-sm text-gray-500 mt-2">This may take a moment</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+// Handle form submission with AJAX
+document.getElementById('report-query-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const resultsDiv = document.getElementById('report-results');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    
+    // Show loading indicator
+    loadingIndicator.classList.remove('hidden');
+    
+    // Submit form via AJAX
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Update the results div with the new content
+        resultsDiv.innerHTML = html;
+        // Reinitialize any tooltips in the new content
+        initTooltips();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultsDiv.innerHTML = `
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700">
+                            An error occurred while processing your request. Please try again.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Hide loading indicator
+        loadingIndicator.classList.add('hidden');
+        // Scroll to results
+        resultsDiv.scrollIntoView({ behavior: 'smooth' });
+    });
+});
+</script>
+{% endblock %}

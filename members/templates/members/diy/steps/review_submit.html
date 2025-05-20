@@ -1,0 +1,278 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<div x-data="reviewHandler">
+  <div class="max-w-4xl mx-auto">
+    <!-- Application Progress -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900">Review Your Application</h2>
+      <p class="mt-2 text-sm text-gray-600">
+        Please review all the information below before submitting your application.
+      </p>
+      
+      <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 bg-gray-50">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg leading-6 font-medium text-gray-900">
+                {{ policy_type|title }} Cover Application
+              </h3>
+              <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Application ID: <span class="font-mono">{{ application_id|default:'NEW' }}</span>
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-file-alt mr-1"></i> Draft
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Application Sections -->
+    <div class="space-y-8">
+      <!-- Personal Details Section -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Personal Details
+          </h3>
+          <button type="button" @click="editSection('personal')" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+            Edit
+          </button>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+          <dl class="sm:divide-y sm:divide-gray-200">
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Full Name</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {{ first_name }} {{ last_name }}
+              </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">ID Number</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {{ id_number }}
+              </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Date of Birth</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {{ date_of_birth|date:"d F Y" }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Policy Details Section -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Policy Details
+          </h3>
+          <button type="button" @click="editSection('policy')" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+            Edit
+          </button>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+          <dl class="sm:divide-y sm:divide-gray-200">
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Policy Type</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {{ policy_type|title }} Cover
+              </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Cover Amount</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                R{{ cover_amount|floatformat:2|intcomma }}
+              </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Monthly Premium</dt>
+              <dd class="mt-1 text-lg font-semibold text-blue-700 sm:mt-0 sm:col-span-2">
+                R{{ monthly_premium|floatformat:2|intcomma }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Payment Details Section -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Payment Details
+          </h3>
+          <button type="button" @click="editSection('payment')" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+            Edit
+          </button>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+          <dl class="sm:divide-y sm:divide-gray-200">
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Payment Method</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {% if payment_method == 'debit_order' %}
+                  Debit Order ({{ bank_name|title }} ••••{{ account_last_four }})
+                {% else %}
+                  Credit Card ({{ card_type|title }} ••••{{ card_last_four }})
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Terms and Conditions -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="terms_accepted" name="terms_accepted" type="checkbox" 
+                     class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                     x-model="termsAccepted"
+                     required>
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="terms_accepted" class="font-medium text-gray-700">
+                I agree to the <a href="#" class="text-blue-600 hover:text-blue-500">Terms of Service</a> and <a href="#" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+              </label>
+              <p class="text-gray-500">
+                By checking this box, you confirm that all information provided is accurate and complete.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Submit and Back Buttons -->
+      <div class="flex justify-between mt-8">
+        <button type="button" @click="goBack" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <i class="fas fa-arrow-left mr-2"></i> Back
+        </button>
+        
+        <div class="space-x-3">
+          <button type="button" @click="submitApplication" 
+                  :disabled="!termsAccepted || isSubmitting"
+                  :class="{'opacity-75 cursor-not-allowed': !termsAccepted || isSubmitting, 'hover:bg-blue-700': termsAccepted && !isSubmitting}"
+                  class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <template x-if="!isSubmitting">
+              <span class="flex items-center">
+                <i class="fas fa-paper-plane mr-2"></i> Submit Application
+              </span>
+            </template>
+            <template x-if="isSubmitting">
+              <span class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </span>
+            </template>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Confirmation Modal -->
+  <div x-show="showConfirmation" 
+       class="fixed z-10 inset-0 overflow-y-auto" 
+       x-transition:enter="ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div x-show="showConfirmation" 
+           class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+           @click="showConfirmation = false"
+           aria-hidden="true"></div>
+      
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      
+      <div x-show="showConfirmation"
+           class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+        <div>
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+            <i class="fas fa-check text-green-600 text-xl"></i>
+          </div>
+          <div class="mt-3 text-center sm:mt-5">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+              Application Submitted Successfully!
+            </h3>
+            <div class="mt-2">
+              <p class="text-sm text-gray-500">
+                Thank you for choosing our insurance services. Your application has been received.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-5 sm:mt-6">
+          <a href="{% url 'members_dashboard' %}" class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+            Go to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('reviewHandler', () => ({
+    termsAccepted: false,
+    isSubmitting: false,
+    showConfirmation: false,
+    
+    init() {
+      if (this.$store.formData.terms_accepted) {
+        this.termsAccepted = this.$store.formData.terms_accepted === 'true';
+      }
+    },
+    
+    editSection(section) {
+      this.updateStore();
+      window.location.href = `/diy/application/${section}/`;
+    },
+    
+    goBack() {
+      window.history.back();
+    },
+    
+    async submitApplication() {
+      if (!this.termsAccepted) {
+        showToast('Please accept the terms and conditions', 'error');
+        return;
+      }
+      
+      this.isSubmitting = true;
+      
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Show success message
+        this.showConfirmation = true;
+        
+      } catch (error) {
+        console.error('Submission error:', error);
+        showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+    
+    updateStore() {
+      this.$store.formData.terms_accepted = this.termsAccepted.toString();
+    }
+  }));
+});
+</script>
+{% endblock %}

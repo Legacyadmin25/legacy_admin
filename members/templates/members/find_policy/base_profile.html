@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Policy Search & Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg shadow p-6 space-y-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Policy Search</h1>
+    </div>
+
+    <!-- Smart Search Form -->
+    <div class="bg-gray-50 p-4 rounded-lg">
+      <form id="search-form" method="get" action="{% url 'members:find_policy' %}" class="space-y-4">
+        <!-- Main Search Input -->
+        <div class="relative">
+          <div class="flex items-center border rounded-lg overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+            <div class="pl-3 pr-2 text-gray-400">
+              <i class="fas fa-search"></i>
+            </div>
+            <input 
+              type="text" 
+              id="smart-search" 
+              name="q" 
+              value="{{ q }}" 
+              placeholder="Search by name, ID number, phone, or policy number..." 
+              class="w-full py-3 px-2 outline-none text-gray-700"
+              autocomplete="off"
+            />
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3">
+              Search
+            </button>
+          </div>
+          <div id="search-suggestions" class="suggestions-container hidden"></div>
+        </div>
+        
+        <!-- Advanced Filters Toggle -->
+        <div class="flex justify-end">
+          <button 
+            type="button" 
+            id="toggle-filters" 
+            class="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+          >
+            <i class="fas fa-sliders-h mr-1"></i> Advanced Filters
+            <i class="fas fa-chevron-down ml-1 transition-transform duration-200" id="filter-chevron"></i>
+          </button>
+        </div>
+        
+        <!-- Advanced Filters (Hidden by Default) -->
+        <div id="advanced-filters" class="advanced-filters mt-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Status Filter -->
+            <div>
+              <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+              <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Statuses</option>
+                <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+                <option value="lapsed" {% if status == 'lapsed' %}selected{% endif %}>Lapsed</option>
+                <option value="trial" {% if status == 'trial' %}selected{% endif %}>On Trial</option>
+              </select>
+            </div>
+            
+            <!-- Branch Filter (for admin/branch owner) -->
+            {% if user_role == 'internal_admin' or user_role == 'compliance_auditor' %}
+            <div>
+              <label for="branch" class="block text-sm font-medium text-gray-700">Branch</label>
+              <select name="branch" id="branch" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Branches</option>
+                {% for branch in branches %}
+                  <option value="{{ branch.id }}" {% if selected_branch == branch.id %}selected{% endif %}>{{ branch.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            
+            <!-- Scheme Filter (filtered by user's role) -->
+            <div>
+              <label for="scheme" class="block text-sm font-medium text-gray-700">Scheme</label>
+              <select name="scheme" id="scheme" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Schemes</option>
+                {% for scheme in schemes %}
+                  <option value="{{ scheme.id }}" {% if selected_scheme == scheme.id %}selected{% endif %}>{{ scheme.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Agent Filter (only for scheme/branch/admin) -->
+            {% if user_role != 'agent' %}
+            <div>
+              <label for="agent" class="block text-sm font-medium text-gray-700">Agent</label>
+              <select name="agent" id="agent" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Agents</option>
+                {% for agent in agents %}
+                  <option value="{{ agent.id }}" {% if selected_agent == agent.id %}selected{% endif %}>{{ agent.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            
+            <!-- Date Range Filters -->
+            <div>
+              <label for="date_from" class="block text-sm font-medium text-gray-700">Start Date (From)</label>
+              <input type="date" name="date_from" id="date_from" value="{{ date_from }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label for="date_to" class="block text-sm font-medium text-gray-700">Start Date (To)</label>
+              <input type="date" name="date_to" id="date_to" value="{{ date_to }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <!-- Cover Amount Filters -->
+            <div>
+              <label for="cover_min" class="block text-sm font-medium text-gray-700">Min Cover Amount</label>
+              <input type="number" name="cover_min" id="cover_min" value="{{ cover_min }}" placeholder="Min" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label for="cover_max" class="block text-sm font-medium text-gray-700">Max Cover Amount</label>
+              <input type="number" name="cover_max" id="cover_max" value="{{ cover_max }}" placeholder="Max" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <!-- Payment Method Filter -->
+            <div>
+              <label for="payment_method" class="block text-sm font-medium text-gray-700">Payment Method</label>
+              <select name="payment_method" id="payment_method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Methods</option>
+                {% for method_value, method_name in payment_methods %}
+                  <option value="{{ method_value }}" {% if selected_payment_method == method_value %}selected{% endif %}>{{ method_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <!-- Filter Actions -->
+          <div class="mt-4 flex justify-end space-x-2">
+            <a href="{% url 'members:find_policy' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md">
+              <i class="fas fa-times mr-1"></i> Clear Filters
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+              <i class="fas fa-filter mr-1"></i> Apply Filters
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Search Results Header -->
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        {% if total_results is not None %}
+          <h2 class="text-lg font-semibold">Search Results <span class="text-gray-500">({{ total_results }} found)</span></h2>
+        {% endif %}
+      </div>
+      
+      <div class="flex space-x-2">
+        <!-- View Toggle -->
+        <div class="inline-flex rounded-md shadow-sm" role="group">
+          <button type="button" id="card-view-btn" class="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 active">
+            <i class="fas fa-th-large mr-1"></i> Cards
+          </button>
+          <button type="button" id="table-view-btn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+            <i class="fas fa-table mr-1"></i> Table
+          </button>
+        </div>
+        
+        <!-- Export Button -->
+        {% if policies and policies|length > 0 %}
+        <a href="{% url 'members:export_search_results' %}?{{ request.GET.urlencode }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+          <i class="fas fa-download mr-1"></i> Export
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Card View (Default) -->
+    <div id="card-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% if policies %}
+        {% for policy in policies %}
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="p-4">
+              <!-- Policy Header -->
+              <div class="flex justify-between items-start mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 truncate">{{ policy.member.first_name }} {{ policy.member.last_name }}</h3>
+                <div>
+                  {% if policy.is_active %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                  {% elif policy.is_trial %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Trial</span>
+                  {% else %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Lapsed</span>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <!-- Policy Details -->
+              <div class="space-y-2 mb-4">
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">Policy #:</span>
+                  <span class="text-sm font-medium">{{ policy.policy_number|default:policy.uw_membership_number|default:'-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">ID Number:</span>
+                  <span class="text-sm font-medium">{{ policy.member.id_number|default:'-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">Phone:</span>
+                  <span class="text-sm font-medium">{{ policy.member.phone_number|default:'-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">Plan:</span>
+                  <span class="text-sm font-medium">{{ policy.plan.name|default:'-' }}</span>
+                </div>
+                {% if policy.plan.description %}
+                <div class="mt-1">
+                  <div class="text-sm text-gray-500 mb-1">Plan Description:</div>
+                  <div class="text-sm text-gray-700 bg-gray-50 p-2 rounded-md">
+                    <div class="description-preview" id="description-{{ policy.id }}">
+                      {{ policy.plan.description|truncatechars:100 }}
+                      {% if policy.plan.description|length > 100 %}
+                        <button class="text-blue-600 hover:text-blue-800 text-xs ml-1 toggle-description" data-target="description-full-{{ policy.id }}">Show More</button>
+                      {% endif %}
+                    </div>
+                    {% if policy.plan.description|length > 100 %}
+                    <div class="description-full hidden" id="description-full-{{ policy.id }}">
+                      {{ policy.plan.description }}
+                      <button class="text-blue-600 hover:text-blue-800 text-xs ml-1 toggle-description" data-target="description-{{ policy.id }}">Show Less</button>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+                <div class="flex justify-between mt-2">
+                  <span class="text-sm text-gray-500">Start Date:</span>
+                  <span class="text-sm font-medium">{{ policy.start_date|date:"d M Y"|default:'-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">Premium:</span>
+                  <span class="text-sm font-medium">R{{ policy.premium|default:'0.00' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-500">Cover Amount:</span>
+                  <span class="text-sm font-medium">R{{ policy.cover_amount|default:'0.00' }}</span>
+                </div>
+                
+                <!-- Payment Information -->
+                <div class="mt-3 pt-3 border-t border-gray-100">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">Payment Information</span>
+                    {% if policy.payment_method == 'DEBIT_ORDER' %}
+                      <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Debit Order</span>
+                    {% elif policy.payment_method == 'EFT' %}
+                      <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">EFT</span>
+                    {% elif policy.payment_method == 'EASYPAY' %}
+                      <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">EasyPay</span>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Last Payment:</span>
+                    <span class="text-sm font-medium">{{ policy.last_payment_date|date:"d M Y"|default:'-' }}</span>
+                  </div>
+                  {% if policy.last_payment_amount %}
+                  <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Amount:</span>
+                    <span class="text-sm font-medium">R{{ policy.last_payment_amount }}</span>
+                  </div>
+                  {% endif %}
+                  <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Next Payment:</span>
+                    <span class="text-sm font-medium">{{ policy.next_payment_date|date:"d M Y"|default:'-' }}</span>
+                  </div>
+                  
+                  {% if policy.lapse_reason %}
+                  <div class="mt-2 p-2 bg-red-50 rounded-md">
+                    <span class="text-sm font-medium text-red-700">Lapse Reason: {{ policy.lapse_reason }}</span>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="mt-4 space-y-2">
+                <a href="{% url 'members:policy_detail' policy.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <i class="fas fa-user-circle mr-2"></i> Open Full Profile
+                </a>
+                <button 
+                  class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 copy-policy-link"
+                  data-policy-id="{{ policy.id }}"
+                  data-policy-url="{{ request.scheme }}://{{ request.get_host }}{% url 'members:policy_detail' policy.id %}"
+                >
+                  <i class="fas fa-link mr-2"></i> Copy Policy Link
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="col-span-full text-center py-8">
+          <i class="fas fa-search text-4xl text-gray-300 mb-2"></i>
+          <p class="text-gray-500">No policies found. Try adjusting your search criteria.</p>
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Table View (Hidden by Default) -->
+    <div id="table-view" class="overflow-x-auto hidden">
+      {% if policies %}
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy #</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheme</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for policy in policies %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {{ policy.policy_number|default:policy.uw_membership_number|default:'-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ policy.member.first_name }} {{ policy.member.last_name }}</div>
+                <div class="text-sm text-gray-500">{{ policy.member.phone_number|default:'No phone' }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ policy.member.id_number|default:'-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ policy.scheme.name|default:'-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ policy.plan.name|default:'-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                R{{ policy.premium|default:'0.00' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                R{{ policy.cover_amount|default:'0.00' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                {% if policy.is_active %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    Active
+                  </span>
+                {% elif policy.is_trial %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    Trial
+                  </span>
+                {% else %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                    Lapsed
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                <a href="{% url 'members:policy_detail' policy.id %}" class="text-blue-600 hover:text-blue-900" title="View Details">
+                  <i class="fas fa-eye"></i>
+                </a>
+                {% if user_role != 'compliance_auditor' %}
+                <a href="{% url 'members:policy_edit' policy.id %}" class="text-green-600 hover:text-green-900" title="Edit">
+                  <i class="fas fa-pen-to-square"></i>
+                </a>
+                {% endif %}
+                <a href="{% url 'members:download_policy_certificate' policy.id %}" class="text-indigo-600 hover:text-indigo-900" title="Download Certificate">
+                  <i class="fas fa-file-pdf"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="text-center py-8">
+          <i class="fas fa-inbox text-4xl text-gray-300 mb-2"></i>
+          <p class="text-gray-500">No policies found. Try adjusting your search criteria.</p>
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-center">
+      <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+          <a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <span class="sr-only">Previous</span>
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        {% else %}
+          <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+            <span class="sr-only">Previous</span>
+            <i class="fas fa-chevron-left"></i>
+          </span>
+        {% endif %}
+        
+        {% for i in page_obj.paginator.page_range %}
+          {% if page_obj.number == i %}
+            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+              {{ i }}
+            </span>
+          {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+            <a href="?{{ request.GET.urlencode }}&page={{ i }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+              {{ i }}
+            </a>
+          {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+          <a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <span class="sr-only">Next</span>
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        {% else %}
+          <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+            <span class="sr-only">Next</span>
+            <i class="fas fa-chevron-right"></i>
+          </span>
+        {% endif %}
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Update schemes dropdown based on selected branch
+$(document).ready(function() {
+  // Toggle view between card and table
+  $('#toggle-view').on('click', function() {
+    const cardView = $('#card-view');
+    const tableView = $('#table-view');
+    const icon = $(this).find('i');
+    
+    if (cardView.is(':visible')) {
+      cardView.hide();
+      tableView.removeClass('hidden');
+      icon.removeClass('fa-table').addClass('fa-th-large');
+      $(this).find('span').text('Card View');
+    } else {
+      tableView.addClass('hidden');
+      cardView.show();
+      icon.removeClass('fa-th-large').addClass('fa-table');
+      $(this).find('span').text('Table View');
+    }
+  });
+  
+  // Toggle description show more/less
+  $('.toggle-description').on('click', function() {
+    const targetId = $(this).data('target');
+    $('#' + targetId).removeClass('hidden');
+    $(this).closest('div').addClass('hidden');
+  });
+  
+  // Copy policy link to clipboard
+  $('.copy-policy-link').on('click', function() {
+    const policyUrl = $(this).data('policy-url');
+    const policyId = $(this).data('policy-id');
+    
+    // Create a temporary input element
+    const tempInput = document.createElement('input');
+    tempInput.value = policyUrl;
+    document.body.appendChild(tempInput);
+    
+    // Select and copy the text
+    tempInput.select();
+    document.execCommand('copy');
+    
+    // Remove the temporary element
+    document.body.removeChild(tempInput);
+    
+    // Show success message
+    const originalText = $(this).html();
+    $(this).html('<i class="fas fa-check mr-2"></i> Link Copied!');
+    $(this).addClass('bg-green-50 text-green-700 border-green-300');
+    
+    // Reset button after 2 seconds
+    setTimeout(() => {
+      $(this).html(originalText);
+      $(this).removeClass('bg-green-50 text-green-700 border-green-300');
+    }, 2000);
+  });
+  
+  // Check for saved preference
+  var viewPreference = localStorage.getItem('policyViewPreference');
+  if (viewPreference === 'table') {
+    $('#table-view-btn').click();
+  }
+  
+  // Toggle advanced filters
+  $('#toggle-filters').click(function() {
+    $('#advanced-filters').toggleClass('show');
+    $('#filter-chevron').toggleClass('transform rotate-180');
+  });
+  
+  // Update schemes dropdown based on selected branch
+  $('#branch').change(function() {
+    var branchId = $(this).val();
+    if (branchId) {
+      $.ajax({
+        url: '/api/schemes/?branch=' + branchId,
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          $('#scheme').empty();
+          $('#scheme').append('<option value="">All Schemes</option>');
+          $.each(data, function(key, value) {
+            $('#scheme').append('<option value="' + value.id + '">' + value.name + '</option>');
+          });
+        }
+      });
+    } else {
+      $('#scheme').empty();
+      $('#scheme').append('<option value="">All Schemes</option>');
+    }
+  });
+  
+  // Update agents dropdown based on selected scheme
+  $('#scheme').change(function() {
+    var schemeId = $(this).val();
+    if (schemeId) {
+      $.ajax({
+        url: '/api/agents/?scheme=' + schemeId,
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          $('#agent').empty();
+          $('#agent').append('<option value="">All Agents</option>');
+          $.each(data, function(key, value) {
+            $('#agent').append('<option value="' + value.id + '">' + value.full_name + '</option>');
+          });
+        }
+      });
+    } else {
+      $('#agent').empty();
+      $('#agent').append('<option value="">All Agents</option>');
+    }
+  });
+  
+  // Smart search suggestions
+  let debounceTimer;
+  
+  $('#smart-search').on('input', function() {
+    clearTimeout(debounceTimer);
+    const query = $(this).val().trim();
+    
+    if (query.length < 2) {
+      $('#search-suggestions').addClass('hidden');
+      return;
+    }
+    
+    debounceTimer = setTimeout(() => {
+      $.ajax({
+        url: '/members/api/search-suggestions/?q=' + encodeURIComponent(query),
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          if (data.suggestions && data.suggestions.length > 0) {
+            renderSuggestions(data.suggestions, query);
+            $('#search-suggestions').removeClass('hidden');
+            
+            // Check for exact match and redirect if found
+            if (data.exact_match) {
+              window.location.href = data.redirect_url;
+            }
+          } else {
+            $('#search-suggestions').addClass('hidden');
+          }
+        },
+        error: function(error) {
+          console.error('Error fetching suggestions:', error);
+          $('#search-suggestions').addClass('hidden');
+        }
+      });
+    }, 300);
+  });
+  
+  // Close suggestions when clicking outside
+  $(document).on('click', function(event) {
+    if (!$('#smart-search').is(event.target) && !$('#search-suggestions').has(event.target).length) {
+      $('#search-suggestions').addClass('hidden');
+    }
+  });
+  
+  // Render suggestions with highlighting
+  function renderSuggestions(suggestions, query) {
+    const container = $('#search-suggestions');
+    container.empty();
+    
+    suggestions.forEach(suggestion => {
+      const displayText = highlightMatch(suggestion.text, query);
+      const item = $(`
+        <div class="suggestion-item">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-medium">${displayText}</div>
+              <div class="text-xs text-gray-500">${suggestion.type}: ${suggestion.id}</div>
+            </div>
+            <div class="text-xs text-gray-400">${suggestion.extra || ''}</div>
+          </div>
+        </div>
+      `);
+      
+      item.on('click', function() {
+        if (suggestion.redirect_url) {
+          window.location.href = suggestion.redirect_url;
+        } else {
+          $('#smart-search').val(suggestion.text);
+          $('#search-suggestions').addClass('hidden');
+          $('#search-form').submit();
+        }
+      });
+      
+      container.append(item);
+    });
+  }
+  
+  // Highlight matching text
+  function highlightMatch(text, query) {
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+  }
+  
+  // Escape special regex characters
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

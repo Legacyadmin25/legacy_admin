@@ -1,0 +1,265 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<form method="post" action="{% url 'members_diy:diy_contact_information' %}" x-data="formHandler">
+  {% csrf_token %}
+  
+  <!-- Hidden fields for form state -->
+  <input type="hidden" name="form_type" value="contact_information">
+  
+  <div class="space-y-6">
+    <!-- Contact Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Contact Information</h3>
+      
+      <!-- Email -->
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">Email Address <span class="text-red-500">*</span></label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+          <input type="email" id="email" name="email" x-model="$store.formData.email" required
+                 class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
+                 placeholder="your.email@example.com">
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <i class="fas fa-envelope h-5 w-5 text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Phone Numbers -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <!-- Primary Phone -->
+        <div>
+          <label for="phone_number" class="block text-sm font-medium text-gray-700">Primary Phone <span class="text-red-500">*</span></label>
+          <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="text-gray-500 sm:text-sm">+27</span>
+            </div>
+            <input type="tel" id="phone_number" name="phone_number" x-model="$store.formData.phone_number" required
+                   class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md"
+                   placeholder="82 123 4567" pattern="[0-9]{9}" title="Please enter a valid 9-digit phone number">
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <i class="fas fa-phone-alt h-5 w-5 text-gray-400"></i>
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">Mobile number (e.g., 82 123 4567)</p>
+        </div>
+        
+        <!-- Alternate Phone -->
+        <div>
+          <label for="alternate_phone" class="block text-sm font-medium text-gray-700">Alternate Phone</label>
+          <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="text-gray-500 sm:text-sm">+27</span>
+            </div>
+            <input type="tel" id="alternate_phone" name="alternate_phone" x-model="$store.formData.alternate_phone"
+                   class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md"
+                   placeholder="82 123 4567" pattern="[0-9]{9}" title="Please enter a valid 9-digit phone number">
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <i class="fas fa-phone h-5 w-5 text-gray-400"></i>
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">Optional alternative contact number</p>
+        </div>
+      </div>
+      
+      <!-- Communication Preference -->
+      <div class="pt-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Method of Communication <span class="text-red-500">*</span></label>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <input type="radio" id="comm_email" name="communication_preference" value="email" x-model="$store.formData.communication_preference" required
+                   class="form-radio h-4 w-4 text-blue-600">
+            <label for="comm_email" class="ml-2 block text-sm text-gray-700">
+              <i class="fas fa-envelope mr-1"></i> Email
+            </label>
+          </div>
+          <div>
+            <input type="radio" id="comm_sms" name="communication_preference" value="sms" x-model="$store.formData.communication_preference"
+                   class="form-radio h-4 w-4 text-blue-600">
+            <label for="comm_sms" class="ml-2 block text-sm text-gray-700">
+              <i class="fas fa-sms mr-1"></i> SMS
+            </label>
+          </div>
+          <div>
+            <input type="radio" id="comm_whatsapp" name="communication_preference" value="whatsapp" x-model="$store.formData.communication_preference"
+                   class="form-radio h-4 w-4 text-blue-600">
+            <label for="comm_whatsapp" class="ml-2 block text-sm text-gray-700">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Physical Address -->
+    <div class="pt-4 border-t border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Physical Address</h3>
+      <p class="mt-1 text-sm text-gray-500">Please provide your current residential address.</p>
+      
+      <div class="mt-4 space-y-4">
+        <!-- Address Line 1 -->
+        <div>
+          <label for="address_line_1" class="block text-sm font-medium text-gray-700">Street Address <span class="text-red-500">*</span></label>
+          <input type="text" id="address_line_1" name="address_line_1" x-model="$store.formData.address_line_1" required
+                 class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                 placeholder="123 Main Street">
+        </div>
+        
+        <!-- Address Line 2 -->
+        <div>
+          <label for="address_line_2" class="block text-sm font-medium text-gray-700">Apartment, suite, etc. (optional)</label>
+          <input type="text" id="address_line_2" name="address_line_2" x-model="$store.formData.address_line_2"
+                 class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                 placeholder="Apartment 4B">
+        </div>
+        
+        <!-- City, Province, Postal Code -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <!-- City -->
+          <div>
+            <label for="city" class="block text-sm font-medium text-gray-700">City/Town <span class="text-red-500">*</span></label>
+            <input type="text" id="city" name="city" x-model="$store.formData.city" required
+                   class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                   placeholder="e.g. Johannesburg">
+          </div>
+          
+          <!-- Province -->
+          <div>
+            <label for="province" class="block text-sm font-medium text-gray-700">Province <span class="text-red-500">*</span></label>
+            <select id="province" name="province" x-model="$store.formData.province" required
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+              <option value="">Select province</option>
+              <option value="eastern_cape">Eastern Cape</option>
+              <option value="free_state">Free State</option>
+              <option value="gauteng">Gauteng</option>
+              <option value="kwazulu_natal">KwaZulu-Natal</option>
+              <option value="limpopo">Limpopo</option>
+              <option value="mpumalanga">Mpumalanga</option>
+              <option value="north_west">North West</option>
+              <option value="northern_cape">Northern Cape</option>
+              <option value="western_cape">Western Cape</option>
+            </select>
+          </div>
+          
+          <!-- Postal Code -->
+          <div>
+            <label for="postal_code" class="block text-sm font-medium text-gray-700">Postal Code <span class="text-red-500">*</span></label>
+            <input type="text" id="postal_code" name="postal_code" x-model="$store.formData.postal_code" required
+                   class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                   placeholder="e.g. 2000" pattern="[0-9]{4}" title="Please enter a valid 4-digit postal code">
+          </div>
+        </div>
+        
+        <!-- Country -->
+        <div class="sm:col-span-2">
+          <label for="country" class="block text-sm font-medium text-gray-700">Country <span class="text-red-500">*</span></label>
+          <input type="text" id="country" name="country" x-model="$store.formData.country" required
+                 class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                 value="South Africa" readonly>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Same as Physical Address Checkbox (for postal address) -->
+    <div class="pt-4 border-t border-gray-200">
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <input id="same_as_physical" name="same_as_physical" type="checkbox" 
+                 class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                 x-model="sameAsPhysical" @change="updatePostalAddress">
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="same_as_physical" class="font-medium text-gray-700">My postal address is the same as my physical address</label>
+          <p class="text-gray-500">If checked, we'll use your physical address for all correspondence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form actions are handled by the parent template -->
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  // Initialize component
+  Alpine.data('contactInfo', () => ({
+    sameAsPhysical: true,
+    
+    init() {
+      // Set initial state based on form data
+      this.sameAsPhysical = !this.$store.formData.postal_address_line_1;
+      
+      // Watch for changes in physical address fields
+      this.$watch('sameAsPhysical', value => this.updatePostalAddress());
+      
+      // Watch physical address fields
+      const physicalFields = [
+        'address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country'
+      ];
+      
+      physicalFields.forEach(field => {
+        this.$watch(`$store.formData.${field}`, () => {
+          if (this.sameAsPhysical) {
+            this.updatePostalAddress();
+          }
+        });
+      });
+    },
+    
+    updatePostalAddress() {
+      if (this.sameAsPhysical) {
+        // Copy physical address to postal address
+        this.$store.formData.postal_address_line_1 = this.$store.formData.address_line_1;
+        this.$store.formData.postal_address_line_2 = this.$store.formData.address_line_2;
+        this.$store.formData.postal_city = this.$store.formData.city;
+        this.$store.formData.postal_province = this.$store.formData.province;
+        this.$store.formData.postal_code = this.$store.formData.postal_code;
+        this.$store.formData.postal_country = this.$store.formData.country;
+      }
+    },
+    
+    // Format phone number as user types
+    formatPhoneNumber(field) {
+      let number = this.$store.formData[field];
+      if (!number) return '';
+      
+      // Remove all non-digit characters
+      number = number.replace(/\D/g, '');
+      
+      // Format as 000 000 0000
+      if (number.length > 6) {
+        number = number.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
+      } else if (number.length > 3) {
+        number = number.replace(/(\d{3})(\d{1,3})/, '$1 $2');
+      }
+      
+      this.$store.formData[field] = number;
+    }
+  }));
+  
+  // Initialize phone number formatting
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[type="tel"]')) {
+      const field = e.target.name;
+      let value = e.target.value;
+      
+      // Remove all non-digit characters
+      value = value.replace(/\D/g, '');
+      
+      // Format as 000 000 0000
+      if (value.length > 6) {
+        value = value.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
+      } else if (value.length > 3) {
+        value = value.replace(/(\d{3})(\d{1,3})/, '$1 $2');
+      }
+      
+      // Update the value in the store
+      Alpine.store('formData')[field] = value;
+      
+      // Update the input value (needed for the display)
+      e.target.value = value;
+    }
+  });
+});
+</script>
+{% endblock %}

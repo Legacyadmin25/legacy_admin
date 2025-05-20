@@ -1,0 +1,222 @@
+{% extends "members/diy/base_application.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Application Confirmation - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  showShareOptions: false,
+  
+  toggleShareOptions() {
+    this.showShareOptions = !this.showShareOptions;
+  },
+  
+  shareViaWhatsApp() {
+    const text = 'I\'ve just applied for a policy with {{ application.reference_number }} as my reference number. You can apply too at {{ request.scheme }}://{{ request.get_host }}{% url "members:diy_start" %}';
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  },
+  
+  shareViaEmail() {
+    const subject = 'My New Policy Application';
+    const body = 'I\'ve just applied for a policy with {{ application.reference_number }} as my reference number. You can apply too at {{ request.scheme }}://{{ request.get_host }}{% url "members:diy_start" %}';
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, '_blank');
+  },
+  
+  copyReferenceNumber() {
+    navigator.clipboard.writeText('{{ application.reference_number }}').then(() => {
+      alert('Reference number copied to clipboard!');
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+    });
+  }
+}">
+  <!-- Success Message -->
+  <div class="text-center mb-10">
+    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+      <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Application Submitted Successfully!</h2>
+    <p class="text-gray-600">Your application has been received and is being processed.</p>
+    <p class="text-gray-600 mt-1">Reference Number: <span class="font-medium text-gray-900">{{ application.reference_number }}</span></p>
+    <button 
+      @click="copyReferenceNumber"
+      class="mt-2 inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <svg class="mr-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
+        <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z" />
+      </svg>
+      Copy Reference
+    </button>
+  </div>
+  
+  <!-- Policy Certificate -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50 flex justify-between items-center">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Policy Certificate</h3>
+      <a 
+        href="{% url 'members:diy_download_certificate' application_id=application.application_id %}" 
+        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+        </svg>
+        Download Certificate
+      </a>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <div class="flex justify-between items-start">
+          <div>
+            <h4 class="text-xl font-bold text-gray-900 mb-2">{{ plan.name }}</h4>
+            <p class="text-gray-600 mb-4">{{ plan.description }}</p>
+            
+            <div class="space-y-2">
+              <p class="text-sm text-gray-600">Policy Holder: <span class="font-medium text-gray-900">{{ applicant.title|title }} {{ applicant.first_name }} {{ applicant.last_name }}</span></p>
+              <p class="text-sm text-gray-600">ID Number: <span class="font-medium text-gray-900">{{ applicant.id_number }}</span></p>
+              <p class="text-sm text-gray-600">Cover Amount: <span class="font-medium text-gray-900">R{{ plan.main_cover|floatformat:2 }}</span></p>
+              <p class="text-sm text-gray-600">Monthly Premium: <span class="font-medium text-gray-900">R{{ application.premium_amount|floatformat:2 }}</span></p>
+              <p class="text-sm text-gray-600">Commencement Date: <span class="font-medium text-gray-900">{{ application.submitted_at|date:"d F Y" }}</span></p>
+              <p class="text-sm text-gray-600">Reference Number: <span class="font-medium text-gray-900">{{ application.reference_number }}</span></p>
+            </div>
+          </div>
+          
+          <div class="hidden sm:block">
+            <!-- QR Code for digital certificate verification -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_verify_certificate' application_id=application.application_id %}" alt="Certificate QR Code" class="w-24 h-24">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Next Steps -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Next Steps</h3>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+      <div class="space-y-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600">
+              1
+            </div>
+          </div>
+          <div class="ml-4">
+            <h4 class="text-lg font-medium text-gray-900">Confirmation Email</h4>
+            <p class="mt-1 text-sm text-gray-600">We've sent a confirmation email to <strong>{{ applicant.email }}</strong> with your policy details and certificate.</p>
+          </div>
+        </div>
+        
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600">
+              2
+            </div>
+          </div>
+          <div class="ml-4">
+            <h4 class="text-lg font-medium text-gray-900">Policy Activation</h4>
+            <p class="mt-1 text-sm text-gray-600">Your policy will be activated once your first premium payment is successfully processed.</p>
+          </div>
+        </div>
+        
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600">
+              3
+            </div>
+          </div>
+          <div class="ml-4">
+            <h4 class="text-lg font-medium text-gray-900">Welcome Pack</h4>
+            <p class="mt-1 text-sm text-gray-600">You'll receive a welcome pack with your physical policy documents within 7-10 business days.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Share Application -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50 flex justify-between items-center">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Share With Friends & Family</h3>
+      <button 
+        @click="toggleShareOptions"
+        type="button" 
+        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+        </svg>
+        Share
+      </button>
+    </div>
+    <div x-show="showShareOptions" class="border-t border-gray-200 px-4 py-5 sm:p-6">
+      <p class="text-sm text-gray-600 mb-4">Share this application with friends and family who might also be interested in getting covered.</p>
+      
+      <div class="flex flex-wrap gap-2">
+        <button 
+          @click="shareViaWhatsApp"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+          <svg class="mr-2 h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          WhatsApp
+        </button>
+        
+        <button 
+          @click="shareViaEmail"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="mr-2 h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+          </svg>
+          Email
+        </button>
+        
+        <a 
+          href="{% url 'members:diy_start' %}"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="mr-2 h-5 w-5 text-gray-500" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+          </svg>
+          New Application
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- AI Assistant for Questions -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Have Questions?</h3>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+      <p class="text-sm text-gray-600 mb-4">Our AI assistant can help answer any questions you might have about your policy.</p>
+      
+      <a 
+        href="{% url 'members:diy_chat' application_id=application.application_id %}" 
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="mr-2 h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+          <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+        </svg>
+        Chat with AI Assistant
+      </a>
+    </div>
+  </div>
+  
+  <!-- Return to Home -->
+  <div class="text-center mt-8">
+    <a 
+      href="{% url 'home' %}" 
+      class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+      </svg>
+      Return to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

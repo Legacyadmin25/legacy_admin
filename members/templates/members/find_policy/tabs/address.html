@@ -1,0 +1,184 @@
+{% load widget_tweaks %}
+
+<div class="space-y-8">
+  <!-- Page Header -->
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900">Address Management</h2>
+    <p class="mt-1 text-sm text-gray-500">Manage all address information for the policy holder.</p>
+  </div>
+
+  <!-- Address Types Tabs -->
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex space-x-8">
+      <button type="button" data-address-type="physical" class="border-b-2 border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 text-sm font-medium">
+        <svg class="-ml-0.5 mr-2 h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+        </svg>
+        Physical Address
+      </button>
+      <button type="button" data-address-type="postal" class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 text-sm font-medium">
+        <svg class="-ml-0.5 mr-2 h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+        </svg>
+        Postal Address
+      </button>
+      <button type="button" data-address-type="work" class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 text-sm font-medium">
+        <svg class="-ml-0.5 mr-2 h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+          <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+        </svg>
+        Work Address
+      </button>
+    </nav>
+  </div>
+
+  <!-- Physical Address Form -->
+  <div class="address-form-container" data-address-type="physical">
+    <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+      {% csrf_token %}
+      <input type="hidden" name="tab" value="address">
+      <input type="hidden" name="address_type" value="physical">
+      
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6 bg-gray-50">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            <svg class="inline-block h-5 w-5 text-blue-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+            </svg>
+            Physical Address
+          </h3>
+          <p class="mt-1 text-sm text-gray-500">The physical location where the member resides.</p>
+        </div>
+        
+        <div class="px-4 py-5 sm:p-6">
+          <div class="grid grid-cols-6 gap-6">
+            <div class="col-span-6">
+              <label for="id_address-address_line1" class="block text-sm font-medium text-gray-700">Street Address</label>
+              {% render_field address_form.address_line1 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="123 Main St" %}
+              {{ address_form.address_line1.errors }}
+              <p class="mt-1 text-xs text-gray-500">Street number and name</p>
+            </div>
+
+            <div class="col-span-6">
+              <label for="id_address-address_line2" class="block text-sm font-medium text-gray-700">Apt, Suite, etc. (Optional)</label>
+              {% render_field address_form.address_line2 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Apt 4B" %}
+              {{ address_form.address_line2.errors }}
+            </div>
+
+            <div class="col-span-6 sm:col-span-2">
+              <label for="id_address-city" class="block text-sm font-medium text-gray-700">City</label>
+              {% render_field address_form.city class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+              {{ address_form.city.errors }}
+            </div>
+
+            <div class="col-span-6 sm:col-span-2">
+              <label for="id_address-province" class="block text-sm font-medium text-gray-700">Province</label>
+              {% render_field address_form.province class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+              {{ address_form.province.errors }}
+            </div>
+
+            <div class="col-span-6 sm:col-span-2">
+              <label for="id_address-postal_code" class="block text-sm font-medium text-gray-700">Postal Code</label>
+              {% render_field address_form.postal_code class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+              {{ address_form.postal_code.errors }}
+            </div>
+
+            <div class="col-span-6">
+              <label for="id_address-country" class="block text-sm font-medium text-gray-700">Country</label>
+              {% render_field address_form.country class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+              {{ address_form.country.errors }}
+            </div>
+
+            <div class="col-span-6">
+              <div class="flex items-start">
+                <div class="flex items-center h-5">
+                  <input id="same-as-physical" name="same_as_physical" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="same-as-physical" class="font-medium text-gray-700">Set as primary address</label>
+                  <p class="text-gray-500">Use this address for all communications</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 border-t border-gray-200">
+          <button type="button" class="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Cancel
+          </button>
+          <button type="submit" name="save_address" class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Save Physical Address
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Postal Address Form (Hidden by default) -->
+  <div class="address-form-container hidden" data-address-type="postal">
+    <!-- Similar structure as physical address form -->
+    <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No postal address</h3>
+      <p class="mt-1 text-sm text-gray-500">Add a postal address to send correspondence to a different location.</p>
+      <div class="mt-6">
+        <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add Postal Address
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Work Address Form (Hidden by default) -->
+  <div class="address-form-container hidden" data-address-type="work">
+    <!-- Similar structure as physical address form -->
+    <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No work address</h3>
+      <p class="mt-1 text-sm text-gray-500">Add a work address for employment-related communications.</p>
+      <div class="mt-6">
+        <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add Work Address
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for address type tabs -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tabs = document.querySelectorAll('[data-address-type]');
+  const forms = document.querySelectorAll('.address-form-container');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const type = this.getAttribute('data-address-type');
+      
+      // Update active tab
+      document.querySelectorAll('[data-address-type]').forEach(t => {
+        t.classList.remove('border-blue-500', 'text-blue-600');
+        t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+      });
+      this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+      this.classList.add('border-blue-500', 'text-blue-600');
+      
+      // Show selected form
+      forms.forEach(form => form.classList.add('hidden'));
+      document.querySelector(`.address-form-container[data-address-type="${type}"]`).classList.remove('hidden');
+    });
+  });
+});
+</script>

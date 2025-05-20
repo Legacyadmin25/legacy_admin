@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h1 class="text-2xl font-semibold mb-4">Preview Agent Onboarding</h1>
+
+  <table class="min-w-full bg-white">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2">Row</th>
+        <th class="px-4 py-2">Full Name</th>
+        <th class="px-4 py-2">Surname</th>
+        <th class="px-4 py-2">Scheme</th>
+        <th class="px-4 py-2">Code</th>
+        <th class="px-4 py-2">Contact</th>
+        <th class="px-4 py-2">Commission %</th>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Errors</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if preview_rows %}
+        {% for row in preview_rows %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ row.row_number }}</td>
+          <td class="px-4 py-2">{{ row.full_name }}</td>
+          <td class="px-4 py-2">{{ row.surname }}</td>
+          <td class="px-4 py-2">{{ row.scheme_code }}</td>
+          <td class="px-4 py-2">{{ row.code }}</td>
+          <td class="px-4 py-2">{{ row.contact_number }}</td>
+          <td class="px-4 py-2">{{ row.commission_percentage }}</td>
+          <td class="px-4 py-2">
+            {% if row.status == 'ok' %}
+              <span class="text-green-600">OK</span>
+            {% else %}
+              <span class="text-red-600">Error</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2">
+            {% if row.errors %}{{ row.errors|join:", " }}{% else %}&mdash;{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="9" class="px-4 py-2 text-center">No data to preview.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
+      Confirm &amp; Apply
+    </button>
+  </form>
+</div>
+{% endblock %}

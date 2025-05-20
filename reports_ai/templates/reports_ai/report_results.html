@@ -1,0 +1,400 @@
+<!-- This template is included via AJAX into dashboard.html -->
+<div class="report-container">
+    <div class="report-header">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="report-title">{{ report_title }}</h2>
+                <p class="report-subtitle">Generated on {{ generated_at|date:"F j, Y \a\t g:i A" }}</p>
+                {% if report_subtitle %}
+                <p class="text-sm text-gray-600 mt-1">{{ report_subtitle }}</p>
+                {% endif %}
+            </div>
+            <div class="flex space-x-2">
+                {% if not hide_save_button %}
+                <button id="save-report-btn" 
+                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                    Save Report
+                </button>
+                {% endif %}
+                
+                <div class="relative inline-block text-left" x-data="{ open: false }">
+                    <div>
+                        <button type="button" 
+                                @click="open = !open"
+                                class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-3 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" 
+                                id="export-menu-button" 
+                                aria-expanded="true" 
+                                aria-haspopup="true">
+                            Export
+                            <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div x-show="open" 
+                         @click.away="open = false"
+                         x-transition:enter="transition ease-out duration-100" 
+                         x-transition:enter-start="transform opacity-0 scale-95" 
+                         x-transition:enter-end="transform opacity-100 scale-100" 
+                         x-transition:leave="transition ease-in duration-75" 
+                         x-transition:leave-start="transform opacity-100 scale-100" 
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10" 
+                         role="menu" 
+                         aria-orientation="vertical" 
+                         aria-labelledby="export-menu-button" 
+                         tabindex="-1">
+                        <div class="py-1" role="none">
+                            <a href="{% url 'reports_ai:export_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                               class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" 
+                               role="menuitem" 
+                               tabindex="-1" 
+                               id="export-csv">
+                                Export as CSV
+                            </a>
+                            <a href="{% url 'reports_ai:export_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                               class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" 
+                               role="menuitem" 
+                               tabindex="-1" 
+                               id="export-pdf">
+                                Export as PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if ai_summary %}
+        <div class="ai-summary mt-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-700">
+                        <span class="font-medium">AI Insight:</span> {{ ai_summary }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Report Summary Cards -->
+    {% if summary_data %}
+    <div class="grid grid-cols-1 md:grid-cols-{{ summary_data|length }} gap-4 mb-6">
+        {% for card in summary_data %}
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">{{ card.label }}</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">
+                    {% if card.is_currency %}{{ CURRENCY_SYMBOL }}{% endif %}{{ card.value|floatformat:2 }}
+                    {% if card.change_percent is not None %}
+                    <span class="text-sm font-medium {% if card.is_positive %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ card.change_percent|floatformat:1 }}%
+                        {% if card.change_percent > 0 %}
+                        <svg class="inline h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        {% else %}
+                        <svg class="inline h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </dd>
+                {% if card.description %}
+                <p class="mt-1 text-sm text-gray-500">{{ card.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Main Report Table -->
+    <div class="overflow-x-auto">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for row in rows %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell|default:"-" }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ headers|length }}" class="text-center py-4 text-gray-500">
+                        No data found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if totals %}
+            <tfoot class="bg-gray-50">
+                <tr>
+                    {% for total in totals %}
+                    <td class="font-medium">{{ total|default:"" }}</td>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 mt-4">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Previous
+            </a>
+            {% else %}
+            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-300 bg-white cursor-not-allowed">
+                Previous
+            </span>
+            {% endif %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Next
+            </a>
+            {% else %}
+            <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-300 bg-white cursor-not-allowed">
+                Next
+            </span>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span>
+                    to <span class="font-medium">{{ page_obj.end_index }}</span>
+                    of <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">First</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M8.707 5.293a1 1 0 010 1.414L5.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Previous</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                            {{ num }}
+                        </a>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Next</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">Last</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M11.293 14.707a1 1 0 010-1.414L14.586 10l-3.293-3.293a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Save Report Modal -->
+<div id="save-report-modal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Save This Report
+                    </h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                            Give this report a name to save it for future reference.
+                        </p>
+                        <div class="mt-4">
+                            <input type="text" 
+                                   id="report-name" 
+                                   name="report_name" 
+                                   placeholder="E.g., March 2024 Commissions"
+                                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            <p id="report-name-error" class="mt-1 text-sm text-red-600 hidden">Please enter a report name.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button type="button" 
+                        id="save-report-confirm"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm">
+                    Save Report
+                </button>
+                <button type="button" 
+                        id="cancel-save-report"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize the save report modal
+document.addEventListener('DOMContentLoaded', function() {
+    const saveReportBtn = document.getElementById('save-report-btn');
+    const saveReportModal = document.getElementById('save-report-modal');
+    const cancelSaveBtn = document.getElementById('cancel-save-report');
+    const saveConfirmBtn = document.getElementById('save-report-confirm');
+    const reportNameInput = document.getElementById('report-name');
+    const reportNameError = document.getElementById('report-name-error');
+    
+    if (saveReportBtn) {
+        saveReportBtn.addEventListener('click', function() {
+            saveReportModal.classList.remove('hidden');
+            reportNameInput.focus();
+        });
+    }
+    
+    if (cancelSaveBtn) {
+        cancelSaveBtn.addEventListener('click', function() {
+            saveReportModal.classList.add('hidden');
+            reportNameInput.value = '';
+            reportNameError.classList.add('hidden');
+        });
+    }
+    
+    if (saveConfirmBtn) {
+        saveConfirmBtn.addEventListener('click', function() {
+            const reportName = reportNameInput.value.trim();
+            
+            if (!reportName) {
+                reportNameError.classList.remove('hidden');
+                return;
+            }
+            
+            // Get the current URL and query parameters
+            const params = new URLSearchParams(window.location.search);
+            
+            // Add the report name to the form data
+            const formData = new FormData();
+            formData.append('name', reportName);
+            formData.append('query', '{{ request.GET.query|escapejs }}');
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            // Send the save request
+            fetch('{% url "reports_ai:save_report" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close the modal and show success message
+                    saveReportModal.classList.add('hidden');
+                    reportNameInput.value = '';
+                    
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'fixed top-4 right-4 z-50 px-4 py-2 bg-green-100 border border-green-400 text-green-700 rounded';
+                    alert.textContent = 'Report saved successfully!';
+                    document.body.appendChild(alert);
+                    
+                    // Remove the alert after 3 seconds
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                    
+                    // Reload the page to show the updated saved reports list
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    // Show error message
+                    reportNameError.textContent = data.error || 'Failed to save report. Please try again.';
+                    reportNameError.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                reportNameError.textContent = 'An error occurred. Please try again.';
+                reportNameError.classList.remove('hidden');
+            });
+        });
+    }
+    
+    // Close modal when clicking outside the content
+    saveReportModal.addEventListener('click', function(e) {
+        if (e.target === saveReportModal) {
+            saveReportModal.classList.add('hidden');
+            reportNameInput.value = '';
+            reportNameError.classList.add('hidden');
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            saveReportModal.classList.add('hidden');
+            reportNameInput.value = '';
+            reportNameError.classList.add('hidden');
+        }
+    });
+});
+</script>

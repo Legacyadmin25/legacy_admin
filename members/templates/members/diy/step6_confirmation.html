@@ -1,0 +1,105 @@
+{% extends "diy/base_application.html" %}
+
+{% block title %}Application Submitted - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div class="max-w-3xl mx-auto text-center py-12 px-4 sm:px-6 lg:px-8">
+  <!-- Success Icon -->
+  <div class="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-green-100">
+    <svg class="h-16 w-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+  </div>
+  
+  <!-- Success Message -->
+  <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Application Submitted Successfully!</h2>
+  <p class="mt-4 text-lg text-gray-600">
+    Thank you for choosing Linkserv. Your policy application has been received and is being processed.
+  </p>
+  
+  <!-- Reference Number -->
+  <div class="mt-8 bg-blue-50 p-6 rounded-lg inline-block">
+    <p class="text-sm font-medium text-blue-800">Your reference number is:</p>
+    <p class="mt-2 text-2xl font-bold text-blue-900" x-text="'REF-' + Math.random().toString(36).substr(2, 9).toUpperCase()"></p>
+  </div>
+  
+  <!-- Next Steps -->
+  <div class="mt-10 bg-gray-50 p-6 rounded-lg text-left">
+    <h3 class="text-lg font-medium text-gray-900">What happens next?</h3>
+    <ol class="mt-4 space-y-4">
+      <li class="flex items-start">
+        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+          <span class="text-blue-600 text-sm font-medium">1</span>
+        </div>
+        <div class="ml-3">
+          <p class="text-base text-gray-700">
+            <span class="font-medium">Application Review</span> - Our team will review your application (usually within 1-2 business days).
+          </p>
+        </div>
+      </li>
+      
+      <li class="flex items-start">
+        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+          <span class="text-blue-600 text-sm font-medium">2</span>
+        </div>
+        <div class="ml-3">
+          <p class="text-base text-gray-700">
+            <span class="font-medium">Confirmation</span> - You'll receive a confirmation email with your policy documents.
+          </p>
+        </div>
+      </li>
+      
+      <li class="flex items-start">
+        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+          <span class="text-blue-600 text-sm font-medium">3</span>
+        </div>
+        <div class="ml-3">
+          <p class="text-base text-gray-700">
+            <span class="font-medium">Payment Processing</span> - Your first premium will be processed as per your selected payment method.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </div>
+  
+  <!-- Actions -->
+  <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+    <a href="{% url 'home' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      Back to Home
+    </a>
+    <a href="#" class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+      Download Application
+    </a>
+  </div>
+  
+  <!-- Support -->
+  <div class="mt-12 pt-6 border-t border-gray-200">
+    <h3 class="text-sm font-medium text-gray-500">Need help?</h3>
+    <p class="mt-2 text-sm text-gray-500">
+      Contact our support team at <a href="mailto:support@linkserv.co.za" class="font-medium text-blue-600 hover:text-blue-500">support@linkserv.co.za</a> or call us at <span class="font-medium">0861 123 456</span>
+    </p>
+  </div>
+</div>
+
+<script>
+// Reset the form storage when leaving this page
+document.addEventListener('alpine:init', () => {
+  // Clear the form data from storage
+  Alpine.store('formData', {});
+  Alpine.store('currentStep', 1);
+  
+  // Disable the back button after submission
+  window.onpopstate = function() {
+    window.history.pushState(null, document.title, window.location.href);
+  };
+  
+  // Prevent form resubmission
+  if (window.history.replaceState) {
+    window.history.replaceState(null, null, window.location.href);
+  }
+});
+</script>
+{% endblock %}

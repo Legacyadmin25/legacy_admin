@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+{% load widget_tweaks settings_filters %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h1 class="text-2xl font-bold border-b pb-2">
+    {% if edit_mode %}Edit Plan{% else %}Create Plan{% endif %}
+  </h1>
+
+  <form method="post" action="" class="space-y-8">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="text-red-600 mb-4">
+        {% for err in form.non_field_errors %}
+          <div>{{ err }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ─── Plan Sections ─────────────────────────────────────────────── #}
+    <div class="bg-white p-6 rounded-lg shadow space-y-8">
+      <h2 class="text-xl font-semibold mb-4">Plan Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for fname in plan_info_fields %}
+          {% with field=form|get_item:fname %}
+            <div>
+              <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+              {% render_field field class="w-full px-4 py-2 border rounded focus:ring" id=fname %}
+              {% if field.errors %}<div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>{% endif %}
+              {% if fname == 'description' %}
+              <div class="mt-2">
+                <button type="button" id="suggest-tiers-btn" 
+                        class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+                  Suggest Tiers from Description
+                </button>
+                <span id="suggest-loading" class="hidden ml-2 text-sm text-gray-500">Generating suggestions...</span>
+              </div>
+              {% endif %}
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+
+      <h2 class="text-xl font-semibold mb-4">Policy Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for fname in policy_fields %}
+          {% if fname != 'spouses_allowed' and fname != 'children_allowed' and fname != 'extended_allowed' %}
+            {% with field=form|get_item:fname %}
+              <div>
+                <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+                {% render_field field class="w-full px-4 py-2 border rounded focus:ring" %}
+                {% if field.errors %}<div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>{% endif %}
+              </div>
+            {% endwith %}
+          {% endif %}
+        {% endfor %}
+      </div>
+      
+      <h2 class="text-xl font-semibold mb-4">Member Allowances</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Spouses Allowed*</label>
+          <input type="number" name="spouses_allowed" value="{{ form.spouses_allowed.value|default:0 }}"
+                 class="w-full px-4 py-2 border rounded focus:ring" min="0" />
+          {% if form.spouses_allowed.errors %}<div class="text-sm text-red-600 mt-1">{{ form.spouses_allowed.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Children Allowed*</label>
+          <input type="number" name="children_allowed" value="{{ form.children_allowed.value|default:0 }}"
+                 class="w-full px-4 py-2 border rounded focus:ring" min="0" />
+          {% if form.children_allowed.errors %}<div class="text-sm text-red-600 mt-1">{{ form.children_allowed.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Extended Members Allowed*</label>
+          <input type="number" name="extended_allowed" value="{{ form.extended_allowed.value|default:0 }}"
+                 class="w-full px-4 py-2 border rounded focus:ring" min="0" />
+          {% if form.extended_allowed.errors %}<div class="text-sm text-red-600 mt-1">{{ form.extended_allowed.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <h2 class="text-xl font-semibold mb-4">Fee Distribution</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for fname in fee_fields %}
+          {% with field=form|get_item:fname %}
+            <div>
+              <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
+              {% render_field field class="w-full px-4 py-2 border rounded focus:ring" %}
+              {% if field.errors %}<div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>{% endif %}
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+
+      <h2 class="text-xl font-semibold mb-4">Terms & Conditions</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Terms & Conditions PDF</label>
+          {% render_field form.terms_pdf class="w-full px-4 py-2 border rounded focus:ring" %}
+          {% if form.terms_pdf.errors %}<div class="text-sm text-red-600 mt-1">{{ form.terms_pdf.errors.0 }}</div>{% endif %}
+          <p class="text-sm text-gray-500 mt-1">Upload a PDF document containing the terms and conditions for this plan.</p>
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Terms & Conditions Text</label>
+          {% render_field form.terms_text class="w-full px-4 py-2 border rounded focus:ring" %}
+          {% if form.terms_text.errors %}<div class="text-sm text-red-600 mt-1">{{ form.terms_text.errors.0 }}</div>{% endif %}
+          <p class="text-sm text-gray-500 mt-1">If a PDF is not available, enter the terms and conditions text here.</p>
+        </div>
+      </div>
+
+      <h2 class="text-xl font-semibold mb-4 mt-6">Other Settings</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Active</label>
+          {% render_field form.is_active class="h-4 w-4 text-blue-600" %}
+          {% if form.is_active.errors %}<div class="text-sm text-red-600 mt-1">{{ form.is_active.errors.0 }}</div>{% endif %}
+          <p class="text-sm text-gray-500 mt-1">Whether this plan is active and can be selected.</p>
+        </div>
+        <div>
+          <label class="block font-medium mb-1">Visible in DIY Flow</label>
+          {% render_field form.is_diy_visible class="h-4 w-4 text-blue-600" %}
+          {% if form.is_diy_visible.errors %}<div class="text-sm text-red-600 mt-1">{{ form.is_diy_visible.errors.0 }}</div>{% endif %}
+          <p class="text-sm text-gray-500 mt-1">Whether this plan is visible in the DIY application flow.</p>
+        </div>
+      </div>
+    </div>
+
+    {# ─── Additional Members (PlanMemberTierFormSet) ─────────────────── #}
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Member Tiers</h2>
+      {{ formset.management_form }}
+
+      {% if formset.non_form_errors %}
+        <div class="text-red-600 mb-4 text-sm">
+          {% for err in formset.non_form_errors %}
+            <div>{{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <!-- Tier Preview Section -->
+      <div id="tier-preview" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 hidden">
+        <h3 class="text-lg font-medium mb-2">Plan Preview</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <span class="block text-sm font-medium text-gray-700">Main Member</span>
+            <span class="block text-lg font-bold" id="preview-main-cover">R0.00</span>
+            <span class="block text-xs text-gray-500">Premium: <span id="preview-main-premium">R0.00</span></span>
+          </div>
+          <div>
+            <span class="block text-sm font-medium text-gray-700">Spouse</span>
+            <span class="block text-lg font-bold" id="preview-spouse-cover">R0.00</span>
+            <span class="block text-xs text-gray-500">Premium: <span id="preview-spouse-premium">R0.00</span></span>
+            <span class="block text-xs text-gray-500">Allowed: <span id="preview-spouse-allowed">0</span></span>
+          </div>
+          <div>
+            <span class="block text-sm font-medium text-gray-700">Children</span>
+            <span class="block text-lg font-bold" id="preview-child-cover">R0.00</span>
+            <span class="block text-xs text-gray-500">Premium: <span id="preview-child-premium">R0.00</span></span>
+            <span class="block text-xs text-gray-500">Allowed: <span id="preview-child-allowed">0</span></span>
+          </div>
+          <div>
+            <span class="block text-sm font-medium text-gray-700">Extended Family</span>
+            <span class="block text-lg font-bold" id="preview-extended-cover">R0.00</span>
+            <span class="block text-xs text-gray-500">Premium: <span id="preview-extended-premium">R0.00</span></span>
+            <span class="block text-xs text-gray-500">Allowed: <span id="preview-extended-allowed">0</span></span>
+          </div>
+        </div>
+        <button type="button" id="hide-preview-btn" class="text-sm text-blue-600 hover:text-blue-800">Hide Preview</button>
+      </div>
+      
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <button type="button" id="show-preview-btn" class="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300">
+            Show Plan Preview
+          </button>
+        </div>
+        <div>
+          <button type="button" id="add-tier-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            + Add New Tier
+          </button>
+        </div>
+      </div>
+
+      <table id="tier-table" class="w-full table-auto border-collapse">
+        <thead class="bg-gray-100 text-sm">
+          <tr>
+            <th class="px-2 py-1">#</th>
+            <th class="px-2 py-1">User Type</th>
+            <th class="px-2 py-1">Allowed</th>
+            <th class="px-2 py-1">Age From</th>
+            <th class="px-2 py-1">Age To</th>
+            <th class="px-2 py-1">Cover</th>
+            <th class="px-2 py-1">Premium</th>
+            <th class="px-2 py-1">UW Cover</th>
+            <th class="px-2 py-1">UW Premium</th>
+          </tr>
+        </thead>
+        <tbody id="tier-body">
+          {% for tier_form in formset.forms %}
+            <tr class="tier-row">
+              <td class="px-2 py-1 text-center">
+                {{ forloop.counter }}
+                <button type="button" class="ml-2 text-red-600 hover:text-red-800 delete-tier" title="Remove this row">✖</button>
+              </td>
+              <!-- User Type Field (first field) -->
+              {% with field=tier_form.visible_fields.0 %}
+                <td class="px-2 py-1">
+                  {% if field.errors %}
+                    <select name="{{ field.html_name }}" class="tier-user-type w-full border px-2 py-1 rounded border-red-500 focus:ring">
+                      <option value="">---------</option>
+                      <option value="Spouse" {% if field.value == 'Spouse' %}selected{% endif %}>Spouse</option>
+                      <option value="Child" {% if field.value == 'Child' %}selected{% endif %}>Child</option>
+                      <option value="Extended" {% if field.value == 'Extended' %}selected{% endif %}>Extended</option>
+                      <option value="Adult" {% if field.value == 'Adult' %}selected{% endif %}>Adult</option>
+                      <option value="Extended Child" {% if field.value == 'Extended Child' %}selected{% endif %}>Extended Child</option>
+                    </select>
+                    {% for err in field.errors %}
+                      <div class="text-xs text-red-600 mt-1">{{ err }}</div>
+                    {% endfor %}
+                  {% else %}
+                    <select name="{{ field.html_name }}" class="tier-user-type w-full border px-2 py-1 rounded focus:ring">
+                      <option value="">---------</option>
+                      <option value="Spouse" {% if field.value == 'Spouse' %}selected{% endif %}>Spouse</option>
+                      <option value="Child" {% if field.value == 'Child' %}selected{% endif %}>Child</option>
+                      <option value="Extended" {% if field.value == 'Extended' %}selected{% endif %}>Extended</option>
+                      <option value="Adult" {% if field.value == 'Adult' %}selected{% endif %}>Adult</option>
+                      <option value="Extended Child" {% if field.value == 'Extended Child' %}selected{% endif %}>Extended Child</option>
+                    </select>
+                  {% endif %}
+                </td>
+              {% endwith %}
+
+              <!-- Allowed Field (numeric input) -->
+              <td class="px-2 py-1">
+                <input type="number" class="tier-allowed w-full border px-2 py-1 rounded focus:ring" min="0" name="allowed_{{ forloop.counter0 }}" value="0">
+              </td>
+
+              <!-- Remaining Fields -->
+              {% for field in tier_form.visible_fields %}
+                {% if not forloop.first %}
+                  <td class="px-2 py-1">
+                    {% if field.errors %}
+                      {% if field.name == 'age_from' or field.name == 'age_to' %}
+                        {% render_field field class="tier-age w-full border px-2 py-1 rounded border-red-500 focus:ring" %}
+                      {% elif field.name == 'cover' %}
+                        {% render_field field class="tier-cover w-full border px-2 py-1 rounded border-red-500 focus:ring" %}
+                      {% elif field.name == 'premium' %}
+                        {% render_field field class="tier-premium w-full border px-2 py-1 rounded border-red-500 focus:ring" %}
+                      {% else %}
+                        {% render_field field class="w-full border px-2 py-1 rounded border-red-500 focus:ring" %}
+                      {% endif %}
+                      {% for err in field.errors %}
+                        <div class="text-xs text-red-600 mt-1">{{ err }}</div>
+                      {% endfor %}
+                    {% else %}
+                      {% if field.name == 'age_from' or field.name == 'age_to' %}
+                        {% render_field field class="tier-age w-full border px-2 py-1 rounded focus:ring" %}
+                      {% elif field.name == 'cover' %}
+                        {% render_field field class="tier-cover w-full border px-2 py-1 rounded focus:ring" %}
+                      {% elif field.name == 'premium' %}
+                        {% render_field field class="tier-premium w-full border px-2 py-1 rounded focus:ring" %}
+                      {% else %}
+                        {% render_field field class="w-full border px-2 py-1 rounded focus:ring" %}
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <template id="empty-tier-template">
+        <tr class="tier-row">
+          <td class="px-2 py-1 text-center">
+            __num__
+            <button type="button" class="ml-2 text-red-600 hover:text-red-800 delete-tier" title="Remove this row">✖</button>
+          </td>
+          <!-- User Type Field (first field) -->
+          {% with field=empty_form.visible_fields.0 %}
+            <td class="px-2 py-1">
+              <select name="{{ field.html_name }}" class="tier-user-type w-full border px-2 py-1 rounded focus:ring">
+                <option value="">---------</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Child">Child</option>
+                <option value="Extended">Extended</option>
+                <option value="Adult">Adult</option>
+                <option value="Extended Child">Extended Child</option>
+              </select>
+            </td>
+          {% endwith %}
+
+          <!-- Allowed Field (numeric input) -->
+          <td class="px-2 py-1">
+            <input type="number" class="tier-allowed w-full border px-2 py-1 rounded focus:ring" min="0" name="allowed___prefix__" value="0">
+          </td>
+
+          <!-- Remaining Fields -->
+          {% for field in empty_form.visible_fields %}
+            {% if not forloop.first %}
+              <td class="px-2 py-1">
+                {% if field.name == 'age_from' or field.name == 'age_to' %}
+                  {% render_field field class="tier-age w-full border px-2 py-1 rounded focus:ring" %}
+                {% elif field.name == 'cover' %}
+                  {% render_field field class="tier-cover w-full border px-2 py-1 rounded focus:ring" %}
+                {% elif field.name == 'premium' %}
+                  {% render_field field class="tier-premium w-full border px-2 py-1 rounded focus:ring" %}
+                {% else %}
+                  {% render_field field class="w-full border px-2 py-1 rounded focus:ring" %}
+                {% endif %}
+              </td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      </template>
+    </div>
+
+    {# ─── Submit & Cancel ───────────────────────────────────────────── #}
+    <div class="flex justify-end space-x-2">
+      <a href="{% url 'settings:plan' %}"
+         class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+        Cancel
+      </a>
+      <button type="submit"
+              class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Save
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const addBtn = document.getElementById('add-tier-btn');
+  const tableBody = document.getElementById('tier-body');
+  const template = document.getElementById('empty-tier-template').innerHTML;
+  const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+  const MAX_TIERS = 8; // Maximum number of tiers allowed
+  
+  // Preview elements
+  const previewSection = document.getElementById('tier-preview');
+  const showPreviewBtn = document.getElementById('show-preview-btn');
+  const hidePreviewBtn = document.getElementById('hide-preview-btn');
+  
+  // Tier suggestion elements
+  const suggestBtn = document.getElementById('suggest-tiers-btn');
+  const loadingIndicator = document.getElementById('suggest-loading');
+
+  // Function to update the Add button state
+  function updateAddButtonState() {
+    const currentCount = tableBody.querySelectorAll('.tier-row').length;
+    if (currentCount >= MAX_TIERS) {
+      addBtn.disabled = true;
+      addBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      addBtn.disabled = false;
+      addBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+  
+  // Function to format currency
+  function formatCurrency(value) {
+    const numValue = parseFloat(value) || 0;
+    return 'R' + numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  
+  // Function to update the plan preview
+  function updatePlanPreview() {
+    // Get main member values
+    const mainCover = document.getElementById('main_cover').value || 0;
+    const mainPremium = document.getElementById('main_premium').value || 0;
+    
+    // Initialize counters and values for each type
+    let spouseAllowed = 0;
+    let spouseCover = 0;
+    let spousePremium = 0;
+    
+    let childAllowed = 0;
+    let childCover = 0;
+    let childPremium = 0;
+    
+    let extendedAllowed = 0;
+    let extendedCover = 0;
+    let extendedPremium = 0;
+    
+    // Process all tier rows to find the highest values for each type
+    const rows = tableBody.querySelectorAll('.tier-row');
+    rows.forEach(row => {
+      const userType = row.querySelector('.tier-user-type').value;
+      const allowed = parseInt(row.querySelector('.tier-allowed').value || 0);
+      const cover = parseFloat(row.querySelector('.tier-cover').value || 0);
+      const premium = parseFloat(row.querySelector('.tier-premium').value || 0);
+      
+      if (userType === 'Spouse' && allowed > spouseAllowed) {
+        spouseAllowed = allowed;
+        spouseCover = cover;
+        spousePremium = premium;
+      } else if (userType === 'Child' && allowed > childAllowed) {
+        childAllowed = allowed;
+        childCover = cover;
+        childPremium = premium;
+      } else if ((userType === 'Extended' || userType === 'Extended Child') && allowed > extendedAllowed) {
+        extendedAllowed = allowed;
+        extendedCover = cover;
+        extendedPremium = premium;
+      }
+    });
+    
+    // Update the preview
+    document.getElementById('preview-main-cover').textContent = formatCurrency(mainCover);
+    document.getElementById('preview-main-premium').textContent = formatCurrency(mainPremium);
+    
+    document.getElementById('preview-spouse-cover').textContent = formatCurrency(spouseCover);
+    document.getElementById('preview-spouse-premium').textContent = formatCurrency(spousePremium);
+    document.getElementById('preview-spouse-allowed').textContent = spouseAllowed;
+    
+    document.getElementById('preview-child-cover').textContent = formatCurrency(childCover);
+    document.getElementById('preview-child-premium').textContent = formatCurrency(childPremium);
+    document.getElementById('preview-child-allowed').textContent = childAllowed;
+    
+    document.getElementById('preview-extended-cover').textContent = formatCurrency(extendedCover);
+    document.getElementById('preview-extended-premium').textContent = formatCurrency(extendedPremium);
+    document.getElementById('preview-extended-allowed').textContent = extendedAllowed;
+  }
+
+  // Initial button state
+  updateAddButtonState();
+  
+  // Show/hide preview handlers
+  showPreviewBtn.addEventListener('click', function() {
+    updatePlanPreview();
+    previewSection.classList.remove('hidden');
+    showPreviewBtn.classList.add('hidden');
+  });
+  
+  hidePreviewBtn.addEventListener('click', function() {
+    previewSection.classList.add('hidden');
+    showPreviewBtn.classList.remove('hidden');
+  });
+
+  // Add new tier row
+  addBtn.addEventListener('click', function () {
+    const formCount = parseInt(totalForms.value);
+    
+    // Check if we've reached the maximum number of tiers
+    if (formCount >= MAX_TIERS) {
+      return;
+    }
+    
+    const newRowHtml = template.replace(/__prefix__/g, formCount).replace(/__num__/g, formCount + 1);
+    const newRow = document.createElement('tbody');
+    newRow.innerHTML = newRowHtml;
+    tableBody.appendChild(newRow.firstElementChild);
+    totalForms.value = formCount + 1;
+    
+    // Update button state after adding
+    updateAddButtonState();
+  });
+
+  // Handle row deletion
+  tableBody.addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-tier')) {
+      const row = e.target.closest('tr');
+      row.remove();
+
+      // Update form count
+      const currentCount = tableBody.querySelectorAll('.tier-row').length;
+      totalForms.value = currentCount;
+
+      // Re-number rows
+      const rows = tableBody.querySelectorAll('.tier-row');
+      rows.forEach((tr, idx) => {
+        const cell = tr.querySelector('td:first-child');
+        if (cell) cell.childNodes[0].nodeValue = idx + 1;
+        
+        // Update the name of the allowed field to match the new index
+        const allowedInput = tr.querySelector('input[name^="allowed_"]');
+        if (allowedInput) {
+          allowedInput.name = `allowed_${idx}`;
+        }
+      });
+      
+      // Update button state after deletion
+      updateAddButtonState();
+      
+      // Update preview if visible
+      if (!previewSection.classList.contains('hidden')) {
+        updatePlanPreview();
+      }
+    }
+  });
+  
+  // Listen for changes to update preview if visible
+  tableBody.addEventListener('change', function(e) {
+    if (!previewSection.classList.contains('hidden')) {
+      updatePlanPreview();
+    }
+  });
+  
+  // Main form fields change listener for preview
+  document.getElementById('main_cover').addEventListener('change', function() {
+    if (!previewSection.classList.contains('hidden')) {
+      updatePlanPreview();
+    }
+  });
+  
+  document.getElementById('main_premium').addEventListener('change', function() {
+    if (!previewSection.classList.contains('hidden')) {
+      updatePlanPreview();
+    }
+  });
+  
+  // Handle tier suggestions
+  suggestBtn.addEventListener('click', function() {
+    // Get plan details
+    const planName = document.getElementById('name').value || '';
+    const description = document.getElementById('description').value || '';
+    const policyType = document.getElementById('policy_type').value || 'service';
+    const premium = document.getElementById('premium').value || '0';
+    
+    // Validate description
+    if (!description.trim()) {
+      alert('Please enter a plan description first.');
+      return;
+    }
+    
+    // Show loading indicator
+    loadingIndicator.classList.remove('hidden');
+    suggestBtn.disabled = true;
+    
+    // Call the API to get suggestions
+    fetch('{% url "settings:api_suggest_tiers" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({
+        plan_name: planName,
+        description: description,
+        policy_type: policyType,
+        premium: premium
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Hide loading indicator
+      loadingIndicator.classList.add('hidden');
+      suggestBtn.disabled = false;
+      
+      if (data.error) {
+        alert('Error: ' + data.error);
+        return;
+      }
+      
+      if (!data.tiers || data.tiers.length === 0) {
+        alert('No tier suggestions could be generated. Please add tiers manually.');
+        return;
+      }
+      
+      // Clear existing tiers if any
+      while (tableBody.firstChild) {
+        tableBody.removeChild(tableBody.firstChild);
+      }
+      
+      // Add suggested tiers
+      data.tiers.forEach((tier, index) => {
+        if (index >= MAX_TIERS) return; // Don't exceed max tiers
+        
+        const formCount = parseInt(totalForms.value);
+        const newRowHtml = template.replace(/__prefix__/g, index).replace(/__num__/g, index + 1);
+        const newRow = document.createElement('tbody');
+        newRow.innerHTML = newRowHtml;
+        const rowElement = newRow.firstElementChild;
+        
+        // Set values in the new row
+        rowElement.querySelector('.tier-user-type').value = tier.user_type;
+        rowElement.querySelector('.tier-allowed').value = tier.allowed;
+        rowElement.querySelectorAll('.tier-age')[0].value = tier.age_from;
+        rowElement.querySelectorAll('.tier-age')[1].value = tier.age_to;
+        rowElement.querySelector('.tier-cover').value = tier.cover;
+        rowElement.querySelector('.tier-premium').value = tier.premium;
+        
+        // Add the row to the table
+        tableBody.appendChild(rowElement);
+      });
+      
+      // Update form count
+      totalForms.value = Math.min(data.tiers.length, MAX_TIERS);
+      
+      // Update button state
+      updateAddButtonState();
+      
+      // Show success message
+      alert(data.message || 'Tier suggestions added successfully!');
+      
+      // Update preview if visible
+      if (!previewSection.classList.contains('hidden')) {
+        updatePlanPreview();
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      loadingIndicator.classList.add('hidden');
+      suggestBtn.disabled = false;
+      alert('An error occurred while getting tier suggestions. Please try again.');
+    });
+  });
+  
+  // Handle form submission to process the allowed values
+  document.querySelector('form').addEventListener('submit', function(e) {
+    // We don't need to prevent default as we're just adding data to the form
+    const rows = tableBody.querySelectorAll('.tier-row');
+    rows.forEach((row, idx) => {
+      // Get the user type and allowed value
+      const userTypeSelect = row.querySelector('select[name$="-user_type"]');
+      const allowedInput = row.querySelector('input[name^="allowed_"]');
+      
+      if (userTypeSelect && allowedInput) {
+        // Create a hidden input to store the allowed value
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = `member_allowed_${idx}`;
+        hiddenInput.value = JSON.stringify({
+          type: userTypeSelect.value,
+          allowed: allowedInput.value
+        });
+        
+        // Add the hidden input to the form
+        this.appendChild(hiddenInput);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Branch List{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold">Branch List</h1>
+    <a href="{% url 'branches:branch_setup' %}" class="inline-flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded mt-4">Add New Branch</a>
+
+    <div class="mt-8">
+        <ul class="space-y-4">
+            {% for branch in branches %}
+            <li class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-bold">{{ branch.name }}</h3>
+                <p><strong>Location:</strong> {{ branch.location }}</p>
+                <p><strong>Code:</strong> {{ branch.code }}</p>
+                <p><strong>Phone:</strong> {{ branch.phone }}</p>
+                <p><strong>Cell:</strong> {{ branch.cell }}</p>
+
+                <div class="mt-4">
+                    <a href="{% url 'branches:branch_setup' branch.id %}" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">Edit</a>
+                    <form method="post" action="{% url 'branches:delete_branch' branch.id %}" class="inline-block">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete</button>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li>No branches available.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-xl mx-auto mt-12 p-8 bg-white rounded shadow">
+  <h1 class="text-xl font-bold mb-4">Delete Scheme</h1>
+  <p class="mb-6">Are you sure you want to delete the scheme <strong>{{ object.name }}</strong>? This action cannot be undone.</p>
+  <form method="post">{% csrf_token %}
+    <div class="flex justify-between">
+      <a href="{% url 'schemes:scheme_list' %}" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</a>
+      <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

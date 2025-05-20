@@ -1,0 +1,765 @@
+{% extends base_template|default:'base.html' %}
+
+{% load widget_tweaks %}
+
+{% block title %}Step 4: Children Information{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #4b5563;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .form-control:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .is-invalid {
+    border-color: #ef4444;
+  }
+  
+  .invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #ef4444;
+  }
+  
+  .is-invalid ~ .invalid-feedback {
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <div class="w-full px-6 py-8">
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step {{ step }}: Children Information</h2>
+          <span class="text-sm font-medium text-gray-500">Step 4 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 44%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-6">
+          <!-- Section header with counters -->
+          <div class="flex justify-between items-center border-b pb-2 mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">Dependents Information</h3>
+            <div class="flex space-x-4">
+              <!-- Children Counter -->
+              <div class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                Children: {{ children_count }} of {{ children_allowed }}
+              </div>
+              <!-- Extended Family Counter -->
+              <div class="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                Extended: {{ extended_count }} of {{ extended_allowed }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tabs for Children and Extended -->
+          <div class="mb-6">
+            <div class="border-b border-gray-200">
+              <nav class="-mb-px flex" aria-label="Tabs">
+                <button type="button" id="children-tab" class="tab-btn active w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-blue-500 text-blue-600" onclick="showTab('children')">
+                  Children
+                </button>
+                <button type="button" id="extended-tab" class="tab-btn w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="showTab('extended')">
+                  Extended Family
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          <!-- Children Section -->
+          <div id="children-section" class="tab-content">
+            <div class="mb-8">
+              <h3 class="text-xl font-semibold mb-4">Add Child</h3>
+              {% if children_count >= children_allowed %}
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                      <p class="text-sm text-yellow-700">
+                        You have reached the maximum number of children allowed for this plan ({{ children_allowed }}).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <form method="POST" action="{% url 'members:step4_children_info' pk=policy.pk %}" class="space-y-4" id="addChildForm" onsubmit="return validateChildForm(event)">
+                  {% csrf_token %}
+                  <input type="hidden" name="add_child" value="1">
+                  <input type="hidden" name="relationship" value="child">
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-group">
+                  <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">First Name</label>
+                  {{ form.first_name|add_class:"form-control" }}
+                  <div class="invalid-feedback">Please enter the child's first name.</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">Last Name</label>
+                  {{ form.last_name|add_class:"form-control" }}
+                  <div class="invalid-feedback">Please enter the child's last name.</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-gray-700">ID Number</label>
+                  <div class="relative">
+                    {{ form.id_number|add_class:"form-control" placeholder:"13 digits" maxlength:"13" }}
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span id="child-id-validation-icon" class="hidden">
+                        <svg id="child-id-valid-icon" class="h-5 w-5 text-green-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        <svg id="child-id-invalid-icon" class="h-5 w-5 text-red-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                  <div id="child-id-validation-message" class="mt-1 text-sm"></div>
+                  <div class="invalid-feedback">Please enter a valid 13-digit South African ID number.</div>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="form-group">
+                  <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                  {{ form.date_of_birth|add_class:"form-control bg-gray-100" readonly:True }}
+                  <div class="invalid-feedback">Date of birth is required.</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="{{ form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700">Gender</label>
+                  {{ form.gender|add_class:"form-control bg-gray-100" readonly:True }}
+                  <div class="invalid-feedback">Gender is required.</div>
+                </div>
+                
+                <div class="flex items-end">
+                  <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Add Child
+                  </button>
+                </div>
+              </div>
+      
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm mt-2">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </form>
+  {% endif %}
+</div>
+  
+  {% if children %}
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4">Your Children</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover Amount</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for child in children %}
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ child.first_name }} {{ child.last_name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ child.id_number|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ child.date_of_birth|date:"Y-m-d"|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">R {{ child.cover_amount }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <form method="POST" action="{% url 'members:step4_children_info' pk=policy.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="remove_dependent" value="{{ child.id }}">
+                    <button type="submit" class="text-red-600 hover:text-red-900 bg-transparent border-0" onclick="return confirm('Are you sure you want to remove this child?')">
+                      <i class="fas fa-trash"></i> Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-yellow-400"></i>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-700">
+            No children added yet. Add your children using the form above.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Extended Family Section -->
+<div id="extended-section" class="tab-content hidden">
+  <div class="mb-8">
+    <h3 class="text-xl font-semibold mb-4">Add Extended Family Member</h3>
+    {% if extended_count >= extended_allowed %}
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-yellow-700">
+              You have reached the maximum number of extended family members allowed for this plan ({{ extended_allowed }}).
+            </p>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <form method="POST" action="{% url 'members:step4_children_info' pk=policy.pk %}" class="space-y-4" id="addExtendedForm" onsubmit="return validateExtendedForm(event)">
+        {% csrf_token %}
+        <input type="hidden" name="add_extended" value="1">
+        <input type="hidden" name="relationship" value="extended">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">First Name</label>
+            {{ form.first_name|add_class:"form-control" }}
+            <div class="invalid-feedback">Please enter the member's first name.</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">Last Name</label>
+            {{ form.last_name|add_class:"form-control" }}
+            <div class="invalid-feedback">Please enter the member's last name.</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-gray-700">ID Number</label>
+            <div class="relative">
+              {{ form.id_number|add_class:"form-control" placeholder:"13 digits" maxlength:"13" }}
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span id="extended-id-validation-icon" class="hidden">
+                  <svg id="extended-id-valid-icon" class="h-5 w-5 text-green-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <svg id="extended-id-invalid-icon" class="h-5 w-5 text-red-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+            <div id="extended-id-validation-message" class="mt-1 text-sm"></div>
+            <div class="invalid-feedback">Please enter a valid 13-digit South African ID number.</div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div class="form-group">
+            <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700">Date of Birth</label>
+            {{ form.date_of_birth|add_class:"form-control bg-gray-100" readonly:True }}
+            <div class="invalid-feedback">Date of birth is required.</div>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700">Gender</label>
+            {{ form.gender|add_class:"form-control bg-gray-100" readonly:True }}
+            <div class="invalid-feedback">Gender is required.</div>
+          </div>
+          
+          <div class="flex items-end">
+            <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              Add Extended Member
+            </button>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="text-red-600 text-sm mt-2">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </form>
+    {% endif %}
+  </div>
+  
+  {% if extended_members %}
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4">Your Extended Family Members</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover Amount</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for member in extended_members %}
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ member.first_name }} {{ member.last_name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ member.id_number|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ member.date_of_birth|date:"Y-m-d"|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">R {{ member.cover_amount }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <form method="POST" action="{% url 'members:step4_children_info' pk=policy.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="remove_dependent" value="{{ member.id }}">
+                    <button type="submit" class="text-red-600 hover:text-red-900 bg-transparent border-0" onclick="return confirm('Are you sure you want to remove this extended family member?')">
+                      <i class="fas fa-trash"></i> Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-yellow-400"></i>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-700">
+            No extended family members added yet. Add your extended family members using the form above.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+  
+          <div class="flex justify-between pt-6 border-t mt-8">
+            <a href="{% url 'members:step3_spouse_info' pk=policy.pk %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              ← Previous
+            </a>
+            <div class="flex space-x-3">
+              <button type="button" id="save-exit-btn" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save & Exit
+              </button>
+              <form method="POST" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="next_step" value="1">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  Continue to Beneficiaries →
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab switching functionality
+  window.showTab = function(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.add('hidden');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+      btn.classList.remove('border-blue-500');
+      btn.classList.remove('text-blue-600');
+      btn.classList.add('border-transparent');
+      btn.classList.add('text-gray-500');
+    });
+    
+    // Show selected tab content
+    document.getElementById(tabName + '-section').classList.remove('hidden');
+    
+    // Set active class on selected tab button
+    const activeBtn = document.getElementById(tabName + '-tab');
+    activeBtn.classList.add('active');
+    activeBtn.classList.add('border-blue-500');
+    activeBtn.classList.add('text-blue-600');
+    activeBtn.classList.remove('border-transparent');
+    activeBtn.classList.remove('text-gray-500');
+  };
+  
+  // Get DOM elements for child form
+  const childIdNumberField = document.getElementById('{{ form.id_number.id_for_label }}');
+  const childDobField = document.getElementById('{{ form.date_of_birth.id_for_label }}');
+  const childGenderField = document.getElementById('{{ form.gender.id_for_label }}');
+  const childIdValidIcon = document.getElementById('child-id-valid-icon');
+  const childIdInvalidIcon = document.getElementById('child-id-invalid-icon');
+  const childIdValidationIcon = document.getElementById('child-id-validation-icon');
+  const childIdValidationMessage = document.getElementById('child-id-validation-message');
+  
+  // Get DOM elements for extended form
+  const extendedIdValidIcon = document.getElementById('extended-id-valid-icon');
+  const extendedIdInvalidIcon = document.getElementById('extended-id-invalid-icon');
+  const extendedIdValidationIcon = document.getElementById('extended-id-validation-icon');
+  const extendedIdValidationMessage = document.getElementById('extended-id-validation-message');
+  
+  // Validate South African ID number using Luhn algorithm
+  function validateIdNumber(idNumber) {
+    // Basic format check
+    if (!/^\d{13}$/.test(idNumber)) {
+      return {
+        valid: false,
+        message: 'ID number must be 13 digits.',
+        date: null,
+        gender: null
+      };
+    }
+    
+    // Extract date parts
+    const yy = parseInt(idNumber.substring(0, 2), 10);
+    const mm = parseInt(idNumber.substring(2, 4), 10);
+    const dd = parseInt(idNumber.substring(4, 6), 10);
+    
+    // Validate date parts
+    if (mm < 1 || mm > 12) {
+      return {
+        valid: false,
+        message: 'Invalid month in ID number.',
+        date: null,
+        gender: null
+      };
+    }
+    
+    if (dd < 1 || dd > 31) {
+      return {
+        valid: false,
+        message: 'Invalid day in ID number.',
+        date: null,
+        gender: null
+      };
+    }
+    
+    // Determine century
+    const currentYear = new Date().getFullYear();
+    const currentShortYear = currentYear % 100;
+    const century = (yy <= currentShortYear) ? 2000 : 1900;
+    const fullYear = century + yy;
+    
+    // Create date object
+    const birthDate = new Date(fullYear, mm - 1, dd);
+    
+    // Check if date is valid
+    if (birthDate.getFullYear() !== fullYear || 
+        birthDate.getMonth() + 1 !== mm || 
+        birthDate.getDate() !== dd) {
+      return {
+        valid: false,
+        message: 'Invalid date of birth in ID number.',
+        date: null,
+        gender: null
+      };
+    }
+    
+    // Extract gender
+    const genderCode = parseInt(idNumber.substring(6, 10), 10);
+    const gender = genderCode < 5000 ? 'Female' : 'Male';
+    
+    // Perform Luhn check
+    const digits = idNumber.split('').map(Number);
+    let sum = 0;
+    let doubleDigit = false;
+    
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = digits[i];
+      
+      if (doubleDigit) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      doubleDigit = !doubleDigit;
+    }
+    
+    const luhnValid = sum % 10 === 0;
+    
+    if (!luhnValid) {
+      return {
+        valid: false,
+        message: 'ID number failed checksum validation.',
+        date: null,
+        gender: null
+      };
+    }
+    
+    // Format date as YYYY-MM-DD for input
+    const formattedDate = `${fullYear}-${mm.toString().padStart(2, '0')}-${dd.toString().padStart(2, '0')}`;
+    
+    return {
+      valid: true,
+      message: 'ID number is valid.',
+      date: formattedDate,
+      gender: gender
+    };
+  }
+  
+  // Handle ID number input for children
+  function handleChildIdInput() {
+    const idNumber = childIdNumberField.value.trim();
+    
+    if (idNumber.length === 13) {
+      const result = validateIdNumber(idNumber);
+      
+      childIdValidationIcon.classList.remove('hidden');
+      
+      if (result.valid) {
+        // Show valid icon and message
+        childIdValidIcon.classList.remove('hidden');
+        childIdInvalidIcon.classList.add('hidden');
+        childIdValidationMessage.textContent = result.message;
+        childIdValidationMessage.className = 'mt-1 text-sm text-green-600';
+        childIdNumberField.classList.remove('is-invalid');
+        
+        // Auto-fill date of birth and gender
+        if (childDobField) childDobField.value = result.date;
+        if (childGenderField) childGenderField.value = result.gender;
+      } else {
+        // Show invalid icon and message
+        childIdValidIcon.classList.add('hidden');
+        childIdInvalidIcon.classList.remove('hidden');
+        childIdValidationMessage.textContent = result.message;
+        childIdValidationMessage.className = 'mt-1 text-sm text-red-600';
+        childIdNumberField.classList.add('is-invalid');
+        
+        // Clear date of birth and gender
+        if (childDobField) childDobField.value = '';
+        if (childGenderField) childGenderField.value = '';
+      }
+    } else {
+      // Hide validation icons and message for incomplete input
+      childIdValidationIcon.classList.add('hidden');
+      childIdValidationMessage.textContent = '';
+      childIdNumberField.classList.remove('is-invalid');
+      
+      // Clear date of birth and gender
+      if (childDobField) childDobField.value = '';
+      if (childGenderField) childGenderField.value = '';
+    }
+  }
+  
+  // Handle ID number input for extended family
+  function handleExtendedIdInput() {
+    const extendedIdNumberField = document.querySelector('#extended-section #{{ form.id_number.id_for_label }}');
+    const extendedDobField = document.querySelector('#extended-section #{{ form.date_of_birth.id_for_label }}');
+    const extendedGenderField = document.querySelector('#extended-section #{{ form.gender.id_for_label }}');
+    
+    if (!extendedIdNumberField) return;
+    
+    const idNumber = extendedIdNumberField.value.trim();
+    
+    if (idNumber.length === 13) {
+      const result = validateIdNumber(idNumber);
+      
+      extendedIdValidationIcon.classList.remove('hidden');
+      
+      if (result.valid) {
+        // Show valid icon and message
+        extendedIdValidIcon.classList.remove('hidden');
+        extendedIdInvalidIcon.classList.add('hidden');
+        extendedIdValidationMessage.textContent = result.message;
+        extendedIdValidationMessage.className = 'mt-1 text-sm text-green-600';
+        extendedIdNumberField.classList.remove('is-invalid');
+        
+        // Auto-fill date of birth and gender
+        if (extendedDobField) extendedDobField.value = result.date;
+        if (extendedGenderField) extendedGenderField.value = result.gender;
+      } else {
+        // Show invalid icon and message
+        extendedIdValidIcon.classList.add('hidden');
+        extendedIdInvalidIcon.classList.remove('hidden');
+        extendedIdValidationMessage.textContent = result.message;
+        extendedIdValidationMessage.className = 'mt-1 text-sm text-red-600';
+        extendedIdNumberField.classList.add('is-invalid');
+        
+        // Clear date of birth and gender
+        if (extendedDobField) extendedDobField.value = '';
+        if (extendedGenderField) extendedGenderField.value = '';
+      }
+    } else {
+      // Hide validation icons and message for incomplete input
+      extendedIdValidationIcon.classList.add('hidden');
+      extendedIdValidationMessage.textContent = '';
+      extendedIdNumberField.classList.remove('is-invalid');
+      
+      // Clear date of birth and gender
+      if (extendedDobField) extendedDobField.value = '';
+      if (extendedGenderField) extendedGenderField.value = '';
+    }
+  }
+  
+  // Form validation for children
+  window.validateChildForm = function(event) {
+    let isValid = true;
+    
+    // Validate required fields
+    const requiredFields = document.querySelectorAll('#addChildForm [required]');
+    requiredFields.forEach(field => {
+      if (!field.value.trim()) {
+        field.classList.add('is-invalid');
+        isValid = false;
+      } else {
+        field.classList.remove('is-invalid');
+      }
+    });
+    
+    // Validate ID number specifically
+    if (childIdNumberField && childIdNumberField.value.trim().length === 13) {
+      const result = validateIdNumber(childIdNumberField.value.trim());
+      if (!result.valid) {
+        childIdNumberField.classList.add('is-invalid');
+        isValid = false;
+      }
+    } else if (childIdNumberField && childIdNumberField.value.trim().length > 0) {
+      childIdNumberField.classList.add('is-invalid');
+      isValid = false;
+    }
+    
+    if (!isValid) {
+      event.preventDefault();
+      return false;
+    }
+    
+    return true;
+  };
+  
+  // Form validation for extended family
+  window.validateExtendedForm = function(event) {
+    let isValid = true;
+    
+    // Get the extended form fields
+    const extendedIdNumberField = document.querySelector('#extended-section #{{ form.id_number.id_for_label }}');
+    
+    // Validate required fields
+    const requiredFields = document.querySelectorAll('#addExtendedForm [required]');
+    requiredFields.forEach(field => {
+      if (!field.value.trim()) {
+        field.classList.add('is-invalid');
+        isValid = false;
+      } else {
+        field.classList.remove('is-invalid');
+      }
+    });
+    
+    // Validate ID number specifically
+    if (extendedIdNumberField && extendedIdNumberField.value.trim().length === 13) {
+      const result = validateIdNumber(extendedIdNumberField.value.trim());
+      if (!result.valid) {
+        extendedIdNumberField.classList.add('is-invalid');
+        isValid = false;
+      }
+    } else if (extendedIdNumberField && extendedIdNumberField.value.trim().length > 0) {
+      extendedIdNumberField.classList.add('is-invalid');
+      isValid = false;
+    }
+    
+    if (!isValid) {
+      event.preventDefault();
+      return false;
+    }
+    
+    return true;
+  };
+  
+  // Add event listeners for child form
+  if (childIdNumberField) {
+    childIdNumberField.addEventListener('input', handleChildIdInput);
+    childIdNumberField.addEventListener('blur', handleChildIdInput);
+  }
+  
+  // Add event listeners for extended form - we need to do this after a slight delay
+  // to ensure the DOM is fully loaded and tab switching works properly
+  setTimeout(function() {
+    const extendedIdNumberField = document.querySelector('#extended-section #{{ form.id_number.id_for_label }}');
+    if (extendedIdNumberField) {
+      extendedIdNumberField.addEventListener('input', handleExtendedIdInput);
+      extendedIdNumberField.addEventListener('blur', handleExtendedIdInput);
+    }
+  }, 500);
+  
+  // Initialize the tabs
+  showTab('children');
+});
+</script>
+{% endblock %}

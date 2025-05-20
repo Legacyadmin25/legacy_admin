@@ -1,0 +1,105 @@
+{% comment %}
+UI Style Guide Form Template
+Include this template in all form pages to ensure consistent styling
+{% endcomment %}
+
+<style>
+  /* Form Field Styling */
+  label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    @apply mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+  
+  /* Error state */
+  .error input,
+  .error select,
+  .error textarea,
+  input.error,
+  select.error,
+  textarea.error {
+    @apply border-red-500;
+  }
+  
+  .error-message {
+    @apply text-xs text-red-600 mt-1;
+  }
+  
+  /* Form Row Spacing */
+  .form-group {
+    @apply mb-6;
+  }
+  
+  /* Section Headings */
+  h3, .section-heading {
+    @apply text-lg font-semibold text-gray-900 mb-4 border-b pb-2;
+  }
+  
+  /* Container Styling */
+  .content-container {
+    @apply bg-white rounded-lg shadow overflow-hidden;
+  }
+  
+  /* Page Background */
+  .page-bg {
+    @apply bg-gray-50;
+  }
+  
+  /* Main Wrapper */
+  .main-wrapper {
+    @apply max-w-3xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Navigation (Steps / Tabs) */
+  .step-bar {
+    @apply flex items-center space-x-4 border-b border-gray-200 mb-8;
+  }
+  
+  .step-bar a {
+    @apply pb-2 text-gray-500 hover:text-gray-700;
+  }
+  
+  .step-bar a.active {
+    @apply pb-2 text-blue-600 border-b-2 border-blue-600;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Apply form field styling
+    document.querySelectorAll('label').forEach(label => {
+      if (!label.classList.contains('text-sm')) {
+        label.classList.add('block', 'text-sm', 'font-medium', 'text-gray-700', 'mb-1');
+      }
+    });
+    
+    // Style inputs, selects, and textareas
+    document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea').forEach(input => {
+      if (!input.classList.contains('mt-1')) {
+        input.classList.add(
+          'mt-1', 'block', 'w-full', 'pl-3', 'pr-10', 'py-2', 
+          'border', 'border-gray-300', 'rounded-md', 'bg-gray-50',
+          'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500'
+        );
+      }
+    });
+    
+    // Style section headings
+    document.querySelectorAll('h3, .section-heading').forEach(heading => {
+      if (!heading.classList.contains('text-lg')) {
+        heading.classList.add('text-lg', 'font-semibold', 'text-gray-900', 'mb-4', 'border-b', 'pb-2');
+      }
+    });
+    
+    // Apply form group spacing
+    document.querySelectorAll('.form-group').forEach(group => {
+      if (!group.classList.contains('mb-6')) {
+        group.classList.add('mb-6');
+      }
+    });
+  });
+</script>

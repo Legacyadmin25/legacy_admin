@@ -1,0 +1,260 @@
+{% load static %}
+
+<div class="bg-white rounded-lg shadow p-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Payment History</h2>
+    <div class="mt-4 md:mt-0 flex space-x-3">
+      <div class="relative">
+        <select id="payment-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+          <option value="all">All Payments</option>
+          <option value="successful">Successful</option>
+          <option value="failed">Failed</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+      <button id="export-payments" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <div class="relative rounded-md shadow-sm">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <input type="text" id="payment-search" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md py-2" placeholder="Search payments...">
+    </div>
+  </div>
+
+  {% if policy.payments.exists %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Date
+              <button class="sort-payment" data-sort="date">
+                <svg class="w-4 h-4 inline ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+              </button>
+            </th>
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Amount (ZAR)
+              <button class="sort-payment" data-sort="amount">
+                <svg class="w-4 h-4 inline ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+              </button>
+            </th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Method
+              <button class="sort-payment" data-sort="method">
+                <svg class="w-4 h-4 inline ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+              </button>
+            </th>
+            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+              <button class="sort-payment" data-sort="status">
+                <svg class="w-4 h-4 inline ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+              </button>
+            </th>
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Receipt
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for payment in policy.payments.all %}
+            <tr class="payment-row hover:bg-gray-50" 
+                data-status="{{ payment.status|lower }}"
+                data-date="{{ payment.date|date:'Y-m-d' }}"
+                data-amount="{{ payment.amount }}"
+                data-method="{{ payment.method|lower }}">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ payment.date|date:"d M Y" }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                R{{ payment.amount|floatformat:2 }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ payment.method|capfirst }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                {% if payment.status == 'successful' %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    {{ payment.status|capfirst }}
+                  </span>
+                {% elif payment.status == 'failed' %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                    {{ payment.status|capfirst }}
+                  </span>
+                {% else %}
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    {{ payment.status|capfirst }}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <a href="#" class="text-blue-600 hover:text-blue-900">View</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="bg-gray-50">
+          <tr>
+            <td colspan="5" class="px-6 py-3 text-right text-sm font-medium text-gray-500">
+              Total: <span class="text-gray-900">R{{ policy.get_total_payments|floatformat:2 }}</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  {% else %}
+    <div class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No payments</h3>
+      <p class="mt-1 text-sm text-gray-500">Payment history will appear here once available.</p>
+    </div>
+  {% endif %}
+
+  {% if policy.payments.exists %}
+    <div class="mt-4 flex items-center justify-between">
+      <div class="text-sm text-gray-500">
+        Showing <span class="font-medium">1</span> to <span class="font-medium">{{ policy.payments.count }}</span> of <span class="font-medium">{{ policy.payments.count }}</span> results
+      </div>
+      <div class="flex-1 flex justify-between sm:justify-end">
+        <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          Previous
+        </button>
+        <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          Next
+        </button>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Payment filtering
+  const paymentFilter = document.getElementById('payment-filter');
+  const paymentSearch = document.getElementById('payment-search');
+  const paymentRows = document.querySelectorAll('.payment-row');
+  let currentSort = { column: 'date', direction: 'desc' };
+
+  // Filter payments by status
+  if (paymentFilter) {
+    paymentFilter.addEventListener('change', function() {
+      const filterValue = this.value;
+      filterPayments(filterValue, paymentSearch.value);
+    });
+  }
+
+  // Search payments
+  if (paymentSearch) {
+    paymentSearch.addEventListener('input', function() {
+      filterPayments(paymentFilter.value, this.value);
+    });
+  }
+
+  // Sort payments
+  document.querySelectorAll('.sort-payment').forEach(button => {
+    button.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort = { column, direction: 'asc' };
+      }
+      sortPayments();
+    });
+  });
+
+  // Export payments
+  const exportButton = document.getElementById('export-payments');
+  if (exportButton) {
+    exportButton.addEventListener('click', function() {
+      // In a real implementation, this would make an API call to export the data
+      alert('Exporting payment history data...');
+      // Example: window.location.href = `/api/payments/export/?policy_id={{ policy.id }}`;
+    });
+  }
+
+  function filterPayments(filterValue, searchValue) {
+    const searchTerm = searchValue.toLowerCase();
+    
+    paymentRows.forEach(row => {
+      const status = row.dataset.status;
+      const date = row.dataset.date;
+      const amount = row.dataset.amount;
+      const method = row.dataset.method;
+      const rowText = row.textContent.toLowerCase();
+      
+      const matchesFilter = filterValue === 'all' || status === filterValue;
+      const matchesSearch = searchTerm === '' || rowText.includes(searchTerm);
+      
+      if (matchesFilter && matchesSearch) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  function sortPayments() {
+    const tbody = document.querySelector('tbody');
+    const rows = Array.from(document.querySelectorAll('.payment-row'));
+    
+    rows.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (currentSort.column) {
+        case 'date':
+          aValue = new Date(a.dataset.date);
+          bValue = new Date(b.dataset.date);
+          break;
+        case 'amount':
+          aValue = parseFloat(a.dataset.amount);
+          bValue = parseFloat(b.dataset.amount);
+          break;
+        case 'method':
+          aValue = a.dataset.method;
+          bValue = b.dataset.method;
+          break;
+        case 'status':
+          aValue = a.dataset.status;
+          bValue = b.dataset.status;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) {
+        return currentSort.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return currentSort.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    
+    // Re-append rows in new order
+    rows.forEach(row => tbody.appendChild(row));
+  }
+});
+</script>

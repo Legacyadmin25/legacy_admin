@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6 text-sm text-gray-600" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center"><a href="/" class="hover:underline">Home</a></li>
+            <li class="inline-flex items-center"><span class="mx-2">/</span><a href="/claims/" class="hover:underline">Claims</a></li>
+            <li class="inline-flex items-center"><span class="mx-2">/</span>New Claim</li>
+        </ol>
+    </nav>
+    <h1 class="text-2xl font-bold mb-6">Submit New Claim</h1>
+    
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+
+    {% if user|has_group:"Agent,Scheme Manager,Admin" %}
+    <form method="post" enctype="multipart/form-data" class="space-y-6" id="claimForm">
+        {% csrf_token %}
+        
+        <!-- Member Selection -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Member Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="member">
+                        Member <span class="text-red-500">*</span>
+                    </label>
+                    <select name="member" id="member" required
+                            class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.member.errors %}border-red-500{% endif %}">
+                        <option value="" disabled selected>Select a member</option>
+                        {% for member in members %}
+                            <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }} ({{ member.id_number }})</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.member.errors %}<p class="text-red-600 text-xs">{{ form.member.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="policy">
+                        Policy Number
+                    </label>
+                    <input type="text" id="policy_number" class="w-full px-3 py-2 border rounded shadow-sm bg-gray-100" readonly>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Policy Information Block (shows when policy is selected) -->
+        <div id="policyInfo" class="mb-6 hidden bg-blue-50 p-4 rounded-md border border-blue-200">
+            <h3 class="text-lg font-semibold text-blue-800 mb-2">Policy Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><span class="font-medium">Plan:</span> <span id="planName"></span></div>
+                <div><span class="font-medium">Status:</span> <span id="policyStatus"></span></div>
+                <div><span class="font-medium">Cover Amount:</span> <span id="coverAmount"></span></div>
+                <div><span class="font-medium">Start Date:</span> <span id="startDate"></span></div>
+            </div>
+            <!-- Warning for lapsed policies -->
+            <div id="lapsedWarning" class="hidden mt-4 bg-red-100 border-l-4 border-red-500 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700">This policy is lapsed or unpaid. Claims may not be processed until payments are up to date.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Claim Details -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Claim Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="claim_type">
+                        Claim Type <span class="text-red-500">*</span>
+                    </label>
+                    <select name="claim_type" id="claim_type" required
+                            class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.claim_type.errors %}border-red-500{% endif %}">
+                        <option value="" disabled selected>Select claim type</option>
+                        <option value="death_main">Death - Main Member</option>
+                        <option value="death_spouse">Death - Spouse</option>
+                        <option value="death_child">Death - Child</option>
+                        <option value="death_extended">Death - Extended Family</option>
+                        <option value="disability">Disability</option>
+                        <option value="other">Other</option>
+                    </select>
+                    {% if form.claim_type.errors %}<p class="text-red-600 text-xs">{{ form.claim_type.errors.0 }}</p>{% endif %}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="amount">
+                        Claim Amount <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="amount" id="amount" step="0.01" min="0" required
+                           class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.amount.errors %}border-red-500{% endif %}"
+                           placeholder="0.00">
+                    {% if form.amount.errors %}<p class="text-red-600 text-xs">{{ form.amount.errors.0 }}</p>{% endif %}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="date_of_event">
+                        Date of Death/Event <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="date_of_event" id="date_of_event" required
+                           class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.date_of_event.errors %}border-red-500{% endif %}">
+                    {% if form.date_of_event.errors %}<p class="text-red-600 text-xs">{{ form.date_of_event.errors.0 }}</p>{% endif %}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="claimant_relationship">
+                        Claimant Relationship
+                    </label>
+                    <select name="claimant_relationship" id="claimant_relationship"
+                            class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" selected>Select relationship</option>
+                        <option value="self">Self</option>
+                        <option value="spouse">Spouse</option>
+                        <option value="child">Child</option>
+                        <option value="parent">Parent</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="description">
+                    Claim Description <span class="text-red-500">*</span>
+                </label>
+                <textarea name="description" id="description" rows="4" required
+                          class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.description.errors %}border-red-500{% endif %}"
+                          placeholder="Provide detailed information about the claim"></textarea>
+                {% if form.description.errors %}<p class="text-red-600 text-xs">{{ form.description.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+        
+        <!-- Supporting Documents -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Supporting Documents</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="death_certificate">
+                        Death Certificate <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" name="death_certificate" id="death_certificate" accept=".pdf,.jpg,.png,.jpeg"
+                           class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if form.death_certificate.errors %}border-red-500{% endif %}">
+                    {% if form.death_certificate.errors %}<p class="text-red-600 text-xs">{{ form.death_certificate.errors.0 }}</p>{% endif %}
+                    <p class="text-xs text-gray-500 mt-1">Upload death certificate (required for death claims)</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="id_document">
+                        ID Document
+                    </label>
+                    <input type="file" name="id_document" id="id_document" accept=".pdf,.jpg,.png,.jpeg"
+                           class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Upload ID document of deceased</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="additional_documents">
+                        Additional Supporting Documents
+                    </label>
+                    <input type="file" name="additional_documents" id="additional_documents" accept=".pdf,.jpg,.png,.jpeg" multiple
+                           class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Upload any additional supporting documents (optional)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between pt-4">
+            <a href="/claims/" class="py-2 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                Cancel
+            </a>
+            <button type="submit" id="submitButton" class="py-2 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200">
+                Submit Claim
+            </button>
+        </div>
+    </form>
+    {% else %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    You don't have permission to submit claims. Only Agents, Scheme Managers, and Administrators can submit claims.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const memberSelect = document.getElementById('member');
+        const policyInfo = document.getElementById('policyInfo');
+        const policyNumberField = document.getElementById('policy_number');
+        const planNameField = document.getElementById('planName');
+        const policyStatusField = document.getElementById('policyStatus');
+        const coverAmountField = document.getElementById('coverAmount');
+        const startDateField = document.getElementById('startDate');
+        const lapsedWarning = document.getElementById('lapsedWarning');
+        const submitButton = document.getElementById('submitButton');
+        
+        // When member is selected, fetch policy details
+        if (memberSelect) {
+            memberSelect.addEventListener('change', function() {
+                const memberId = this.value;
+                if (memberId) {
+                    // This would be an AJAX call to get policy details
+                    // For demo purposes, we'll simulate it
+                    fetch(`/api/members/${memberId}/policy/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Show policy info section
+                            policyInfo.classList.remove('hidden');
+                            
+                            // Populate fields
+                            policyNumberField.value = data.policy_number;
+                            planNameField.textContent = data.plan_name;
+                            policyStatusField.textContent = data.status;
+                            coverAmountField.textContent = `R${data.cover_amount}`;
+                            startDateField.textContent = data.start_date;
+                            
+                            // Check if policy is lapsed
+                            if (data.status === 'LAPSED' || data.status === 'UNPAID') {
+                                lapsedWarning.classList.remove('hidden');
+                                submitButton.disabled = true;
+                                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                            } else {
+                                lapsedWarning.classList.add('hidden');
+                                submitButton.disabled = false;
+                                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching policy details:', error);
+                        });
+                } else {
+                    policyInfo.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Form validation
+        const claimForm = document.getElementById('claimForm');
+        if (claimForm) {
+            claimForm.addEventListener('submit', function(event) {
+                let valid = true;
+                const requiredFields = claimForm.querySelectorAll('[required]');
+                
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.classList.add('border-red-500');
+                        valid = false;
+                    } else {
+                        field.classList.remove('border-red-500');
+                    }
+                });
+                
+                if (!valid) {
+                    event.preventDefault();
+                    alert('Please fill in all required fields.');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends "diy/base_application.html" %}
+
+{% block title %}Policy Details - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  // Form data
+  formData: {
+    policy_type: 'funeral',
+    cover_amount: 30000,
+    premium_frequency: 'monthly',
+    has_extended_family: false,
+    extended_family_members: 0,
+    ...(typeof $store !== 'undefined' ? $store.formData : {})
+  },
+  
+  // Policy type options
+  policyTypes: [
+    { 
+      value: 'funeral', 
+      label: 'Funeral Cover', 
+      description: 'Basic funeral cover for you and your immediate family',
+      icon: 'fa-umbrella',
+      features: [
+        'Cover for principal member',
+        'Cover for spouse/partner',
+        'Cover for up to 5 children',
+        '24/7 claims assistance'
+      ]
+    },
+    { 
+      value: 'life', 
+      label: 'Life Cover', 
+      description: 'Comprehensive life insurance with additional benefits',
+      icon: 'fa-heart-pulse',
+      features: [
+        'Higher cover amounts',
+        'Life cover benefit',
+        'Disability cover',
+        'Critical illness benefit'
+      ]
+    },
+    { 
+      value: 'combined', 
+      label: 'Combined Cover', 
+      description: 'Both funeral and life cover at a discounted rate',
+      icon: 'fa-shield-halved',
+      features: [
+        'All funeral cover benefits',
+        'All life cover benefits',
+        'Discounted premium',
+        'Single policy convenience'
+      ]
+    }
+  ],
+  
+  // Cover amount options
+  coverAmounts: [
+    { value: 15000, label: 'R15,000' },
+    { value: 30000, label: 'R30,000' },
+    { value: 50000, label: 'R50,000' },
+    { value: 100000, label: 'R100,000' },
+    { value: 'custom', label: 'Custom Amount' }
+  ],
+  
+  // Premium frequency options
+  premiumFrequencies: [
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'quarterly', label: 'Quarterly' },
+    { value: 'annually', label: 'Annually' }
+  ],
+  
+  // Computed properties
+  get isCustomAmount() {
+    return this.formData.cover_amount === 'custom' || 
+           !this.coverAmounts.some(amt => amt.value === this.formData.cover_amount);
+  },
+  
+  get monthlyPremium() {
+    // Simple premium calculation - in a real app, this would be more complex
+    let baseAmount = this.formData.cover_amount === 'custom' ? 
+                    (parseInt(this.formData.custom_amount) || 0) : 
+                    parseInt(this.formData.cover_amount);
+    
+    if (isNaN(baseAmount) || baseAmount <= 0) return 0;
+    
+    // Base rate (example: 1% of cover amount)
+    let premium = baseAmount * 0.01;
+    
+    // Apply discounts for higher cover amounts
+    if (baseAmount > 50000) {
+      premium *= 0.9; // 10% discount for > R50k
+    } else if (baseAmount > 30000) {
+      premium *= 0.95; // 5% discount for > R30k
+    }
+    
+    // Add for extended family if selected
+    if (this.formData.has_extended_family && this.formData.extended_family_members > 0) {
+      premium += (this.formData.extended_family_members * 50); // R50 per extended family member
+    }
+    
+    // Ensure minimum premium of R50
+    return Math.max(50, Math.round(premium));
+  },
+  
+  get premiumAmount() {
+    const monthly = this.monthlyPremium;
+    
+    switch(this.formData.premium_frequency) {
+      case 'quarterly':
+        return Math.round(monthly * 3 * 0.95); // 5% discount for quarterly
+      case 'annually':
+        return Math.round(monthly * 12 * 0.9); // 10% discount for annual
+      default:
+        return monthly;
+    }
+  },
+  
+  get premiumLabel() {
+    switch(this.formData.premium_frequency) {
+      case 'monthly':
+        return 'per month';
+      case 'quarterly':
+        return 'per quarter';
+      case 'annually':
+        return 'per year';
+      default:
+        return '';
+    }
+  },
+  
+  get isValid() {
+    if (this.formData.cover_amount === 'custom') {
+      const customAmount = parseInt(this.formData.custom_amount || 0);
+      return customAmount >= 10000 && customAmount <= 200000; // Example validation
+    }
+    return true;
+  },
+  
+  // Methods
+  updateCoverAmount(amount) {
+    if (amount === 'custom') {
+      this.formData.cover_amount = 'custom';
+      this.formData.custom_amount = '';
+    } else {
+      this.formData.cover_amount = amount;
+      delete this.formData.custom_amount;
+    }
+  },
+  
+  formatCurrency(amount) {
+    if (!amount) return 'R0';
+    return 'R' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  },
+  
+  // Initialize
+  init() {
+    // Load from store if available
+    if (this.$store.formData) {
+      this.formData = { ...this.formData, ...this.$store.formData };
+    }
+  }
+}">
+  <h2 class="text-2xl font-bold text-gray-800 mb-6">Policy Details</h2>
+  
+  <div class="space-y-8">
+    <!-- Policy Type Selection -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Select Policy Type <span class="text-red-500">*</span></h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <template x-for="(option, index) in policyTypes" :key="option.value">
+          <label 
+            :class="{ 'ring-2 ring-blue-500 border-transparent': formData.policy_type === option.value }"
+            class="relative p-4 border border-gray-300 rounded-lg bg-white shadow-sm cursor-pointer hover:border-blue-500 transition-colors">
+            <div class="flex items-center">
+              <input 
+                type="radio" 
+                name="policy_type" 
+                :value="option.value"
+                x-model="formData.policy_type"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+              <div class="ml-3">
+                <span class="block text-sm font-medium text-gray-900" x-text="option.label"></span>
+                <span class="block text-xs text-gray-500" x-text="option.description"></span>
+              </div>
+            </div>
+            
+            <div class="mt-3">
+              <ul class="text-xs text-gray-600 space-y-1">
+                <template x-for="feature in option.features" :key="feature">
+                  <li class="flex items-start">
+                    <svg class="h-4 w-4 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span x-text="feature"></span>
+                  </li>
+                </template>
+              </ul>
+            </div>
+            
+            <div class="absolute top-2 right-2">
+              <i class="fa-solid" :class="option.icon"></i>
+            </div>
+          </label>
+        </template>
+      </div>
+    </div>
+    
+    <!-- Cover Amount -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Cover Amount <span class="text-red-500">*</span></h3>
+      
+      <!-- Quick Select Buttons -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <template x-for="(amount, index) in coverAmounts" :key="index">
+          <button
+            type="button"
+            @click="updateCoverAmount(amount.value)"
+            :class="{ 
+              'bg-blue-600 text-white border-blue-600': formData.cover_amount === amount.value || 
+                                                     (amount.value === 'custom' && isCustomAmount)
+            }"
+            class="px-4 py-2 border rounded-md text-sm font-medium transition-colors"
+            x-text="amount.label">
+          </button>
+        </template>
+      </div>
+      
+      <!-- Custom Amount Input -->
+      <div x-show="isCustomAmount" class="mb-4">
+        <label for="custom-amount" class="block text-sm font-medium text-gray-700 mb-1">
+          Enter custom amount (R10,000 - R200,000)
+        </label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span class="text-gray-500 sm:text-sm">R</span>
+          </div>
+          <input
+            type="number"
+            id="custom-amount"
+            x-model="formData.custom_amount"
+            min="10000"
+            max="200000"
+            step="1000"
+            class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 py-2 sm:text-sm border-gray-300 rounded-md"
+            placeholder="e.g. 75000">
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <span class="text-gray-500 sm:text-sm">.00</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Premium Frequency -->
+      <div class="mt-4">
+        <label for="premium-frequency" class="block text-sm font-medium text-gray-700 mb-1">
+          Premium Payment Frequency
+        </label>
+        <div class="mt-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <template x-for="freq in premiumFrequencies" :key="freq.value">
+            <label 
+              :class="{ 'ring-2 ring-blue-500 border-transparent': formData.premium_frequency === freq.value }"
+              class="relative p-4 border border-gray-300 rounded-md bg-white shadow-sm cursor-pointer text-center">
+              <input 
+                type="radio" 
+                name="premium_frequency" 
+                :value="freq.value"
+                x-model="formData.premium_frequency"
+                class="sr-only">
+              <span class="block text-sm font-medium text-gray-900" x-text="freq.label"></span>
+              <span class="block mt-1 text-xs text-gray-500" x-text="'(' + formatCurrency(premiumAmount) + ' ' + premiumLabel + ')'"></span>
+            </label>
+          </template>
+        </div>
+      </div>
+      
+      <!-- Premium Display -->
+      <div class="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-700">Your Premium</p>
+            <p class="text-xs text-gray-500" x-text="'Paid ' + premiumLabel"></p>
+          </div>
+          <div class="text-right">
+            <p class="text-2xl font-bold text-blue-700" x-text="formatCurrency(premiumAmount)"></p>
+            <p class="text-xs text-gray-500" x-text="'Cover amount: ' + (isCustomAmount ? formatCurrency(formData.custom_amount) : formatCurrency(formData.cover_amount))"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Extended Family Option -->
+    <div class="border-t border-gray-200 pt-4">
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <input 
+            id="extended-family" 
+            type="checkbox" 
+            x-model="formData.has_extended_family"
+            class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="extended-family" class="font-medium text-gray-700">Add extended family members</label>
+          <p class="text-gray-500">Include parents, in-laws, or other family members in your cover</p>
+          
+          <div x-show="formData.has_extended_family" class="mt-3">
+            <label for="family-members" class="block text-sm font-medium text-gray-700">Number of extended family members</label>
+            <select 
+              id="family-members"
+              x-model="formData.extended_family_members"
+              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+              <option value="0">0 - Just immediate family</option>
+              <option value="1">1 family member</option>
+              <option value="2">2 family members</option>
+              <option value="3">3 family members</option>
+              <option value="4">4 family members</option>
+              <option value="5">5+ family members</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">
+              Additional R50 per month per family member
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form Actions (handled by parent) -->
+  <div class="hidden">
+    <button type="button" @click="$store.formData = { ...$store.formData, ...formData }; $store.currentStep = 5">Next</button>
+  </div>
+</div>
+
+<script>
+// Add validation function to parent component
+document.addEventListener('alpine:init', () => {
+  // Initialize form data
+  Alpine.store('formData', Alpine.store('formData') || {});
+  
+  // Extend the parent's validateStep function
+  const originalValidate = window.validateStep;
+  window.validateStep = function(step) {
+    if (step === 4) {
+      const form = document.querySelector('[x-data]').__x.$data;
+      if (!form.isValid) {
+        if (form.formData.cover_amount === 'custom' && !form.formData.custom_amount) {
+          alert('Please enter a valid cover amount');
+        } else {
+          alert('Please select a valid cover amount between R10,000 and R200,000');
+        }
+        return false;
+      }
+      return true;
+    }
+    return originalValidate ? originalValidate(step) : true;
+  };
+});
+</script>
+{% endblock %}

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Policy Document - {{ policy.policy_number }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @top-center {
+                content: "Legacy Policy Document";
+                font-size: 9pt;
+                color: #666;
+            }
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2cm;
+            padding-bottom: 0.5cm;
+            border-bottom: 1px solid #ddd;
+        }
+        .logo {
+            height: 2cm;
+        }
+        .document-title {
+            text-align: center;
+            font-size: 24pt;
+            font-weight: bold;
+            margin-bottom: 1cm;
+            color: #1a56db;
+        }
+        .section {
+            margin-bottom: 1cm;
+        }
+        .section-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 0.5cm;
+            color: #1a56db;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.2cm;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5cm;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.3cm;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f8fafc;
+            font-weight: bold;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5cm;
+        }
+        .info-item {
+            margin-bottom: 0.3cm;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 10pt;
+        }
+        .info-value {
+            font-size: 12pt;
+        }
+        .payment-box {
+            border: 1px solid #ddd;
+            padding: 0.5cm;
+            background-color: #f8fafc;
+            margin-bottom: 1cm;
+        }
+        .payment-title {
+            font-weight: bold;
+            margin-bottom: 0.3cm;
+        }
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5cm;
+        }
+        .payment-codes {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5cm;
+        }
+        .code-container {
+            text-align: center;
+            width: 48%;
+        }
+        .code-image {
+            max-width: 100%;
+            height: auto;
+        }
+        .terms {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 1cm;
+            padding-top: 0.5cm;
+            border-top: 1px solid #ddd;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f0f4f8;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ MEDIA_URL }}logos/legacy_guard_logo.png" alt="Legacy Guard Logo" class="logo">
+        {% if policy.scheme %}
+        <img src="{{ policy.scheme.logo.url }}" alt="{{ policy.scheme.name }} Logo" class="logo">
+        {% endif %}
+    </div>
+
+    <div class="document-title">Policy Certificate</div>
+
+    <div class="section">
+        <div class="section-title">Policy Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Policy Number</div>
+                <div class="info-value">{{ policy.policy_number }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Scheme</div>
+                <div class="info-value">{{ policy.scheme.name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Plan</div>
+                <div class="info-value">{{ policy.plan.name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Start Date</div>
+                <div class="info-value">{{ policy.start_date|date:"F j, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value">Active</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Issue Date</div>
+                <div class="info-value">{{ policy.created_at|date:"F j, Y" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Policyholder Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ member.get_full_name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">ID Number</div>
+                <div class="info-value">{{ member.id_number }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Date of Birth</div>
+                <div class="info-value">{{ member.date_of_birth|date:"F j, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Gender</div>
+                <div class="info-value">{{ member.get_gender_display }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Phone Number</div>
+                <div class="info-value">{{ member.phone_number }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ member.email }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Physical Address</div>
+                <div class="info-value">
+                    {{ member.street_address }}<br>
+                    {{ member.suburb }}<br>
+                    {{ member.city }}<br>
+                    {{ member.postal_code }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if spouse %}
+    <div class="section">
+        <div class="section-title">Spouse Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ spouse.first_name }} {{ spouse.last_name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">ID Number</div>
+                <div class="info-value">{{ spouse.id_number }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Date of Birth</div>
+                <div class="info-value">{{ spouse.date_of_birth|date:"F j, Y" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Gender</div>
+                <div class="info-value">{{ spouse.get_gender_display }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Cover Amount</div>
+                <div class="info-value">R {{ spouse.cover_amount|floatformat:2 }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Premium</div>
+                <div class="info-value">R {{ spouse.premium|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if children %}
+    <div class="section">
+        <div class="section-title">Children</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID Number</th>
+                    <th>Date of Birth</th>
+                    <th>Gender</th>
+                    <th>Cover Amount</th>
+                    <th>Premium</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for child in children %}
+                <tr>
+                    <td>{{ child.first_name }} {{ child.last_name }}</td>
+                    <td>{{ child.id_number }}</td>
+                    <td>{{ child.date_of_birth|date:"F j, Y" }}</td>
+                    <td>{{ child.get_gender_display }}</td>
+                    <td>R {{ child.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ child.premium|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if extended_family %}
+    <div class="section">
+        <div class="section-title">Extended Family</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID Number</th>
+                    <th>Date of Birth</th>
+                    <th>Gender</th>
+                    <th>Relationship</th>
+                    <th>Cover Amount</th>
+                    <th>Premium</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in extended_family %}
+                <tr>
+                    <td>{{ member.first_name }} {{ member.last_name }}</td>
+                    <td>{{ member.id_number }}</td>
+                    <td>{{ member.date_of_birth|date:"F j, Y" }}</td>
+                    <td>{{ member.get_gender_display }}</td>
+                    <td>{{ member.get_relationship_display }}</td>
+                    <td>R {{ member.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ member.premium|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if beneficiaries %}
+    <div class="section">
+        <div class="section-title">Beneficiaries</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID Number</th>
+                    <th>Relationship</th>
+                    <th>Contact Number</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for beneficiary in beneficiaries %}
+                <tr>
+                    <td>{{ beneficiary.first_name }} {{ beneficiary.last_name }}</td>
+                    <td>{{ beneficiary.id_number }}</td>
+                    <td>{{ beneficiary.get_relationship_display }}</td>
+                    <td>{{ beneficiary.phone_number }}</td>
+                    <td>{{ beneficiary.percentage }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <div class="section-title">Coverage Summary</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Cover Amount</th>
+                    <th>Premium</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ member.get_full_name }} (Main Member)</td>
+                    <td>R {{ policy.plan.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ policy.plan.premium|floatformat:2 }}</td>
+                </tr>
+                {% if spouse %}
+                <tr>
+                    <td>{{ spouse.first_name }} {{ spouse.last_name }} (Spouse)</td>
+                    <td>R {{ spouse.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ spouse.premium|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
+                {% for child in children %}
+                <tr>
+                    <td>{{ child.first_name }} {{ child.last_name }} (Child)</td>
+                    <td>R {{ child.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ child.premium|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                {% for member in extended_family %}
+                <tr>
+                    <td>{{ member.first_name }} {{ member.last_name }} ({{ member.get_relationship_display }})</td>
+                    <td>R {{ member.cover_amount|floatformat:2 }}</td>
+                    <td>R {{ member.premium|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td>Total</td>
+                    <td>R {{ total_cover|floatformat:2 }}</td>
+                    <td>R {{ total_premium|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Payment Information</div>
+        <div class="payment-box">
+            <div class="payment-title">Payment Method: {{ policy.get_payment_method_display }}</div>
+            <div class="payment-grid">
+                <div class="info-item">
+                    <div class="info-label">Monthly Premium</div>
+                    <div class="info-value">R {{ total_premium|floatformat:2 }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Due Date</div>
+                    <div class="info-value">1st of each month</div>
+                </div>
+            </div>
+
+            {% if policy.payment_method == 'EASYPAY' %}
+            <div class="payment-title">Easypay Payment Details</div>
+            <div class="info-item">
+                <div class="info-label">Easypay Number</div>
+                <div class="info-value">{{ policy.easypay_number }}</div>
+            </div>
+            <div class="payment-codes">
+                <div class="code-container">
+                    <div class="info-label">Barcode</div>
+                    <img src="{{ policy.barcode.url }}" alt="Easypay Barcode" class="code-image">
+                </div>
+                <div class="code-container">
+                    <div class="info-label">QR Code</div>
+                    <img src="{{ policy.qr_code.url }}" alt="Easypay QR Code" class="code-image">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if policy.payment_method == 'DEBIT_ORDER' %}
+            <div class="payment-title">Debit Order Details</div>
+            <div class="payment-grid">
+                <div class="info-item">
+                    <div class="info-label">Bank</div>
+                    <div class="info-value">{{ policy.bank.name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Branch Code</div>
+                    <div class="info-value">{{ policy.branch_code }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Account Holder</div>
+                    <div class="info-value">{{ policy.account_holder_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Account Number</div>
+                    <div class="info-value">{{ policy.account_number }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Debit Day</div>
+                    <div class="info-value">{{ policy.debit_instruction_day }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="section">
+        <div class="section-title">Terms and Conditions</div>
+        <div class="terms">
+            <h3>1. DEFINITIONS</h3>
+            <p>In this Policy, unless the context indicates a contrary intention, the following words and expressions bear the meanings assigned to them and cognate expressions bear corresponding meanings:</p>
+            
+            <p><strong>1.1. "Accident"</strong> means an unforeseen event, which could not reasonably have been expected to occur and was not planned, and which results in bodily injury caused by accidental, violent, external and visible means requiring immediate medical treatment by a qualified medical practitioner;</p>
+            
+            <p><strong>1.2. "Administrator"</strong> means the company appointed by the Insurer to administer the Policy;</p>
+            
+            <p><strong>1.3. "Beneficiary"</strong> means the person nominated by the Policyholder to receive the Policy Benefits in the event of the death of the Insured Life;</p>
+            
+            <p><strong>1.4. "Child"</strong> means the biological child, a stepchild, or legally adopted child of the Policyholder and/or Spouse, who is:</p>
+            <p>1.4.1. unmarried, and</p>
+            <p>1.4.2. under the age of 21 years, or</p>
+            <p>1.4.3. under the age of 25 years and a full-time student at a registered educational institution, or</p>
+            <p>1.4.4. mentally or physically disabled and totally dependent on the Policyholder, irrespective of age.</p>
+            
+            <p><strong>1.5. "Commencement Date"</strong> means the date on which the Policy commences, as specified in the Policy Schedule;</p>
+            
+            <p><strong>1.6. "Extended Family Member"</strong> means the parent, parent-in-law, grandparent, brother, sister, uncle, aunt, nephew or niece of the Policyholder or Spouse, who is financially dependent on the Policyholder;</p>
+            
+            <h3>2. WAITING PERIODS</h3>
+            <p>2.1. A waiting period of 6 (six) months applies to all natural causes of death from the Commencement Date or the date of addition of an Insured Life.</p>
+            <p>2.2. No waiting period applies to accidental death.</p>
+            <p>2.3. If the Policy lapses and is reinstated, the waiting period will start again from the date of reinstatement.</p>
+            
+            <h3>3. EXCLUSIONS</h3>
+            <p>The Insurer shall not be liable to pay any benefit under this Policy if the death of the Insured Life is directly or indirectly caused by or attributable to:</p>
+            <p>3.1. Suicide or attempted suicide within the first 24 (twenty-four) months from the Commencement Date;</p>
+            <p>3.2. The abuse of alcohol, drugs or narcotics;</p>
+            <p>3.3. Active participation in war, invasion, acts of foreign enemies, hostilities, warlike operations (whether war be declared or not), civil war, insurrection, rebellion revolution, civil commotion or uprisings, military power;</p>
+            <p>3.4. The use of nuclear, biological or chemical weapons, or any radioactive contamination;</p>
+            <p>3.5. Participation in criminal activity;</p>
+            <p>3.6. Participation in hazardous activities such as mountain climbing, bungee jumping, or speed racing;</p>
+            <p>3.7. Any pre-existing condition that the Insured Life was aware of within the 12 (twelve) months prior to the Commencement Date and that resulted in death within the first 24 (twenty-four) months of the Commencement Date.</p>
+            
+            <h3>4. PREMIUM PAYMENTS</h3>
+            <p>4.1. The premium is due monthly in advance on the agreed debit date.</p>
+            <p>4.2. If the premium is not paid on the due date, a grace period of 30 (thirty) days will be allowed for payment. If the premium is still not paid after the grace period, the Policy will lapse.</p>
+            <p>4.3. The Insurer reserves the right to increase the premium by giving 30 (thirty) days written notice to the Policyholder.</p>
+            
+            <h3>5. CLAIMS PROCEDURE</h3>
+            <p>5.1. The Insurer must be notified of a claim within 6 (six) months of the death of the Insured Life.</p>
+            <p>5.2. The following documents must be submitted to the Insurer when making a claim:</p>
+            <p>5.2.1. Completed claim form;</p>
+            <p>5.2.2. Certified copy of the death certificate;</p>
+            <p>5.2.3. Certified copy of the Insured Life's identity document;</p>
+            <p>5.2.4. Certified copy of the Beneficiary's identity document;</p>
+            <p>5.2.5. Proof of bank details of the Beneficiary;</p>
+            <p>5.2.6. Medical report or death report (BI-1663) if the cause of death is not reflected on the death certificate.</p>
+            
+            <h3>6. GENERAL</h3>
+            <p>6.1. This Policy is issued on the basis that the statements and information made and provided by the Policyholder are true and complete.</p>
+            <p>6.2. The Policyholder has 30 (thirty) days from the Commencement Date to cancel the Policy in writing and receive a full refund of premiums paid, provided no claim has been submitted.</p>
+            <p>6.3. The Insurer is not bound by any representations or undertakings made by any person other than those contained in this Policy.</p>
+            <p>6.4. The Policyholder must inform the Insurer of any changes to the information provided at application stage.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Declaration</div>
+        <p>This policy document is a legal contract between the policyholder and the insurer. The policyholder confirms that they have read and understood the terms and conditions of this policy and agrees to be bound by them.</p>
+        <p>Issued by Legacy Guard on behalf of {{ policy.scheme.name }}.</p>
+        <p>Date of Issue: {{ policy.created_at|date:"F j, Y" }}</p>
+    </div>
+</body>
+</html>

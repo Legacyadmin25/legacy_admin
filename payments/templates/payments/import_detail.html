@@ -1,0 +1,769 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Details{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    
+    <!-- Import Summary Card -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">{{ payment_import.file_name }}</h2>
+                <p class="text-sm text-gray-600 mt-1">Imported on {{ payment_import.created_at|date:"F j, Y, g:i a" }}</p>
+                <p class="text-sm text-gray-600">Import type: <span class="font-medium">{{ payment_import.get_import_type_display }}</span></p>
+                <p class="text-sm text-gray-600">Imported by: {{ payment_import.imported_by.get_full_name }}</p>
+            </div>
+            
+            <div class="text-right">
+                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if payment_import.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif payment_import.status == 'PROCESSING' %}bg-blue-100 text-blue-800{% elif payment_import.status == 'FAILED' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ payment_import.get_status_display }}
+                </div>
+                
+                {% if payment_import.error_csv %}
+                <div class="mt-2">
+                    <a href="{{ payment_import.error_csv.url }}" class="text-sm text-blue-600 hover:text-blue-800 flex items-center justify-end">
+                        <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Download Error CSV
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div class="bg-gray-50 p-4 rounded-md">
+                <div class="text-sm text-gray-500">Total Records</div>
+                <div class="text-2xl font-bold text-gray-800">{{ payment_import.total_records }}</div>
+            </div>
+            
+            <div class="bg-green-50 p-4 rounded-md">
+                <div class="text-sm text-green-600">Successful</div>
+                <div class="text-2xl font-bold text-green-700">{{ payment_import.successful_records }}</div>
+                <div class="text-xs text-green-500 mt-1">{{ payment_import.successful_records|floatformat:0 }}% success rate</div>
+            </div>
+            
+            <div class="bg-red-50 p-4 rounded-md">
+                <div class="text-sm text-red-600">Failed</div>
+                <div class="text-2xl font-bold text-red-700">{{ payment_import.failed_records }}</div>
+                {% if payment_import.failed_records > 0 %}
+                <div class="text-xs text-red-500 mt-1">Requires manual intervention</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold mb-2">Import Details</h1>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'payments:import_payments' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <svg class="h-5 w-5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Back to Import</span>
+                </a>
+                <a href="{% url 'payments:import_log_list' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <svg class="h-5 w-5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>All Import Logs</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Status Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">Import Summary</h2>
+            
+            {% if payment_import.has_errors and payment_import.error_file %}
+            <a href="{{ payment_import.error_file.url }}" class="text-red-600 hover:text-red-800 text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Error Report
+            </a>
+            {% endif %}
+        </div>
+        
+        <!-- Status Banner -->
+        <div class="flex items-center p-4 mb-4 rounded-md {% if payment_import.status == 'COMPLETED' %}bg-green-100{% elif payment_import.status == 'PARTIAL' %}bg-yellow-100{% elif payment_import.status == 'FAILED' %}bg-red-100{% else %}bg-blue-100{% endif %}">
+            <div class="flex-shrink-0 mr-3">
+                {% if payment_import.status == 'COMPLETED' %}
+                <svg class="h-5 w-5 text-green-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                {% elif payment_import.status == 'PARTIAL' %}
+                <svg class="h-5 w-5 text-yellow-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                {% elif payment_import.status == 'FAILED' %}
+                <svg class="h-5 w-5 text-red-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                {% else %}
+                <svg class="h-5 w-5 text-blue-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                </svg>
+                {% endif %}
+            </div>
+            <div>
+                <p class="font-medium {% if payment_import.status == 'COMPLETED' %}text-green-700{% elif payment_import.status == 'PARTIAL' %}text-yellow-700{% elif payment_import.status == 'FAILED' %}text-red-700{% else %}text-blue-700{% endif %}">
+                    {% if payment_import.successful_records > 0 %}
+                    ✅ {{ payment_import.successful_records }} records processed successfully
+                    {% endif %}
+                    {% if payment_import.failed_records > 0 %}
+                    {% if payment_import.successful_records > 0 %} | {% endif %}
+                    ❌ {{ payment_import.failed_records }} records with errors
+                    {% endif %}
+                </p>
+                <p class="text-sm {% if payment_import.status == 'COMPLETED' %}text-green-600{% elif payment_import.status == 'PARTIAL' %}text-yellow-600{% elif payment_import.status == 'FAILED' %}text-red-600{% else %}text-blue-600{% endif %}">
+                    {{ payment_import.get_status_display }} - {{ payment_import.processed_at|default:payment_import.imported_at }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <p class="text-sm text-gray-500">Import Type</p>
+                <p class="font-medium">
+                    <span class="px-2 py-1 text-xs rounded-full 
+                        {% if payment_import.import_type == 'EASYPAY' %}bg-yellow-100 text-yellow-800
+                        {% elif payment_import.import_type == 'LINKSERV' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ payment_import.get_import_type_display }}
+                    </span>
+                </p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Status</p>
+                <p class="font-medium">
+                    <span class="px-2 py-1 text-xs rounded-full 
+                        {% if payment_import.status == 'COMPLETED' %}bg-green-100 text-green-800
+                        {% elif payment_import.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                        {% elif payment_import.status == 'PROCESSING' %}bg-blue-100 text-blue-800
+                        {% elif payment_import.status == 'PARTIAL' %}bg-orange-100 text-orange-800
+                        {% elif payment_import.status == 'FAILED' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ payment_import.get_status_display }}
+                    </span>
+                </p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Date Imported</p>
+                <p class="font-medium">{{ payment_import.imported_at }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Total Records</p>
+                <p class="font-medium">{{ payment_import.total_records }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Successful</p>
+                <p class="font-medium text-green-600">{{ payment_import.successful_records }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Failed/Unmatched</p>
+                <p class="font-medium text-red-600">{{ payment_import.failed_records }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Imported By</p>
+                <p class="font-medium">{{ payment_import.imported_by }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Processed At</p>
+                <p class="font-medium">{{ payment_import.processed_at|default:"-" }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">File Name</p>
+                <p class="font-medium">{{ payment_import.file.name|default:"-" }}</p>
+            </div>
+        </div>
+        
+        {% if payment_import.notes %}
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-sm text-gray-500 mb-1">Notes</p>
+            <p class="text-gray-700">{{ payment_import.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabs for Matched and Unmatched Records -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex" aria-label="Tabs">
+                <button id="matchedTabBtn" class="tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                    Matched Records ({{ matched_records.count }})
+                </button>
+                <button id="unmatchedTabBtn" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                    Unmatched Records ({{ unmatched_records.count }})
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Matched Records Table -->
+    <div id="matchedTab" class="tab-content bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">Matched Records</h2>
+        </div>
+        
+        {% if matched_records %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row #</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for record in matched_records %}
+                    <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div class="truncate max-w-xs" title="{{ record.reference }}">{{ record.reference }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">R{{ record.amount }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if record.payment.member %}
+                            <div class="truncate max-w-xs" title="{{ record.payment.member.first_name }} {{ record.payment.member.last_name }}">
+                                {{ record.payment.member.first_name }} {{ record.payment.member.last_name }}
+                            </div>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if record.status == 'PROCESSED' %}bg-green-100 text-green-800
+                                {% elif record.status == 'MANUAL' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ record.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if record.payment %}
+                            <a href="{% url 'payments:detail' record.payment.id %}" class="text-blue-600 hover:text-blue-900" title="View Payment Details">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-4 text-center text-gray-500">
+            <p>No matched records found.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Unmatched Records Table -->
+    <div id="unmatchedTab" class="tab-content bg-white rounded-lg shadow-md overflow-hidden hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">Unmatched Records</h2>
+        </div>
+        
+        {% if unmatched_records %}
+        <!-- Unmatched Records Info Banner -->
+        <div class="px-6 py-4 bg-yellow-50 border-l-4 border-yellow-400">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>{{ unmatched_records.count }} unmatched records</strong> require manual intervention. Use the "Match Record" button to assign each record to the correct member.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row #</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for record in unmatched_records %}
+                    <tr class="{% cycle 'bg-white' 'bg-gray-50' %} {% if record.status == 'FAILED' %}bg-red-50{% endif %} hover:bg-yellow-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div class="truncate max-w-xs" title="{{ record.reference }}">{{ record.reference }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">R{{ record.amount }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="px-2 py-1 text-xs rounded-full flex items-center space-x-1 
+                                {% if record.status == 'UNMATCHED' %}bg-yellow-100 text-yellow-800
+                                {% elif record.status == 'FAILED' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if record.status == 'FAILED' or record.status == 'UNMATCHED' %}
+                                <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                {% endif %}
+                                <span>{{ record.get_status_display }}</span>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                            <div class="truncate max-w-xs" title="{{ record.error_message }}">{{ record.error_message|default:"-" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button class="match-record-btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs flex items-center" data-record-id="{{ record.id }}">
+                                <svg class="h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                Match Record
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <svg class="h-16 w-16 text-green-400 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-1">All Records Successfully Processed</h3>
+            <p class="text-gray-500">There are no unmatched records that require manual intervention.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Match Record Modal -->
+<div id="matchRecordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-800">Match Record to Member</h3>
+            <button type="button" id="closeMatchBtn" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        
+        <form id="matchRecordForm" method="post" action="">
+            {% csrf_token %}
+            <div class="px-6 py-4">
+                <!-- Record Information -->
+                <div id="record_info" class="mb-4 p-3 bg-blue-50 rounded-md">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">Record Information</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <span class="text-gray-600">Reference:</span>
+                            <span id="record_reference" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Amount:</span>
+                            <span id="record_amount" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Date:</span>
+                            <span id="record_date" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Status:</span>
+                            <span id="record_status" class="font-medium text-yellow-600"></span>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-sm" id="record_error_container">
+                        <span class="text-gray-600">Error:</span>
+                        <span id="record_error" class="text-red-600"></span>
+                    </div>
+                </div>
+                
+                <!-- Member Search -->
+                <div class="mb-4">
+                    <label for="member_search" class="block text-sm font-medium text-gray-700 mb-1">Search for Member</label>
+                    <div class="relative">
+                        <input type="text" id="member_search" placeholder="Enter ID number, name, or policy number" 
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-10">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <svg id="search_spinner" class="animate-spin h-5 w-5 text-blue-500 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Search by ID number, policy number, or full name</p>
+                </div>
+                
+                <!-- Search Results -->
+                <div id="search_results" class="mb-4 max-h-60 overflow-y-auto border border-gray-200 rounded-md hidden">
+                    <!-- Search results will be loaded here -->
+                </div>
+                
+                <input type="hidden" id="member_id" name="member_id">
+                
+                <!-- Selected Member -->
+                <div id="selected_member" class="p-4 bg-green-50 border border-green-200 rounded-md mb-4 hidden">
+                    <!-- Selected member details will be shown here -->
+                </div>
+                
+                <!-- Payment Details -->
+                <div id="payment_details" class="border-t border-gray-200 pt-4 mt-4 hidden">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Payment Details</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                            <select id="payment_method" name="payment_method" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="EASYPAY">EasyPay</option>
+                                <option value="DEBIT_ORDER">Debit Order</option>
+                                <option value="CASH">Cash</option>
+                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="payment_status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select id="payment_status" name="payment_status" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="COMPLETED">Completed</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="FAILED">Failed</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label for="payment_notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="payment_notes" name="payment_notes" rows="2" 
+                                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="Add any additional notes about this payment"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-2">
+                <button type="button" id="cancelMatchBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm">
+                    Cancel
+                </button>
+                <button type="submit" id="submitMatchBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm" disabled>
+                    Process Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab functionality
+        const matchedTabBtn = document.getElementById('matchedTabBtn');
+        const unmatchedTabBtn = document.getElementById('unmatchedTabBtn');
+        const matchedTab = document.getElementById('matchedTab');
+        const unmatchedTab = document.getElementById('unmatchedTab');
+        
+        matchedTabBtn.addEventListener('click', function() {
+            matchedTabBtn.classList.add('border-blue-500', 'text-blue-600');
+            matchedTabBtn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            
+            unmatchedTabBtn.classList.remove('border-blue-500', 'text-blue-600');
+            unmatchedTabBtn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            
+            matchedTab.classList.remove('hidden');
+            unmatchedTab.classList.add('hidden');
+        });
+        
+        unmatchedTabBtn.addEventListener('click', function() {
+            unmatchedTabBtn.classList.add('border-blue-500', 'text-blue-600');
+            unmatchedTabBtn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            
+            matchedTabBtn.classList.remove('border-blue-500', 'text-blue-600');
+            matchedTabBtn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            
+            unmatchedTab.classList.remove('hidden');
+            matchedTab.classList.add('hidden');
+        });
+        
+        // Check if there are unmatched records and show the tab if there are
+        const unmatchedCount = parseInt('{{ unmatched_records.count }}');
+        if (unmatchedCount > 0) {
+            // Auto-switch to unmatched tab if there are errors
+            unmatchedTabBtn.click();
+        }
+        
+        // Match Record Modal
+        const matchRecordModal = document.getElementById('matchRecordModal');
+        const matchRecordBtns = document.querySelectorAll('.match-record-btn');
+        const cancelMatchBtn = document.getElementById('cancelMatchBtn');
+        const closeMatchBtn = document.getElementById('closeMatchBtn');
+        const matchRecordForm = document.getElementById('matchRecordForm');
+        const memberSearchInput = document.getElementById('member_search');
+        const searchResults = document.getElementById('search_results');
+        const selectedMember = document.getElementById('selected_member');
+        const memberIdInput = document.getElementById('member_id');
+        const submitMatchBtn = document.getElementById('submitMatchBtn');
+        const searchSpinner = document.getElementById('search_spinner');
+        const paymentDetails = document.getElementById('payment_details');
+        
+        // Record info elements
+        const recordReference = document.getElementById('record_reference');
+        const recordAmount = document.getElementById('record_amount');
+        const recordDate = document.getElementById('record_date');
+        const recordStatus = document.getElementById('record_status');
+        const recordError = document.getElementById('record_error');
+        const recordErrorContainer = document.getElementById('record_error_container');
+        
+        // Payment method and status selects
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const paymentStatusSelect = document.getElementById('payment_status');
+        
+        if (matchRecordBtns.length > 0) {
+            matchRecordBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const recordId = this.getAttribute('data-record-id');
+                    const recordRow = this.closest('tr');
+                    
+                    // Get record data from the row
+                    const reference = recordRow.querySelector('td:nth-child(2)').textContent.trim();
+                    const amount = recordRow.querySelector('td:nth-child(3)').textContent.trim();
+                    const date = recordRow.querySelector('td:nth-child(4)').textContent.trim();
+                    const status = recordRow.querySelector('td:nth-child(5) span').textContent.trim();
+                    const error = recordRow.querySelector('td:nth-child(6)').textContent.trim();
+                    
+                    // Set form action
+                    matchRecordForm.action = `/payments/import/record/${recordId}/process/`;
+                    
+                    // Populate record info
+                    recordReference.textContent = reference;
+                    recordAmount.textContent = amount;
+                    recordDate.textContent = date;
+                    recordStatus.textContent = status;
+                    
+                    // Show/hide error message
+                    if (error && error !== '-') {
+                        recordError.textContent = error;
+                        recordErrorContainer.classList.remove('hidden');
+                    } else {
+                        recordErrorContainer.classList.add('hidden');
+                    }
+                    
+                    // Set payment method based on import type
+                    const importType = '{{ payment_import.import_type }}';
+                    if (importType === 'EASYPAY') {
+                        paymentMethodSelect.value = 'EASYPAY';
+                    } else if (importType === 'LINKSERV') {
+                        paymentMethodSelect.value = 'DEBIT_ORDER';
+                    }
+                    
+                    // Show modal
+                    matchRecordModal.classList.remove('hidden');
+                    
+                    // Reset form
+                    memberSearchInput.value = '';
+                    searchResults.innerHTML = '';
+                    searchResults.classList.add('hidden');
+                    selectedMember.innerHTML = '';
+                    selectedMember.classList.add('hidden');
+                    memberIdInput.value = '';
+                    paymentDetails.classList.add('hidden');
+                    submitMatchBtn.disabled = true;
+                    
+                    // Focus on search input
+                    setTimeout(() => {
+                        memberSearchInput.focus();
+                    }, 100);
+                });
+            });
+        }
+        
+        // Close modal buttons
+        if (cancelMatchBtn) {
+            cancelMatchBtn.addEventListener('click', function() {
+                matchRecordModal.classList.add('hidden');
+            });
+        }
+        
+        if (closeMatchBtn) {
+            closeMatchBtn.addEventListener('click', function() {
+                matchRecordModal.classList.add('hidden');
+            });
+        }
+        
+        // Member search functionality with debounce
+        let searchTimeout;
+        if (memberSearchInput) {
+            memberSearchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                // Clear previous timeout
+                clearTimeout(searchTimeout);
+                
+                if (query.length < 3) {
+                    searchResults.innerHTML = '';
+                    searchResults.classList.add('hidden');
+                    searchSpinner.classList.add('hidden');
+                    return;
+                }
+                
+                // Show spinner
+                searchSpinner.classList.remove('hidden');
+                
+                // Debounce search to avoid too many requests
+                searchTimeout = setTimeout(() => {
+                    // Fetch member search results
+                    fetch(`/members/api/search/?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Hide spinner
+                            searchSpinner.classList.add('hidden');
+                            
+                            if (data.members && data.members.length > 0) {
+                                searchResults.innerHTML = '';
+                                
+                                data.members.forEach(member => {
+                                    const memberDiv = document.createElement('div');
+                                    memberDiv.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200';
+                                    memberDiv.innerHTML = `
+                                        <div class="font-medium">${member.first_name} ${member.last_name}</div>
+                                        <div class="text-sm text-gray-500">ID: ${member.id_number}</div>
+                                        ${member.policy_number ? `<div class="text-sm text-gray-500">Policy: ${member.policy_number}</div>` : ''}
+                                    `;
+                                    
+                                    memberDiv.addEventListener('click', function() {
+                                        memberIdInput.value = member.id;
+                                        selectedMember.innerHTML = `
+                                            <div class="font-medium text-green-800">${member.first_name} ${member.last_name}</div>
+                                            <div class="text-sm text-green-700">ID: ${member.id_number}</div>
+                                            ${member.policy_number ? `<div class="text-sm text-green-700">Policy: ${member.policy_number}</div>` : ''}
+                                            <div class="mt-2 text-xs text-green-600">✓ Member selected for payment processing</div>
+                                        `;
+                                        selectedMember.classList.remove('hidden');
+                                        searchResults.classList.add('hidden');
+                                        paymentDetails.classList.remove('hidden');
+                                        submitMatchBtn.disabled = false;
+                                    });
+                                    
+                                    searchResults.appendChild(memberDiv);
+                                });
+                                
+                                searchResults.classList.remove('hidden');
+                            } else {
+                                searchResults.innerHTML = `
+                                    <div class="p-4 text-gray-500 text-center">
+                                        <svg class="h-12 w-12 mx-auto text-gray-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <p>No members found matching "${query}"</p>
+                                        <p class="text-xs mt-1">Try searching by ID number, policy number, or full name</p>
+                                    </div>
+                                `;
+                                searchResults.classList.remove('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            searchSpinner.classList.add('hidden');
+                            searchResults.innerHTML = `
+                                <div class="p-4 text-red-500 text-center">
+                                    <svg class="h-12 w-12 mx-auto text-red-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <p>Error searching for members</p>
+                                    <p class="text-xs mt-1">Please try again or contact support</p>
+                                </div>
+                            `;
+                            searchResults.classList.remove('hidden');
+                        });
+                }, 300); // 300ms debounce
+            });
+        }
+        
+        // Form submission handling
+        if (matchRecordForm) {
+            matchRecordForm.addEventListener('submit', function(e) {
+                if (!memberIdInput.value) {
+                    e.preventDefault();
+                    alert('Please select a member first');
+                    return false;
+                }
+                
+                // Disable submit button and show loading state
+                submitMatchBtn.disabled = true;
+                submitMatchBtn.innerHTML = `
+                    <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                `;
+                
+                return true;
+            });
+        }
+        
+        // Add tooltips to truncated text
+        document.querySelectorAll('.truncate').forEach(function(el) {
+            const title = el.getAttribute('title');
+            if (title) {
+                el.addEventListener('mouseenter', function() {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'absolute z-50 bg-gray-900 text-white text-xs rounded py-1 px-2 mt-1';
+                    tooltip.textContent = title;
+                    tooltip.style.maxWidth = '300px';
+                    tooltip.style.whiteSpace = 'normal';
+                    
+                    // Position the tooltip
+                    const rect = el.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 5) + 'px';
+                    
+                    document.body.appendChild(tooltip);
+                    el._tooltip = tooltip;
+                });
+                
+                el.addEventListener('mouseleave', function() {
+                    if (el._tooltip) {
+                        el._tooltip.remove();
+                        delete el._tooltip;
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

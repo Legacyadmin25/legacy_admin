@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+  <!-- Heading -->
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold">
+      {% if edit_mode %} Edit Agent {% else %} Add New Agent {% endif %}
+    </h1>
+    <a href="{% url 'settings:agent' %}" class="text-sm text-blue-600 hover:underline">← Back to Agent List</a>
+  </div>
+
+  <!-- Form Card -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-6">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.errors %}
+        <div class="bg-red-100 text-red-700 p-4 rounded">
+          <strong>There were errors in your submission:</strong>
+        </div>
+      {% endif %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for field in form.visible_fields %}
+          <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ field.label }}
+            </label>
+            {% render_field field class="w-full px-4 py-2 border rounded" %}
+            {% if field.errors %}
+              <p class="text-sm text-red-600 mt-1">{{ field.errors|striptags }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="pt-6">
+        <button type="submit"
+                class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-semibold">
+          {% if edit_mode %} Update Agent {% else %} Create Agent {% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Agent List with Bulk Actions -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-4 mt-10">
+    <form method="post" action="{% url 'settings:bulk_agent_actions' %}">
+      {% csrf_token %}
+
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold">Existing Agents</h2>
+        <div class="flex gap-2">
+          <select name="action" class="border px-2 py-1 rounded text-sm">
+            <option value="">— Bulk Actions —</option>
+            <option value="deactivate">Deactivate Selected</option>
+            <option value="assign_scheme">Assign to Scheme</option>
+          </select>
+          <select name="scheme_id" class="border px-2 py-1 rounded text-sm">
+            <option value="">— Select Scheme —</option>
+            {% for s in schemes %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit"
+                  class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+            Apply
+          </button>
+          <a href="{% url 'settings:agent_export_csv' %}"
+             class="bg-green-600 text-white text-sm px-3 py-1 rounded hover:bg-green-700">
+            📤 Export CSV
+          </a>
+        </div>
+      </div>
+
+      <table class="min-w-full divide-y divide-gray-200 text-sm mt-4">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-4 py-2"><input type="checkbox" onclick="toggleAll(this)"></th>
+            <th class="px-4 py-2 text-left">Full Name</th>
+            <th class="px-4 py-2 text-left">Surname</th>
+            <th class="px-4 py-2 text-left">Contact</th>
+            <th class="px-4 py-2 text-left">Email</th>
+            <th class="px-4 py-2 text-left">Scheme</th>
+            <th class="px-4 py-2 text-left">DIY Link / QR</th>
+            <th class="px-4 py-2 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+          {% for agent in agents %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2">
+              <input type="checkbox" name="agent_ids" value="{{ agent.id }}">
+            </td>
+            <td class="px-4 py-2">{{ agent.full_name }}</td>
+            <td class="px-4 py-2">{{ agent.surname }}</td>
+            <td class="px-4 py-2">{{ agent.contact_number }}</td>
+            <td class="px-4 py-2">{{ agent.email }}</td>
+            <td class="px-4 py-2">{{ agent.scheme.name }}</td>
+            <td class="px-4 py-2">
+              {% if agent.diy_token %}
+                <div class="space-y-2">
+                  <div class="flex items-center space-x-2">
+                    <input type="text"
+                           id="agent-link-{{ agent.id }}"
+                           value="{{ agent.get_full_diy_link }}"
+                           readonly
+                           class="flex-1 px-3 py-2 text-sm border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           onclick="this.select(); document.execCommand('copy'); showCopied(this)">
+                    <button onclick="copyToClipboard('agent-link-{{ agent.id }}')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-r text-sm">
+                      Copy
+                    </button>
+                  </div>
+                  <div class="flex items-center space-x-4 mt-2">
+                    <div class="border p-1 rounded bg-white">
+                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ agent.get_full_diy_link|urlencode }}&margin=5"
+                           alt="QR Code"
+                           class="w-16 h-16">
+                    </div>
+                    <div class="space-y-1">
+                      <p class="text-xs text-gray-600">Scan to share</p>
+                      <a href="{{ agent.get_full_diy_link }}" 
+                         target="_blank" 
+                         class="inline-block text-xs text-blue-600 hover:underline">
+                        Open Link
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <span class="text-red-600 text-xs italic">No token</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2 text-center space-y-1">
+              <a href="{% url 'settings:agent_edit' agent.pk %}" class="text-blue-600 hover:underline block">Edit</a>
+              <a href="{% url 'settings:agent_delete' agent.pk %}" class="text-red-600 hover:underline block"
+                 onclick="return confirm('Are you sure you want to delete this agent?');">Delete</a>
+              {% if agent.diy_token %}
+              <a href="{% url 'settings:agent_regenerate_token' agent.pk %}" class="text-yellow-600 hover:underline block"
+                 onclick="return confirm('Regenerate DIY token for this agent?');">Regenerate Link</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="px-4 py-4 text-center text-gray-500 italic">No agents found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleAll(source) {
+    document.querySelectorAll('input[name="agent_ids"]').forEach(cb => cb.checked = source.checked);
+  }
+
+  function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // Show copied tooltip
+    const tooltip = document.createElement('div');
+    tooltip.textContent = 'Copied!';
+    tooltip.className = 'fixed bg-black text-white text-xs py-1 px-2 rounded';
+    document.body.appendChild(tooltip);
+    
+    // Position tooltip near the button
+    const rect = element.getBoundingClientRect();
+    tooltip.style.top = (rect.top - 30) + 'px';
+    tooltip.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+    
+    // Remove tooltip after 2 seconds
+    setTimeout(() => {
+      tooltip.remove();
+    }, 2000);
+  }
+  
+  function showCopied(input) {
+    input.select();
+    document.execCommand('copy');
+    
+    const tooltip = document.createElement('div');
+    tooltip.textContent = 'Copied!';
+    tooltip.className = 'fixed bg-black text-white text-xs py-1 px-2 rounded';
+    document.body.appendChild(tooltip);
+    
+    const rect = input.getBoundingClientRect();
+    tooltip.style.top = (rect.top - 30) + 'px';
+    tooltip.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+    
+    setTimeout(() => {
+      tooltip.remove();
+    }, 2000);
+  }
+</script>
+{% endblock %}
