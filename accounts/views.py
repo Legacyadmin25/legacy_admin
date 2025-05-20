@@ -82,19 +82,12 @@ from .forms import (
 from .mixins import (
     GroupRequiredMixin,
     RoleBasedDashboardMixin,
-    AjaxResponseMixin,
-    JSONResponseMixin,
-    SuccessMessageMixin,
-    UserFormKwargsMixin,
 )
+from django.contrib.messages.views import SuccessMessageMixin
 from django import forms
 from .models import Profile
-from .utils import (
-    send_verification_email,
-    send_password_reset_email,
-    send_email_changed_notification,
-    send_account_deletion_notification,
-)
+from django.contrib.auth.models import Group
+
 
 # Get the custom user model
 User = get_user_model()
@@ -205,8 +198,6 @@ class UserRegistrationView(FormView):
         profile.save()
         
         # Send verification email
-        send_verification_email(self.request, user)
-        
         # Add success message
         messages.success(
             self.request,
@@ -335,9 +326,6 @@ class EmailChangeView(LoginRequiredMixin, SuccessMessageMixin, FormView):
         user.email = new_email
         user.save(update_fields=['email'])
         
-        # Send email notification
-        send_email_changed_notification(self.request, user, old_email)
-        
         return super().form_valid(form)
 
 
@@ -382,9 +370,6 @@ class AccountDeleteView(LoginRequiredMixin, FormView):
         Process the form after it has been validated.
         """
         user = self.request.user
-        
-        # Send account deletion notification
-        send_account_deletion_notification(self.request, user)
         
         # Log the user out
         logout(self.request)
@@ -931,7 +916,28 @@ class BranchDashboard(RoleBasedDashboard):
 class SchemeDashboard(RoleBasedDashboard):
     template_name = "accounts/scheme_dashboard.html"
     group_name = "SchemeManager"
+
+class FinanceDashboard(RoleBasedDashboard):
+    template_name = "accounts/finance_dashboard.html"
+    group_name = "Finance Officer"
+
+class ClaimsDashboard(RoleBasedDashboard):
+    template_name = "accounts/claims_dashboard.html"
+    group_name = "Claims Officer"
+
+class ComplianceDashboard(RoleBasedDashboard):
+    template_name = "accounts/compliance_dashboard.html"
+    group_name = "Compliance Auditor"
     
+# Home View
+from django.views.generic import TemplateView
+class HomeView(TemplateView):
+    template_name = "accounts/home.html"
+
+# Account Settings View
+class AccountSettingsView(TemplateView):
+    template_name = "accounts/account_settings.html"
+
 # Agent Dashboard
 class AgentDashboard(RoleBasedDashboard):
     template_name = "accounts/agent_dashboard.html"

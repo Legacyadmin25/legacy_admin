@@ -17,7 +17,9 @@ from config.permissions import ROLE_PERMISSIONS, get_primary_group, has_permissi
 
 User = get_user_model()
 
-class GroupRequiredMixin(AccessMixin, UserPassesTestMixin):
+from django.contrib.auth.mixins import UserPassesTestMixin
+
+class GroupRequiredMixin(UserPassesTestMixin):
     """
     Mixin that requires the user to be in specific groups and/or have specific permissions.
     If not, they will be redirected to the login page or an appropriate dashboard.
