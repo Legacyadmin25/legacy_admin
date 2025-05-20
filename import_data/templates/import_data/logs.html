@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Import Logs{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-bold mb-4">Import Logs</h1>
+  {% if logs %}
+    <table class="min-w-full bg-white">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>When</th>
+          <th>Status</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.csv_filename }}</td>
+            <td>{{ log.created_at }}</td>
+            <td>{{ log.status }}</td>
+            <td>{{ log.message }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No import logs yet.</p>
+  {% endif %}
+{% endblock %}

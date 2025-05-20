@@ -1,0 +1,205 @@
+{% extends "members/base.html" %}
+{% load static %}
+
+{% block title %}Certificate Verification - Legacy Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Certificate Verification</h1>
+      <p class="mt-2 text-gray-600">Verify the authenticity of a policy certificate</p>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      {% if is_valid %}
+        <!-- Valid Certificate -->
+        <div class="px-4 py-5 sm:px-6 bg-green-50 border-b border-green-200">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg leading-6 font-medium text-green-800">Valid Certificate</h3>
+              <p class="text-sm text-green-700">This certificate is authentic and valid.</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Certificate Details -->
+        <div class="border-t border-gray-200">
+          <dl>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Reference Number</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ application.reference_number }}</dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Policy Holder</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {% if applicant %}
+                  {{ applicant.title|title }} {{ applicant.first_name }} {{ applicant.last_name }}
+                {% else %}
+                  Information not available
+                {% endif %}
+              </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">ID Number</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {% if applicant %}
+                  {{ applicant.id_number }}
+                {% else %}
+                  Information not available
+                {% endif %}
+              </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Plan</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {% if plan %}
+                  {{ plan.name }}
+                {% else %}
+                  Information not available
+                {% endif %}
+              </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  {% if application.status == 'active' %}
+                    bg-green-100 text-green-800
+                  {% elif application.status == 'submitted' %}
+                    bg-blue-100 text-blue-800
+                  {% elif application.status == 'approved' %}
+                    bg-purple-100 text-purple-800
+                  {% else %}
+                    bg-gray-100 text-gray-800
+                  {% endif %}">
+                  {{ application.status|title }}
+                </span>
+              </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Commencement Date</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {% if application.submitted_at %}
+                  {{ application.submitted_at|date:"d F Y" }}
+                {% else %}
+                  Pending
+                {% endif %}
+              </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Verification Date</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ verification_date|date:"d F Y H:i" }}</dd>
+            </div>
+          </dl>
+        </div>
+        
+        <!-- Actions -->
+        <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
+          <div class="flex justify-between">
+            <a 
+              href="{% url 'members:diy_download_certificate' application_id=application.application_id %}" 
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Certificate
+            </a>
+            
+            <a 
+              href="{% url 'home' %}" 
+              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+              </svg>
+              Return to Home
+            </a>
+          </div>
+        </div>
+      {% else %}
+        <!-- Invalid Certificate -->
+        <div class="px-4 py-5 sm:px-6 bg-red-50 border-b border-red-200">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg leading-6 font-medium text-red-800">Invalid Certificate</h3>
+              <p class="text-sm text-red-700">
+                {% if error %}
+                  {{ error }}
+                {% else %}
+                  This certificate is not valid or has been revoked.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="px-4 py-5 sm:px-6">
+          <p class="text-sm text-gray-600">
+            If you believe this is an error, please contact our support team at <a href="mailto:support@example.com" class="text-blue-600 hover:text-blue-800">support@example.com</a> or call us at <span class="font-medium">0861 123 456</span>.
+          </p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
+          <div class="flex justify-center">
+            <a 
+              href="{% url 'home' %}" 
+              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+              </svg>
+              Return to Home
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Verification Information -->
+    <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Certificate Verification Information</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">How to verify a certificate</p>
+      </div>
+      <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+        <div class="prose prose-sm text-gray-700 max-w-none">
+          <p>All policy certificates issued by our company contain a unique QR code and reference number that can be used to verify their authenticity.</p>
+          
+          <h4>How to verify a certificate:</h4>
+          <ol>
+            <li>Scan the QR code on the certificate using your smartphone camera or QR code reader app.</li>
+            <li>You will be directed to this verification page where you can confirm the certificate details.</li>
+            <li>Alternatively, you can enter the reference number on our website to verify the certificate.</li>
+          </ol>
+          
+          <h4>What does verification tell you?</h4>
+          <p>Verification confirms that:</p>
+          <ul>
+            <li>The certificate was issued by our company</li>
+            <li>The certificate has not been tampered with</li>
+            <li>The policy is currently valid (unless marked otherwise)</li>
+          </ul>
+          
+          <p>If you have any questions about certificate verification, please contact our support team.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

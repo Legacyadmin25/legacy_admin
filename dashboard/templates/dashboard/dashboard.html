@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-6">
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-sm font-medium text-gray-500">Total Policies</h3>
+      <p class="mt-1 text-2xl font-semibold text-gray-900">{{ total_policies }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-sm font-medium text-gray-500">DIY Signups Completed</h3>
+      <p class="mt-1 text-2xl font-semibold text-gray-900">{{ diy_signups_count }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-sm font-medium text-gray-500">Pending OTPs</h3>
+      <p class="mt-1 text-2xl font-semibold text-gray-900">{{ pending_otp_count }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-sm font-medium text-gray-500">Today’s Tasks</h3>
+      <p class="mt-1 text-2xl font-semibold text-gray-900">{{ tasks_today|length }}</p>
+    </div>
+  </div>
+
+
+{% endblock %}

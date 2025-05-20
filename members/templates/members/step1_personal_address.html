@@ -1,0 +1,1337 @@
+{% extends base_template|default:'base.html' %}
+{% load widget_tweaks %}
+{% load user_groups %}
+
+{% block extra_js %}
+<script>
+// Utility functions for ID number validation
+function luhnCheck(idNumber) {
+    const digits = idNumber.split('').map(Number).reverse();
+    let sum = 0;
+    
+    for (let i = 0; i < digits.length; i++) {
+        let digit = digits[i];
+        
+        if (i % 2 === 1) {
+            digit *= 2;
+            if (digit > 9) {
+                digit -= 9;
+            }
+        }
+        
+        sum += digit;
+    }
+    
+    return sum % 10 === 0;
+}
+
+function validateSAID(idNumber) {
+    let idNumberValid = false;
+    // Basic format and Luhn check
+    if (!/^\d{13}$/.test(idNumber) || !luhnCheck(idNumber)) {
+        return { valid: false, message: 'Invalid ID number. Please check the number.' };
+    }
+    
+    // Extract date parts
+    const yy = parseInt(idNumber.substring(0, 2), 10);
+    const mm = parseInt(idNumber.substring(2, 4), 10);
+    const dd = parseInt(idNumber.substring(4, 6), 10);
+    
+    // Determine century
+    const currentYear = new Date().getFullYear();
+    const currentShortYear = currentYear % 100;
+    const century = (yy <= currentShortYear) ? 2000 : 1900;
+    const fullYear = century + yy;
+    
+    // Validate date
+    try {
+        const date = new Date(fullYear, mm - 1, dd);
+        if (date.getFullYear() !== fullYear || 
+            date.getMonth() + 1 !== mm || 
+            date.getDate() !== dd) {
+            return { valid: false, message: 'Invalid date of birth in ID number.' };
+        }
+    } catch (error) {
+        return { valid: false, message: 'Invalid date of birth in ID number.' };
+    }
+    
+    // Determine gender
+    const genderNum = parseInt(idNumber.substring(6, 10), 10);
+    const gender = genderNum < 5000 ? 'F' : 'M';
+    
+    // Format date
+    const formattedDate = `${fullYear}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    
+    return {
+        valid: true,
+        message: 'Valid South African ID number.',
+        dateOfBirth: formattedDate,
+        gender: gender,
+        genderFull: gender === 'M' ? 'Male' : 'Female'
+    };
+}
+
+// Show warning popup
+function showWarningPopup(message) {
+    let popup = document.getElementById('validation-popup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'validation-popup';
+        popup.style.position = 'fixed';
+        popup.style.top = '20px';
+        popup.style.left = '50%';
+        popup.style.transform = 'translateX(-50%)';
+        popup.style.backgroundColor = '#f8d7da';
+        popup.style.color = '#721c24';
+        popup.style.padding = '15px 25px';
+        popup.style.borderRadius = '5px';
+        popup.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        popup.style.zIndex = '1000';
+        popup.style.fontWeight = 'bold';
+        popup.style.display = 'flex';
+        popup.style.alignItems = 'center';
+        popup.style.gap = '10px';
+        popup.style.fontSize = '16px';
+        popup.style.border = '1px solid #f5c6cb';
+        document.body.appendChild(popup);
+    }
+    
+    popup.innerHTML = `<span style="font-size: 24px;">⚠️</span> ${message}`;
+    popup.style.display = 'flex';
+    popup.style.animation = 'fadeInOut 3s';
+    
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 3000);
+}
+
+/**
+ * South African ID Number Validator
+ * Implements the Luhn algorithm and validation rules for SA ID numbers
+ */
+
+/**
+ * Performs Luhn check on the ID number
+ * @param {string} idNumber - The ID number to validate
+ * @returns {boolean} - True if the ID number passes the Luhn check
+ */
+function luhnCheck(idNumber) {
+    // Convert string to array of digits and reverse it
+    const digits = idNumber.split('').map(Number).reverse();
+    
+    let sum = 0;
+    
+    for (let i = 0; i < digits.length; i++) {
+        let digit = digits[i];
+        
+        // Double every second digit (0-indexed, so odd indices)
+        if (i % 2 === 1) {
+            digit *= 2;
+            // If the result is greater than 9, subtract 9 (same as adding the digits)
+            if (digit > 9) {
+                digit -= 9;
+            }
+        }
+        
+        sum += digit;
+    }
+    
+    // The ID is valid if the sum is a multiple of 10
+    return sum % 10 === 0;
+}
+
+/**
+ * Validates a South African ID number
+ * @param {string} idNumber - The ID number to validate
+ * @returns {Object} - Object containing validation result and extracted data
+ */
+function validateSAID(idNumber) {
+    // Basic format check
+    if (!/^\d{13}$/.test(idNumber)) {
+        return {
+            valid: false,
+            message: 'ID number must be 13 digits long.'
+        };
+    }
+    
+    // Luhn check
+    if (!luhnCheck(idNumber)) {
+        return {
+            valid: false,
+            message: 'Invalid ID number. Please check the number and try again.'
+        };
+    }
+    
+    // Extract date parts
+    const yy = parseInt(idNumber.substring(0, 2), 10);
+    const mm = parseInt(idNumber.substring(2, 4), 10);
+    const dd = parseInt(idNumber.substring(4, 6), 10);
+    
+    // Determine century (for years 00-21, assume 2000s, otherwise 1900s)
+    const currentYear = new Date().getFullYear();
+    const currentShortYear = currentYear % 100;
+    const century = (yy <= currentShortYear) ? 2000 : 1900;
+    const fullYear = century + yy;
+    
+    // Validate date
+    const date = new Date(fullYear, mm - 1, dd);
+    if (date.getFullYear() !== fullYear || 
+        date.getMonth() + 1 !== mm || 
+        date.getDate() !== dd) {
+        return {
+            valid: false,
+            message: 'Invalid date of birth in ID number.'
+        };
+    }
+    
+    // Determine gender (7th-10th digits, 0000-4999 = female, 5000-9999 = male)
+    const genderNum = parseInt(idNumber.substring(6, 10), 10);
+    const gender = genderNum < 5000 ? 'F' : 'M';
+    
+    // Format date as YYYY-MM-DD for the date input field
+    const formattedDate = `${fullYear}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    
+    return {
+        valid: true,
+        message: 'Valid South African ID number.',
+        dateOfBirth: formattedDate,
+        gender: gender,
+        genderFull: gender === 'M' ? 'Male' : 'Female'
+    };
+}
+
+// Make functions available globally
+window.validateSAID = validateSAID;
+window.luhnCheck = luhnCheck;
+window.showWarningPopup = showWarningPopup;
+
+// Form validation function
+function validateForm(event) {
+    console.log('Form validation triggered');
+    
+    const isForeigner = document.getElementById('is_foreigner').checked;
+    const idInput = document.getElementById('id_id_number');
+    const passportInput = document.getElementById('id_passport_number');
+    const countrySelect = document.getElementById('id_country');
+    const genderSelect = document.getElementById('id_gender');
+    const dobField = document.getElementById("id_date_of_birth");
+    
+    // Check for validation errors
+    let hasError = false;
+    let errorMessage = '';
+    let focusElement = null;
+    
+    // Check if all required fields are filled
+    if (!genderSelect.value) {
+        hasError = true;
+        errorMessage = 'Please select your gender';
+        focusElement = genderSelect;
+    }
+    
+    if (!dobField.value) {
+        hasError = true;
+        errorMessage = 'Please enter your date of birth';
+        focusElement = dobField;
+    }
+    
+    // 1) South African citizen: must have ID
+    if (!isForeigner && !idInput.value.trim()) {
+        hasError = true;
+        errorMessage = 'Please enter your South African ID number';
+        focusElement = idInput;
+    }
+    
+    // 2) Foreigner: must have passport + country
+    if (isForeigner) {
+        if (!passportInput.value.trim()) {
+            hasError = true;
+            errorMessage = 'Please enter your passport number';
+            focusElement = passportInput;
+        }
+        if (!countrySelect.value) {
+            hasError = true;
+            errorMessage = 'Please select your country of residence';
+            focusElement = countrySelect;
+        }
+    }
+    
+    // If there's an error, prevent submission and show message
+    if (hasError) {
+        event.preventDefault();
+        showWarningPopup(errorMessage);
+        if (focusElement) {
+            focusElement.focus();
+        }
+        return false;
+    }
+    
+    // Allow form to submit normally
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    
+    // Get form elements
+    const isForeignToggle = document.getElementById('id_is_foreign');
+    const idNumberField = document.getElementById('id_id_number');
+    const passportField = document.getElementById('id_passport_number');
+    const dobField = document.getElementById('id_date_of_birth');
+    const genderField = document.getElementById('id_gender');
+    const nationalityField = document.getElementById('id_nationality');
+    const countryBirthField = document.getElementById('id_country_of_birth');
+    const countryResidenceField = document.getElementById('id_country_of_residence');
+    
+    // Get validation elements
+    const saIdFieldContainer = document.getElementById('sa-id-field');
+    const passportFieldContainer = document.getElementById('passport-field');
+    console.log('Form elements:', {
+        isForeignerCheckbox: isForeignerCheckbox ? 'Found' : 'Missing',
+        idNumberField: idNumberField ? 'Found' : 'Missing',
+        passportField: passportField ? 'Found' : 'Missing',
+        countryField: countryField ? 'Found' : 'Missing',
+        dobField: dobField ? 'Found' : 'Missing',
+        genderSelect: genderSelect ? 'Found' : 'Missing',
+        idInput: idInput ? 'Found' : 'Missing',
+        errorDiv: errorDiv ? 'Found' : 'Missing'
+    });
+    
+    // Set max date to today for date inputs
+    const today = new Date().toISOString().split('T')[0];
+    if (dobField) dobField.setAttribute('max', today);
+    
+    // Toggle between SA citizen and foreigner fields
+    function toggleFields() {
+        const isForeigner = isForeignerCheckbox.checked;
+        
+        // Clear all fields first
+        if (idInput) idInput.value = '';
+        if (dobField) {
+            dobField.value = '';
+            dobField.disabled = false;
+        }
+        if (genderSelect) {
+            genderSelect.value = '';
+            genderSelect.disabled = false;
+        }
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+            errorDiv.classList.remove('text-green-600');
+            errorDiv.classList.add('text-red-600');
+        }
+        if (idInput) idInput.classList.remove('border-red-500');
+        
+        // Reset validation state
+        idNumberValid = false;
+        
+        // Show/hide appropriate fields
+        if (isForeigner) {
+            idNumberField.style.display = 'none';
+            passportField.style.display = 'block';
+            countryField.style.display = 'block';
+            // Show gender field for foreigners
+            const genderField = document.getElementById('gender_field');
+            if (genderField) {
+                genderField.style.display = 'block';
+            }
+        } else {
+            idNumberField.style.display = 'block';
+            passportField.style.display = 'none';
+            countryField.style.display = 'none';
+            // Show gender field for SA citizens
+            const genderField = document.getElementById('gender_field');
+            if (genderField) {
+                genderField.style.display = 'block';
+            }
+        }
+    }
+    
+    // Update form based on ID validation
+    function updateFormFromID(validationResult) {
+        console.log('Updating form with validation result:', validationResult);
+        
+        try {
+            // Always enable fields first to ensure we can modify them
+            if (dobField) {
+                dobField.disabled = false;
+            }
+            if (genderSelect) {
+                genderSelect.disabled = false;
+            }
+            
+            if (validationResult.valid) {
+                // Set date of birth
+                if (dobField && !isForeignerCheckbox.checked) {
+                    console.log('Setting DOB to:', validationResult.dateOfBirth);
+                    dobField.value = validationResult.dateOfBirth;
+                    // dobField.disabled = true; // Commented out to keep DOB enabled for submission
+                } else {
+                    console.log('DOB field not updated - field not found or user is foreigner');
+                }
+                
+                // Set gender
+                if (genderSelect && !isForeignerCheckbox.checked) {
+                    console.log('Setting gender to:', validationResult.genderFull);
+                    // Use the full gender text that matches the option values
+                    genderSelect.value = validationResult.genderFull;
+                } else {
+                    console.log('Gender field not updated - field not found or user is foreigner');
+                }
+            } else {
+                console.log('Not updating form - validation failed');
+                // Clear fields when validation fails
+                if (dobField) {
+                    dobField.value = '';
+                }
+                if (genderSelect) {
+                    genderSelect.value = '';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating form from ID:', error);
+            // Ensure fields are enabled if there's an error
+            if (dobField) dobField.disabled = false;
+            if (genderSelect) genderSelect.disabled = false;
+        }
+    }
+    
+    // Handle ID number input validation with full validation
+    function handleIDInput() {
+        try {
+            const idNumber = idInput.value.trim();
+            console.log('ID input changed:', idNumber);
+            
+            // Reset validation state
+            const errorDiv = document.getElementById('id-error-message');
+            errorDiv.style.display = 'none';
+            idInput.classList.remove('border-red-500', 'border-green-500');
+            errorDiv.classList.remove('text-green-600');
+            errorDiv.classList.add('text-red-600');
+            idNumberValid = false;
+            
+            // Reset DOB and gender if ID field is empty
+            if (idNumber.length === 0) {
+                console.log('ID field empty, resetting fields');
+                if (dobField) {
+                    dobField.disabled = false;
+                    dobField.value = '';
+                }
+                if (genderSelect) {
+                    genderSelect.disabled = false;
+                    genderSelect.value = '';
+                }
+                return;
+            }
+            
+            // Immediate feedback for non-numeric input
+            if (!/^\d*$/.test(idNumber)) {
+                errorDiv.textContent = '⚠️ ID number must contain only digits';
+                errorDiv.style.display = 'block';
+                idInput.classList.add('border-red-500');
+                // Clear any previous valid data
+                if (dobField) dobField.value = '';
+                if (genderSelect) genderSelect.value = '';
+                return;
+            }
+            
+            // Show progress if not yet 13 digits
+            if (idNumber.length < 13) {
+                errorDiv.textContent = `⚠️ ID number must be 13 digits (${idNumber.length}/13)`;
+                errorDiv.style.display = 'block';
+                idInput.classList.add('border-red-500');
+                // Clear any previous valid data
+                if (dobField) dobField.value = '';
+                if (genderSelect) genderSelect.value = '';
+                return;
+            }
+            
+            // Full validation for 13 digits
+            if (idNumber.length === 13) {
+                try {
+                    // Use the external validator
+                    const result = validateSAID(idNumber);
+                    console.log('Validation result:', result);
+                    
+                    if (result.valid) {
+                        // All validation passed
+                        errorDiv.textContent = '✅ ' + result.message;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('text-red-600');
+                        errorDiv.classList.add('text-green-600');
+                        idInput.classList.remove('border-red-500');
+                        
+                        // Update form fields
+                        updateFormFromID(result);
+                        idInput.classList.add('border-green-500');
+                        
+                        // Update form fields
+                        if (dobField) {
+                            dobField.value = result.dateOfBirth;
+                        }
+                        if (genderSelect) {
+                            genderSelect.value = result.genderFull;
+                        }
+                        
+                        idNumberValid = true; // Set global validation state
+                    } else {
+                        // Validation failed
+                        console.log('ID is invalid:', result.message);
+                        errorDiv.textContent = '⚠️ ' + result.message;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('text-green-600');
+                        errorDiv.classList.add('text-red-600');
+                        idInput.classList.remove('border-green-500');
+                        idInput.classList.add('border-red-500');
+                        
+                        // Reset form fields
+                        if (dobField) {
+                            dobField.value = '';
+                            dobField.disabled = false;
+                        }
+                        if (genderSelect) {
+                            genderSelect.value = '';
+                            genderSelect.disabled = false;
+                        }
+                        
+                        showWarningPopup('Invalid ID number: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error during ID validation:', error);
+                    errorDiv.textContent = '⚠️ An error occurred during validation';
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('text-red-600');
+                    idInput.classList.add('border-red-500');
+                }
+            }
+        } catch (error) {
+            console.error('Error in handleIDInput:', error);
+        }
+    }
+    
+    // Initialize the form
+    try {
+        toggleFields();
+        
+        // Set up event listeners
+        if (isForeignerCheckbox) {
+            isForeignerCheckbox.addEventListener('change', toggleFields);
+        } else {
+            console.error('Foreigner checkbox not found');
+        }
+        
+        if (idInput) {
+            // Remove any existing listeners to prevent duplicates
+            idInput.removeEventListener('input', handleIDInput);
+            // Add the event listener
+            idInput.addEventListener('input', handleIDInput);
+            console.log('ID input event listener added');
+            
+            // Also trigger validation on blur for better UX
+            idInput.addEventListener('blur', function() {
+                if (idInput.value.trim().length > 0) {
+                    handleIDInput();
+                }
+            });
+        } else {
+            console.error('ID input field not found');
+        }
+        
+        // Check if we need to validate an existing ID number (e.g. on page reload)
+        if (idInput && idInput.value.trim().length > 0 && !isForeignerCheckbox.checked) {
+            console.log('Found existing ID number, validating...');
+            handleIDInput();
+        }
+    } catch (error) {
+        console.error('Error during form initialization:', error);
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+    <div class="w-full px-6 py-8">
+      <!-- Page header -->
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step 1: Personal & Address Details</h2>
+          <span class="text-sm font-medium text-gray-500">Step 1 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 11%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden w-full">
+        <form id="mainForm" method="post" class="p-6" onsubmit="return validateForm(event)">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                {% for error in form.non_field_errors %}
+                <p class="text-sm text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Non-South African Toggle -->
+          <div class="mb-6 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="is_foreigner" name="is_foreigner" class="sr-only peer">
+              <div class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <span class="ml-3 text-sm font-medium text-gray-900">I am not a South African citizen</span>
+            </label>
+          </div>
+          
+          <!-- Personal Information -->
+          <div class="mb-10">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Personal Information</h3>
+            
+            <!-- Foreign National Toggle -->
+            <div class="flex items-center mb-6">
+              <span class="text-sm font-medium text-gray-700 mr-2">Check if applicant is not a South African citizen</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="id_is_foreign" name="is_foreign" class="sr-only peer" {% if form.is_foreign.value %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Title -->
+              <!-- Scheme Selection (role-aware) -->
+              {% if user|has_group:"Agent" %}
+              <div class="form-group">
+                <label for="id_scheme" class="block text-sm font-medium text-gray-700 mb-1">Scheme</label>
+                <input type="text" name="scheme" id="id_scheme" value="{{ form.scheme.value|default_if_none:'' }}" readonly class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <p class="text-xs text-gray-500">Agents cannot change scheme.</p>
+              </div>
+              {% elif user|has_group:"Scheme Manager,Admin" %}
+              <div class="form-group">
+                <label for="id_scheme" class="block text-sm font-medium text-gray-700 mb-1">Scheme</label>
+                {{ form.scheme }}
+                <p class="text-xs text-gray-500">Select scheme for this policy.</p>
+              </div>
+              {% endif %}
+              <div class="form-group">
+                <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <select name="title" id="{{ form.title.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <option value="">Select a title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Prof">Prof</option>
+                </select>
+                {% if form.title.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- ID Number Field (for SA Citizens) -->
+              <div id="id_number_field" class="form-group">
+                <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                <input type="text" name="id_number" id="{{ form.id_number.id_for_label }}" value="{{ form.id_number.value|default_if_none:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" maxlength="13" pattern="\d{13}" title="Please enter a valid 13-digit South African ID number">
+                <div id="id-error-message" class="mt-1 text-sm text-red-600 font-semibold" style="display: none;"></div>
+                {% if form.id_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.id_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- First Name -->
+              <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" name="first_name" id="{{ form.first_name.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.first_name.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Last Name -->
+              <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" name="last_name" id="{{ form.last_name.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.last_name.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Date of Birth (auto-filled from ID for SA citizens) -->
+              <div class="form-group">
+                <label for="id_date_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
+                <input type="date" name="date_of_birth" id="id_date_of_birth" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.date_of_birth.errors %}border-red-500{% endif %}" 
+                       value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" 
+                       min="{{ min_date }}" 
+                       max="{{ max_date }}" 
+                       required>
+                {% if form.date_of_birth.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
+                {% endif %}
+                <div id="age-warning" class="mt-1 text-sm text-amber-600 hidden"></div>
+              </div>
+              
+              <!-- Gender (auto-filled from ID for SA citizens) -->
+              <div class="form-group">
+                <label for="id_gender" class="block text-sm font-medium text-gray-700 mb-1">Gender <span class="text-red-500">*</span></label>
+                <select name="gender" id="id_gender" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.gender.errors %}border-red-500{% endif %}" 
+                        required>
+                  <option value="">Select gender</option>
+                  <option value="Male" {% if form.gender.value == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if form.gender.value == 'Female' %}selected{% endif %}>Female</option>
+                </select>
+                {% if form.gender.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.gender.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Cell Number -->
+              <div class="form-group">
+                <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Cell Number</label>
+                <input type="tel" name="phone_number" id="{{ form.phone_number.id_for_label }}" value="{{ form.phone_number.value|default_if_none:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.phone_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- South African ID Number (shown when is_foreign is false) -->
+              <div class="form-group" id="sa-id-field">
+                <label for="id_id_number" class="block text-sm font-medium text-gray-700 mb-1">South African ID Number <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input type="text" name="id_number" id="id_id_number" 
+                         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.id_number.errors %}border-red-500{% endif %}" 
+                         value="{{ form.id_number.value|default:'' }}" 
+                         maxlength="13" 
+                         pattern="[0-9]{13}" 
+                         placeholder="Enter 13-digit SA ID number">
+                  <div id="id-validation-indicator" class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none hidden">
+                    <svg id="id-valid-icon" class="h-5 w-5 text-green-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <svg id="id-invalid-icon" class="h-5 w-5 text-red-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div id="id-validation-message" class="mt-1 text-sm hidden"></div>
+                {% if form.id_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.id_number.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-1 text-xs text-gray-500">Enter a valid 13-digit South African ID number</p>
+              </div>
+              
+              <!-- Passport Number (shown when is_foreign is true) -->
+              <div class="form-group hidden" id="passport-field">
+                <label for="id_passport_number" class="block text-sm font-medium text-gray-700 mb-1">Passport Number <span class="text-red-500">*</span></label>
+                <input type="text" name="passport_number" id="id_passport_number" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.passport_number.errors %}border-red-500{% endif %}" 
+                       value="{{ form.passport_number.value|default:'' }}" 
+                       placeholder="Enter passport number">
+                {% if form.passport_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.passport_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Date of Birth -->
+              <div class="form-group">
+                <label for="id_date_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <input type="date" name="date_of_birth" id="id_date_of_birth" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.date_of_birth.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- WhatsApp Number -->
+              <div class="form-group">
+                <label for="{{ form.whatsapp_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
+                <input type="tel" name="whatsapp_number" id="{{ form.whatsapp_number.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.whatsapp_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.whatsapp_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+
+              <!-- Passport Number Field (for non-SA Citizens) -->
+              <div id="passport_field" class="form-group" style="display: none;">
+                <label for="{{ form.passport_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
+                <input type="text" name="passport_number" id="{{ form.passport_number.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" pattern="[A-Za-z0-9]+" title="Please enter a valid passport number">
+                {% if form.passport_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.passport_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+
+              <!-- Country Field (for non-SA Citizens) -->
+              <div id="country_field" class="form-group" style="display: none;">
+                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <select name="country" id="{{ form.country.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <option value="">Select a country</option>
+                  <option value="BW">Botswana</option>
+                  <option value="LS">Lesotho</option>
+                  <option value="MZ">Mozambique</option>
+                  <option value="NA">Namibia</option>
+                  <option value="SZ">Eswatini</option>
+                  <option value="ZW">Zimbabwe</option>
+                  <option value="other">Other</option>
+                </select>
+                {% if form.country.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.country.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+
+              
+
+
+
+            </div>
+          </div>
+          
+          <!-- Address Information -->
+          <div class="mb-10">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Address Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Street Address -->
+              <div class="form-group">
+                <label for="{{ form.street_address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                <input type="text" name="street_address" id="{{ form.street_address.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.street_address.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.street_address.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Suburb -->
+              <div class="form-group">
+                <label for="{{ form.suburb.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Suburb</label>
+                <input type="text" name="suburb" id="{{ form.suburb.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.suburb.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.suburb.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- City -->
+              <div class="form-group">
+                <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input type="text" name="city" id="{{ form.city.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.city.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                {% endif %}
+              </div>
+
+              <!-- Province -->
+              <div class="form-group">
+                <label for="{{ form.province.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Province</label>
+                <select name="province" id="{{ form.province.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <option value="">Select province</option>
+                  <option value="EC">Eastern Cape</option>
+                  <option value="FS">Free State</option>
+                  <option value="GP">Gauteng</option>
+                  <option value="KZN">KwaZulu-Natal</option>
+                  <option value="LP">Limpopo</option>
+                  <option value="MP">Mpumalanga</option>
+                  <option value="NC">Northern Cape</option>
+                  <option value="NW">North West</option>
+                  <option value="WC">Western Cape</option>
+                </select>
+                {% if form.province.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.province.errors.0 }}</p>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Postal Code -->
+            <div class="form-group mt-6">
+              <label for="{{ form.postal_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+              <input type="text" name="postal_code" id="{{ form.postal_code.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" pattern="[0-9]{4}" title="Please enter a valid 4-digit postal code" required>
+              {% if form.postal_code.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.postal_code.errors.0 }}</p>
+              {% endif %}
+            </div>
+            </div>
+          </div>
+          
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between border-t border-gray-200 pt-6">
+            <button type="button" onclick="window.history.back()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Back
+            </button>
+            <div class="flex space-x-3">
+              <button type="button" data-url="{% url 'members:incomplete_applications' %}" class="save-exit-btn inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save and Exit
+              </button>
+              <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save and Continue
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get form elements
+    const isForeignToggle = document.getElementById('id_is_foreign');
+    const idNumberField = document.getElementById('id_id_number');
+    const passportField = document.getElementById('id_passport_number');
+    const dobField = document.getElementById('id_date_of_birth');
+    const genderField = document.getElementById('id_gender');
+    const nationalityField = document.getElementById('id_nationality');
+    const countryBirthField = document.getElementById('id_country_of_birth');
+    const countryResidenceField = document.getElementById('id_country_of_residence');
+    
+    // Get validation elements
+    const saIdFieldContainer = document.getElementById('sa-id-field');
+    const passportFieldContainer = document.getElementById('passport-field');
+    const idValidationIndicator = document.getElementById('id-validation-indicator');
+    const idValidIcon = document.getElementById('id-valid-icon');
+    const idInvalidIcon = document.getElementById('id-invalid-icon');
+    const idValidationMessage = document.getElementById('id-validation-message');
+    const ageWarning = document.getElementById('age-warning');
+    
+    // Function to toggle between SA citizen and foreign national fields
+    function toggleForeignerFields() {
+      const isForeign = isForeignToggle.checked;
+      
+      // Toggle field visibility
+      if (isForeign) {
+        saIdFieldContainer.classList.add('hidden');
+        passportFieldContainer.classList.remove('hidden');
+        
+        // Make passport field required
+        passportField.setAttribute('required', 'required');
+        idNumberField.removeAttribute('required');
+        
+        // Enable nationality and country fields
+        nationalityField.removeAttribute('readonly');
+        countryBirthField.removeAttribute('readonly');
+        countryResidenceField.removeAttribute('readonly');
+        
+        // Enable DOB and gender fields for manual entry
+        dobField.removeAttribute('readonly');
+        genderField.removeAttribute('disabled');
+      } else {
+        saIdFieldContainer.classList.remove('hidden');
+        passportFieldContainer.classList.add('hidden');
+        
+        // Make ID field required
+        idNumberField.setAttribute('required', 'required');
+        passportField.removeAttribute('required');
+      }
+    }
+    
+    // Function to validate South African ID number
+    function validateSouthAfricanID(idNumber) {
+      // Basic format check
+      if (!/^\d{13}$/.test(idNumber)) {
+        return {
+          valid: false,
+          message: 'ID number must be 13 digits long.'
+        };
+      }
+      
+      // Luhn algorithm check
+      if (!luhnCheck(idNumber)) {
+        return {
+          valid: false,
+          message: 'Invalid ID number. Failed checksum validation.'
+        };
+      }
+      
+      // Extract date parts
+      const yy = parseInt(idNumber.substring(0, 2), 10);
+      const mm = parseInt(idNumber.substring(2, 4), 10);
+      const dd = parseInt(idNumber.substring(4, 6), 10);
+      
+      // Determine century
+      const currentYear = new Date().getFullYear();
+      const currentShortYear = currentYear % 100;
+      const century = (yy <= currentShortYear) ? 2000 : 1900;
+      const fullYear = century + yy;
+      
+      // Validate date
+      try {
+        const date = new Date(fullYear, mm - 1, dd);
+        if (date.getFullYear() !== fullYear || 
+            date.getMonth() + 1 !== mm || 
+            date.getDate() !== dd) {
+          return {
+            valid: false,
+            message: 'Invalid date of birth in ID number.'
+          };
+        }
+      } catch (error) {
+        return {
+          valid: false,
+          message: 'Invalid date of birth in ID number.'
+        };
+      }
+      
+      // Determine gender (7th-10th digits, 0000-4999 = female, 5000-9999 = male)
+      const genderNum = parseInt(idNumber.substring(6, 10), 10);
+      const gender = genderNum < 5000 ? 'Female' : 'Male';
+      
+      // Format date as YYYY-MM-DD for the date input field
+      const formattedDate = `${fullYear}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      
+      // Calculate age
+      const today = new Date();
+      let age = today.getFullYear() - fullYear;
+      if (today.getMonth() < mm - 1 || (today.getMonth() === mm - 1 && today.getDate() < dd)) {
+        age--;
+      }
+      
+      // Age warnings
+      let ageWarningMessage = '';
+      if (age < 18) {
+        ageWarningMessage = 'Warning: Applicant is under 18 years old.';
+      } else if (age > 85) {
+        ageWarningMessage = 'Warning: Applicant is over 85 years old.';
+      }
+      
+      return {
+        valid: true,
+        message: 'Valid South African ID number.',
+        dateOfBirth: formattedDate,
+        gender: gender,
+        age: age,
+        ageWarningMessage: ageWarningMessage
+      };
+    }
+    
+    // Function to update form based on ID validation
+    function updateFormFromID(validationResult) {
+      // Show validation indicator
+      idValidationIndicator.classList.remove('hidden');
+      
+      if (validationResult.valid) {
+        // Show valid icon
+        idValidIcon.classList.remove('hidden');
+        idInvalidIcon.classList.add('hidden');
+        
+        // Set validation message
+        idValidationMessage.classList.remove('hidden');
+        idValidationMessage.textContent = validationResult.message;
+        idValidationMessage.classList.remove('text-red-600');
+        idValidationMessage.classList.add('text-green-600');
+        
+        // Auto-fill DOB and gender
+        dobField.value = validationResult.dateOfBirth;
+        dobField.setAttribute('readonly', 'readonly');
+        
+        // Set gender
+        for (let i = 0; i < genderField.options.length; i++) {
+          if (genderField.options[i].value === validationResult.gender) {
+            genderField.selectedIndex = i;
+            break;
+          }
+        }
+        genderField.setAttribute('disabled', 'disabled');
+        
+        // Set default South African values
+        if (nationalityField) nationalityField.value = 'South African';
+        if (countryBirthField) countryBirthField.value = 'South Africa';
+        if (countryResidenceField) countryResidenceField.value = 'South Africa';
+        
+        // Show age warning if needed
+        if (validationResult.ageWarningMessage) {
+          ageWarning.classList.remove('hidden');
+          ageWarning.textContent = validationResult.ageWarningMessage;
+        } else {
+          ageWarning.classList.add('hidden');
+        }
+      } else {
+        // Show invalid icon
+        idValidIcon.classList.add('hidden');
+        idInvalidIcon.classList.remove('hidden');
+        
+        // Set validation message
+        idValidationMessage.classList.remove('hidden');
+        idValidationMessage.textContent = validationResult.message;
+        idValidationMessage.classList.remove('text-green-600');
+        idValidationMessage.classList.add('text-red-600');
+        
+        // Enable DOB and gender fields for manual entry
+        dobField.removeAttribute('readonly');
+        genderField.removeAttribute('disabled');
+        
+        // Hide age warning
+        ageWarning.classList.add('hidden');
+      }
+    }
+    
+    // Function to handle ID number input
+    function handleIDInput() {
+      const idNumber = idNumberField.value.trim();
+      
+      // Reset validation state if ID is empty
+      if (!idNumber) {
+        idValidationIndicator.classList.add('hidden');
+        idValidationMessage.classList.add('hidden');
+        dobField.removeAttribute('readonly');
+        genderField.removeAttribute('disabled');
+        ageWarning.classList.add('hidden');
+        return;
+      }
+      
+      // Validate ID number
+      const validationResult = validateSouthAfricanID(idNumber);
+      updateFormFromID(validationResult);
+    }
+    
+    // Set up event listeners
+    if (isForeignToggle) {
+      isForeignToggle.addEventListener('change', toggleForeignerFields);
+      toggleForeignerFields(); // Initialize fields based on current state
+    }
+    
+    if (idNumberField) {
+      idNumberField.addEventListener('input', function() {
+        // Allow only digits
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        // Limit to 13 digits
+        if (this.value.length > 13) {
+          this.value = this.value.slice(0, 13);
+        }
+      });
+      
+      idNumberField.addEventListener('blur', handleIDInput);
+      
+      // Validate on page load if ID is already filled
+      if (idNumberField.value.trim()) {
+        handleIDInput();
+      }
+    }
+    
+    // Form validation
+    const mainForm = document.getElementById('mainForm');
+    if (mainForm) {
+      mainForm.addEventListener('submit', function(event) {
+        const isForeign = isForeignToggle && isForeignToggle.checked;
+        
+        if (!isForeign && idNumberField && idNumberField.value.trim()) {
+          // Validate SA ID number
+          const validationResult = validateSouthAfricanID(idNumberField.value.trim());
+          if (!validationResult.valid) {
+            event.preventDefault();
+            updateFormFromID(validationResult);
+            idNumberField.focus();
+            return false;
+          }
+        } else if (isForeign && passportField && !passportField.value.trim()) {
+          // Validate passport number is provided for foreigners
+          event.preventDefault();
+          passportField.classList.add('border-red-500');
+          const errorMsg = document.createElement('p');
+          errorMsg.className = 'mt-1 text-sm text-red-600';
+          errorMsg.textContent = 'Passport number is required for foreign nationals.';
+          passportField.parentNode.appendChild(errorMsg);
+          passportField.focus();
+          return false;
+        }
+        
+        return true;
+      });
+    }
+    
+    // Initialize date picker if needed
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+      // Set max date to today
+      const today = new Date().toISOString().split('T')[0];
+      input.setAttribute('max', today);
+    });
+
+    // Handle Save and Exit button click
+    const saveExitBtn = document.querySelector('.save-exit-btn');
+    if (saveExitBtn) {
+      saveExitBtn.addEventListener('click', function() {
+        // Submit the form first to save changes
+        const form = document.getElementById('mainForm');
+        if (form) {
+          fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+          })
+          .then(() => {
+            // After saving, redirect to incomplete applications
+            window.location.href = this.getAttribute('data-url');
+          })
+          .catch(error => {
+            console.error('Error saving form:', error);
+            // Still redirect even if there's an error
+            window.location.href = this.getAttribute('data-url');
+          });
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Step-specific styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #1f2937;
+        letter-spacing: 0.025em;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+    
+    /* Validation styles */
+    .border-red-500 {
+        border-color: #ef4444 !important;
+        border-width: 2px !important;
+    }
+    
+    #id-error-message {
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-top: 4px;
+    }
+    
+    #id-error-message.text-red-600 {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+    
+    #id-error-message.text-green-600 {
+        background-color: rgba(34, 197, 94, 0.1);
+    }
+    
+    .form-input {
+        line-height: 1.5;
+        color: #1f2937;
+        background-color: white;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+    
+    .form-input::placeholder {
+        color: #9ca3af;
+        font-size: 1rem;
+    }
+    
+    .error-message {
+        color: #dc2626;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-top: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    /* Grid layout for form fields */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+    
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .form-group.address-line {
+            grid-column: 1 / -1;
+        }
+    }
+    
+    /* Form sections */
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    /* Checkbox styles */
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .checkbox-input {
+        margin-right: 0.5rem;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+</style>
+</script>
+{% endblock %}
+
+{% block nav_back %}
+  <button type="button" onclick="window.history.back()" class="btn btn-secondary">
+    Back
+  </button>
+{% endblock %}
+
+{% block nav_next %}
+  <button type="submit" form="mainForm" class="btn btn-primary">
+    Next
+  </button>
+{% endblock %}

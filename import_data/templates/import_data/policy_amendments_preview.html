@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h1 class="text-2xl font-semibold mb-4">Preview Policy Amendments</h1>
+
+  <table class="min-w-full bg-white">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2 text-left">Row</th>
+        <th class="px-4 py-2 text-left">Membership #</th>
+        <th class="px-4 py-2 text-left">Status</th>
+        <th class="px-4 py-2 text-left">Changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in preview_rows %}
+      <tr class="border-t">
+        <td class="px-4 py-2">{{ row.row }}</td>
+        <td class="px-4 py-2">{{ row.membership_number }}</td>
+        <td class="px-4 py-2">
+          {% if row.status != 'success' %}
+            <span class="text-red-600">{{ row.status|capfirst }}</span>
+          {% else %}
+            <span class="text-green-600">Success</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-2">
+          {% if row.changes %}
+            <ul class="list-disc list-inside">
+              {% for field, vals in row.changes.items %}
+                <li>{{ field }}: “{{ vals.0 }}” → “{{ vals.1 }}”</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            &mdash;
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
+      Confirm &amp; Apply
+    </button>
+  </form>
+</div>
+{% endblock %}

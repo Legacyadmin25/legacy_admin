@@ -1,0 +1,652 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<form method="post" action="{% url 'members_diy:diy_payment_options' %}" x-data="paymentOptionsHandler" @submit.prevent="submitForm">
+  {% csrf_token %}
+  
+  <!-- Hidden fields for form state -->
+  <input type="hidden" name="form_type" value="payment_options">
+  
+  <div class="space-y-6">
+    <!-- Payment Method Selection -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900">Payment Method</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Select how you would like to pay for your policy.
+      </p>
+      
+      <div class="mt-4 space-y-4">
+        <!-- Debit Order Option -->
+        <div>
+          <input type="radio" id="payment_method_debit" name="payment_method" value="debit_order" 
+                 x-model="paymentMethod" class="form-radio sr-only" 
+                 @change="updatePaymentMethod('debit_order')">
+          <label for="payment_method_debit" 
+                 class="relative flex p-4 border rounded-lg cursor-pointer focus:outline-none"
+                 :class="{'border-blue-500 ring-2 ring-blue-500': paymentMethod === 'debit_order', 'border-gray-300'}">
+            <div class="flex items-center h-5">
+              <input type="radio" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                     :checked="paymentMethod === 'debit_order'">
+            </div>
+            <div class="ml-3 flex-1">
+              <div class="flex justify-between">
+                <h4 class="text-base font-medium text-gray-900">Debit Order</h4>
+                <div class="flex-shrink-0">
+                  <i class="fas fa-money-bill-wave text-gray-400"></i>
+                </div>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">
+                Automatic monthly payments from your bank account. Most popular option.
+              </p>
+              
+              <!-- Debit Order Details -->
+              <div x-show="paymentMethod === 'debit_order'" x-transition class="mt-4 pt-4 border-t border-gray-200">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <!-- Bank Name -->
+                  <div>
+                    <label for="bank_name" class="block text-sm font-medium text-gray-700">Bank Name <span class="text-red-500">*</span></label>
+                    <select id="bank_name" name="bank_name" x-model="bankName" required
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                      <option value="">Select your bank</option>
+                      <option value="absa">ABSA</option>
+                      <option value="fnb">First National Bank (FNB)</option>
+                      <option value="standard_bank">Standard Bank</option>
+                      <option value="nedbank">Nedbank</option>
+                      <option value="capitec">Capitec</option>
+                      <option value="investec">Investec</option>
+                      <option value="african_bank">African Bank</option>
+                      <option value="bidvest">Bidvest Bank</option>
+                      <option value="other">Other Bank</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Account Type -->
+                  <div>
+                    <label for="account_type" class="block text-sm font-medium text-gray-700">Account Type <span class="text-red-500">*</span></label>
+                    <select id="account_type" name="account_type" x-model="accountType" required
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                      <option value="">Select account type</option>
+                      <option value="savings">Savings Account</option>
+                      <option value="cheque">Cheque Account</option>
+                      <option value="transmission">Transmission Account</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Account Number -->
+                  <div>
+                    <label for="account_number" class="block text-sm font-medium text-gray-700">Account Number <span class="text-red-500">*</span></label>
+                    <input type="text" id="account_number" name="account_number" x-model="accountNumber" required
+                           @input="formatAccountNumber"
+                           class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                           placeholder="e.g. 1234567890">
+                    <p class="mt-1 text-xs text-gray-500">No spaces or special characters</p>
+                  </div>
+                  
+                  <!-- Branch Code -->
+                  <div>
+                    <label for="branch_code" class="block text-sm font-medium text-gray-700">Branch Code <span class="text-red-500">*</span></label>
+                    <input type="text" id="branch_code" name="branch_code" x-model="branchCode" required
+                           @input="formatBranchCode"
+                           class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                           placeholder="e.g. 123456">
+                  </div>
+                  
+                  <!-- Account Holder Name -->
+                  <div class="sm:col-span-2">
+                    <label for="account_holder_name" class="block text-sm font-medium text-gray-700">Account Holder Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="account_holder_name" name="account_holder_name" x-model="accountHolderName" required
+                           class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                           placeholder="As it appears on your bank account">
+                  </div>
+                  
+                  <!-- Same as Policyholder -->
+                  <div class="sm:col-span-2">
+                    <div class="flex items-start">
+                      <div class="flex items-center h-5">
+                        <input id="same_as_policyholder" name="same_as_policyholder" type="checkbox" 
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                               x-model="sameAsPolicyholder" @change="updateAccountHolderName">
+                      </div>
+                      <div class="ml-3 text-sm">
+                        <label for="same_as_policyholder" class="font-medium text-gray-700">Account holder is the policyholder</label>
+                        <p class="text-gray-500">Check this if the account belongs to the main policyholder.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Debit Day -->
+                  <div>
+                    <label for="debit_day" class="block text-sm font-medium text-gray-700">Debit Day <span class="text-red-500">*</span></label>
+                    <select id="debit_day" name="debit_day" x-model="debitDay" required
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                      <option value="1">1st of the month</option>
+                      <option value="15">15th of the month</option>
+                      <option value="25">25th of the month</option>
+                      <option value="last">Last day of the month</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Debit Order Authorization -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-md">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <i class="h-5 w-5 text-blue-400 fas fa-info-circle"></i>
+                    </div>
+                    <div class="ml-3">
+                      <h3 class="text-sm font-medium text-blue-800">Debit Order Authorization</h3>
+                      <div class="mt-2 text-sm text-blue-700">
+                        <p>By selecting this payment method, you authorize us to debit your account for the monthly premium.</p>
+                        <p class="mt-1 text-xs">
+                          You may cancel this authorization at any time by giving us at least 5 business days' notice before the next debit date.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Credit Card Option -->
+        <div>
+          <input type="radio" id="payment_method_credit_card" name="payment_method" value="credit_card" 
+                 x-model="paymentMethod" class="form-radio sr-only"
+                 @change="updatePaymentMethod('credit_card')">
+          <label for="payment_method_credit_card" 
+                 class="relative flex p-4 border rounded-lg cursor-pointer focus:outline-none"
+                 :class="{'border-blue-500 ring-2 ring-blue-500': paymentMethod === 'credit_card', 'border-gray-300'}">
+            <div class="flex items-center h-5">
+              <input type="radio" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                     :checked="paymentMethod === 'credit_card'">
+            </div>
+            <div class="ml-3 flex-1">
+              <div class="flex justify-between">
+                <h4 class="text-base font-medium text-gray-900">Credit Card</h4>
+                <div class="flex space-x-1">
+                  <i class="fab fa-cc-visa text-blue-700"></i>
+                  <i class="fab fa-cc-mastercard text-red-500"></i>
+                  <i class="fab fa-cc-amex text-blue-600"></i>
+                </div>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">
+                Pay with your credit or debit card. You'll need to update your card details before each payment.
+              </p>
+              
+              <!-- Credit Card Details -->
+              <div x-show="paymentMethod === 'credit_card'" x-transition class="mt-4 pt-4 border-t border-gray-200">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <!-- Card Number -->
+                  <div class="sm:col-span-2">
+                    <label for="card_number" class="block text-sm font-medium text-gray-700">Card Number <span class="text-red-500">*</span></label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                      <input type="text" id="card_number" name="card_number" x-model="cardNumber"
+                             @input="formatCardNumber"
+                             class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
+                             placeholder="0000 0000 0000 0000">
+                      <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i :class="cardType.icon" :class="cardType.color + ' fa-2x'"></i>
+                      </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500" x-text="cardType.name ? 'Detected: ' + cardType.name : 'We accept Visa, Mastercard, and American Express'"></p>
+                  </div>
+                  
+                  <!-- Expiry Date -->
+                  <div>
+                    <label for="card_expiry" class="block text-sm font-medium text-gray-700">Expiry Date <span class="text-red-500">*</span></label>
+                    <input type="text" id="card_expiry" name="card_expiry" x-model="cardExpiry"
+                           @input="formatCardExpiry"
+                           class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                           placeholder="MM/YY">
+                  </div>
+                  
+                  <!-- CVV -->
+                  <div>
+                    <label for="card_cvv" class="block text-sm font-medium text-gray-700">CVV <span class="text-red-500">*</span></label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                      <input type="text" id="card_cvv" name="card_cvv" x-model="cardCvv"
+                             @input="formatCardCvv"
+                             class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
+                             placeholder="123" maxlength="4">
+                      <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <span class="tooltip" @mouseover="showCvvTooltip = true" @mouseout="showCvvTooltip = false">
+                          <i class="far fa-question-circle text-gray-400 hover:text-gray-500"></i>
+                          <span class="tooltip-text" x-show="showCvvTooltip" x-transition>
+                            The 3 or 4-digit code on the back of your card
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Cardholder Name -->
+                  <div class="sm:col-span-2">
+                    <label for="card_holder_name" class="block text-sm font-medium text-gray-700">Cardholder Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="card_holder_name" name="card_holder_name" x-model="cardHolderName" required
+                           class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                           placeholder="As it appears on your card">
+                  </div>
+                </div>
+                
+                <!-- Save Card Checkbox -->
+                <div class="mt-4">
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <input id="save_card" name="save_card" type="checkbox" 
+                             class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                             x-model="saveCard">
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <label for="save_card" class="font-medium text-gray-700">Save card for future payments</label>
+                      <p class="text-gray-500">Your card details will be securely stored for future transactions.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Pay Now Button -->
+        <div x-show="paymentMethod === 'credit_card'" x-transition class="pt-2">
+          <button type="submit" 
+                  class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  :disabled="!isPaymentFormValid">
+            <i class="fas fa-lock mr-2"></i> Pay R{{ monthly_premium|default:'0.00' }} Now
+          </button>
+          <p class="mt-2 text-xs text-center text-gray-500">
+            <i class="fas fa-lock mr-1"></i> Secure payment processed by our payment partner
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Payment Summary -->
+    <div class="pt-4 border-t border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Payment Summary</h3>
+      
+      <div class="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <dl class="space-y-4">
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Policy Type</dt>
+              <dd class="text-sm text-gray-900" x-text="policyType === 'funeral' ? 'Funeral Cover' : 'Life Cover'"></dd>
+            </div>
+            
+            <div class="border-t border-gray-200"></div>
+            
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Cover Amount</dt>
+              <dd class="text-sm text-gray-900" x-text="'R' + parseInt(coverAmount).toLocaleString()"></dd>
+            </div>
+            
+            <div x-show="hasExtendedFamily && extendedFamilyCount > 0" class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Extended Family Members</dt>
+              <dd class="text-sm text-gray-900" x-text="extendedFamilyCount + ' x R' + (coverAmount * 0.5).toLocaleString()"></dd>
+            </div>
+            
+            <div class="border-t border-gray-200"></div>
+            
+            <div class="flex justify-between">
+              <dt class="text-base font-medium text-gray-900">Monthly Premium</dt>
+              <dd class="text-base font-bold text-blue-600" x-text="'R' + monthlyPremium.toLocaleString()"></dd>
+            </div>
+            
+            <div x-show="paymentMethod === 'credit_card'" class="mt-4 p-3 bg-yellow-50 rounded-md">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <i class="h-5 w-5 text-yellow-400 fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="ml-3
+                <p class="text-sm text-yellow-700">
+                  <span class="font-medium">Heads up!</span> For credit card payments, you'll need to update your card details before each payment.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <button type="submit" 
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    :disabled="!isFormValid"
+                    x-show="paymentMethod !== 'credit_card'">
+              Continue to Review
+            </button>
+            
+            <p class="mt-2 text-xs text-center text-gray-500">
+              By continuing, you agree to our <a href="#" class="text-blue-600 hover:text-blue-500">Terms of Service</a> and <a href="#" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('paymentOptionsHandler', () => ({
+    // Form state
+    paymentMethod: 'debit_order',
+    
+    // Debit Order fields
+    bankName: '',
+    accountType: '',
+    accountNumber: '',
+    branchCode: '',
+    accountHolderName: '',
+    sameAsPolicyholder: true,
+    debitDay: '1',
+    
+    // Credit Card fields
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolderName: '',
+    saveCard: true,
+    showCvvTooltip: false,
+    
+    // Card type detection
+    cardType: {
+      name: '',
+      icon: 'far fa-credit-card',
+      color: 'text-gray-400'
+    },
+    
+    // Policy details from store
+    policyType: 'funeral',
+    coverAmount: 25000,
+    hasExtendedFamily: false,
+    extendedFamilyCount: 0,
+    monthlyPremium: 0,
+    
+    init() {
+      // Load from store if available
+      if (this.$store.formData.payment_method) {
+        this.paymentMethod = this.$store.formData.payment_method;
+      }
+      
+      if (this.$store.formData.bank_name) {
+        this.bankName = this.$store.formData.bank_name;
+      }
+      
+      if (this.$store.formData.account_type) {
+        this.accountType = this.$store.formData.account_type;
+      }
+      
+      if (this.$store.formData.account_number) {
+        this.accountNumber = this.$store.formData.account_number;
+      }
+      
+      if (this.$store.formData.branch_code) {
+        this.branchCode = this.$store.formData.branch_code;
+      }
+      
+      if (this.$store.formData.account_holder_name) {
+        this.accountHolderName = this.$store.formData.account_holder_name;
+        this.sameAsPolicyholder = false;
+      } else if (this.$store.formData.first_name && this.$store.formData.last_name) {
+        this.accountHolderName = `${this.$store.formData.first_name} ${this.$store.formData.last_name}`.trim();
+        this.sameAsPolicyholder = true;
+      }
+      
+      if (this.$store.formData.debit_day) {
+        this.debitDay = this.$store.formData.debit_day;
+      }
+      
+      // Load policy details from store
+      if (this.$store.formData.policy_type) {
+        this.policyType = this.$store.formData.policy_type;
+      }
+      
+      if (this.$store.formData.cover_amount) {
+        this.coverAmount = parseInt(this.$store.formData.cover_amount) || 25000;
+      }
+      
+      if (this.$store.formData.has_extended_family) {
+        this.hasExtendedFamily = this.$store.formData.has_extended_family === 'true';
+      }
+      
+      if (this.$store.formData.extended_family_count) {
+        this.extendedFamilyCount = parseInt(this.$store.formData.extended_family_count) || 0;
+      }
+      
+      // Calculate monthly premium
+      this.calculatePremium();
+      
+      // Watch for changes in form data to update the store
+      this.$watch('paymentMethod', () => this.updateStore());
+      this.$watch('bankName', () => this.updateStore());
+      this.$watch('accountType', () => this.updateStore());
+      this.$watch('accountNumber', () => this.updateStore());
+      this.$watch('branchCode', () => this.updateStore());
+      this.$watch('accountHolderName', () => this.updateStore());
+      this.$watch('debitDay', () => this.updateStore());
+      this.$watch('cardNumber', () => this.detectCardType());
+    },
+    
+    // Computed properties
+    get isDebitOrderValid() {
+      return (
+        this.bankName &&
+        this.accountType &&
+        this.accountNumber && this.accountNumber.length >= 6 &&
+        this.branchCode && this.branchCode.length >= 4 &&
+        this.accountHolderName && this.accountHolderName.length >= 3
+      );
+    },
+    
+    get isCreditCardValid() {
+      // Basic validation for demo purposes
+      const isCardValid = this.cardNumber.replace(/\s+/g, '').length >= 15 &&
+                         this.cardExpiry.length === 5 &&
+                         this.cardCvv.length >= 3 &&
+                         this.cardHolderName.length >= 3;
+      
+      return isCardValid;
+    },
+    
+    get isFormValid() {
+      if (this.paymentMethod === 'debit_order') {
+        return this.isDebitOrderValid;
+      } else if (this.paymentMethod === 'credit_card') {
+        return this.isCreditCardValid;
+      }
+      return false;
+    },
+    
+    // Methods
+    updatePaymentMethod(method) {
+      this.paymentMethod = method;
+    },
+    
+    updateAccountHolderName() {
+      if (this.sameAsPolicyholder && this.$store.formData.first_name && this.$store.formData.last_name) {
+        this.accountHolderName = `${this.$store.formData.first_name} ${this.$store.formData.last_name}`.trim();
+      }
+    },
+    
+    formatAccountNumber() {
+      // Remove all non-digit characters
+      this.accountNumber = this.accountNumber.replace(/\D/g, '');
+    },
+    
+    formatBranchCode() {
+      // Remove all non-digit characters
+      this.branchCode = this.branchCode.replace(/\D/g, '');
+    },
+    
+    formatCardNumber() {
+      // Remove all non-digit characters
+      let value = this.cardNumber.replace(/\D/g, '');
+      
+      // Add spaces for better readability
+      value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+      
+      this.cardNumber = value.trim();
+    },
+    
+    formatCardExpiry() {
+      // Remove all non-digit characters
+      let value = this.cardExpiry.replace(/\D/g, '');
+      
+      // Add slash after MM
+      if (value.length > 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+      }
+      
+      this.cardExpiry = value;
+    },
+    
+    formatCardCvv() {
+      // Remove all non-digit characters and limit to 4 digits
+      this.cardCvv = this.cardCvv.replace(/\D/g, '').substring(0, 4);
+    },
+    
+    detectCardType() {
+      // Remove all non-digit characters
+      const number = this.cardNumber.replace(/\D/g, '');
+      
+      // Reset to default
+      this.cardType = {
+        name: '',
+        icon: 'far fa-credit-card',
+        color: 'text-gray-400'
+      };
+      
+      if (/^4/.test(number)) {
+        // Visa
+        this.cardType = {
+          name: 'Visa',
+          icon: 'fab fa-cc-visa',
+          color: 'text-blue-700'
+        };
+      } else if (/^5[1-5]/.test(number)) {
+        // Mastercard
+        this.cardType = {
+          name: 'Mastercard',
+          icon: 'fab fa-cc-mastercard',
+          color: 'text-red-500'
+        };
+      } else if (/^3[47]/.test(number)) {
+        // American Express
+        this.cardType = {
+          name: 'American Express',
+          icon: 'fab fa-cc-amex',
+          color: 'text-blue-600'
+        };
+      } else if (/^6(?:011|5)/.test(number)) {
+        // Discover
+        this.cardType = {
+          name: 'Discover',
+          icon: 'fab fa-cc-discover',
+          color: 'text-orange-500'
+        };
+      }
+    },
+    
+    calculatePremium() {
+      // Base premium: R5 per R1,000 of cover
+      let premium = (this.coverAmount / 1000) * 5;
+      
+      // Add R50 for each extended family member
+      if (this.hasExtendedFamily && this.extendedFamilyCount > 0) {
+        premium += this.extendedFamilyCount * 50;
+      }
+      
+      // Ensure minimum premium of R50
+      this.monthlyPremium = Math.max(50, Math.round(premium));
+    },
+    
+    updateStore() {
+      // Update the store with current values
+      this.$store.formData.payment_method = this.paymentMethod;
+      
+      // Debit order details
+      this.$store.formData.bank_name = this.bankName;
+      this.$store.formData.account_type = this.accountType;
+      this.$store.formData.account_number = this.accountNumber;
+      this.$store.formData.branch_code = this.branchCode;
+      this.$store.formData.account_holder_name = this.accountHolderName;
+      this.$store.formData.debit_day = this.debitDay;
+      
+      // Credit card details (not storing full card number in this example)
+      this.$store.formData.card_last_four = this.cardNumber.slice(-4);
+      this.$store.formData.card_type = this.cardType.name.toLowerCase().replace(' ', '_');
+      this.$store.formData.card_expiry = this.cardExpiry;
+      this.$store.formData.save_card = this.saveCard;
+      
+      // Update monthly premium in store
+      this.$store.formData.monthly_premium = this.monthlyPremium.toString();
+    },
+    
+    async submitForm() {
+      if (!this.isFormValid) {
+        showToast('Please fill in all required fields correctly', 'error');
+        return;
+      }
+      
+      // Update store before submission
+      this.updateStore();
+      
+      try {
+        showLoading();
+        
+        // In a real app, you would process the payment here
+        // For demo, we'll simulate an API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // If credit card payment, show success message
+        if (this.paymentMethod === 'credit_card') {
+          showToast('Payment processed successfully!', 'success');
+        }
+        
+        // Submit the form
+        this.$el.submit();
+        
+      } catch (error) {
+        console.error('Payment error:', error);
+        showToast('An error occurred while processing your payment. Please try again.', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+  }));
+  
+  // Add tooltip styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #1F2937;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.75rem;
+      font-weight: normal;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+  `;
+  document.head.appendChild(style);
+});
+</script>
+{% endblock %}

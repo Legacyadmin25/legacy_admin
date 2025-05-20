@@ -1,0 +1,207 @@
+{% extends base_template %}
+
+{% load humanize %}
+
+{% block title %}Policy Confirmation{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-3xl mx-auto">
+    <!-- Logo Section -->
+    <div class="flex justify-center space-x-8 mb-8">
+      <div class="flex items-center">
+        <img src="{% static 'images/legacy_guard_logo.png' %}" alt="Legacy Guard Logo" class="h-16">
+      </div>
+      <div class="flex items-center">
+        <img src="{% static 'images/scheme_logo.png' %}" alt="Scheme Logo" class="h-16">
+      </div>
+    </div>
+    <div class="text-center mb-12">
+      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+        <i class="fas fa-check-circle text-4xl text-green-600"></i>
+      </div>
+      <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Thank You!</h1>
+      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+        Your policy application has been successfully submitted and is now being processed.
+      </p>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+      <div class="px-4 py-5 sm:px-6 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+          Application Summary
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+          Here's a summary of your policy application.
+        </p>
+      </div>
+      <div class="border-t border-gray-200">
+        <dl>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Policy Number</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono">
+              {{ member.policy_number|default:"Pending" }}
+            </dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Policyholder</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              {{ member.get_full_name }}
+            </dd>
+          </div>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Coverage Amount</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              R {{ member.coverage_amount|intcomma }}
+            </dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Monthly Premium</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              R {{ member.monthly_premium|floatformat:2|intcomma }}
+            </dd>
+          </div>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Covered Members</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              {{ member.get_covered_members_count }} ({{ member.get_covered_members_list }})
+            </dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Application Date</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              {% now "F j, Y" %}
+            </dd>
+          </div>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Status</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                Application Complete
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+      <div class="px-4 py-5 sm:px-6 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+          What Happens Next?
+        </h3>
+      </div>
+      <div class="px-4 py-5 sm:p-6">
+        <div class="space-y-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <div class="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                <i class="fas fa-envelope text-blue-600"></i>
+              </div>
+            </div>
+            <div class="ml-4">
+              <h4 class="text-lg leading-6 font-medium text-gray-900">Email Confirmation</h4>
+              <p class="mt-1 text-base text-gray-600">
+                We've sent a confirmation email to <span class="font-medium">{{ member.email }}</span> with all the details of your application.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <div class="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                <i class="fas fa-search text-blue-600"></i>
+              </div>
+            </div>
+            <div class="ml-4">
+              <h4 class="text-lg leading-6 font-medium text-gray-900">Application Review</h4>
+              <p class="mt-1 text-base text-gray-600">
+                Our team is reviewing your application. This typically takes 1-2 business days. We'll notify you once your policy is active.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <div class="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                <i class="fas fa-file-alt text-blue-600"></i>
+              </div>
+            </div>
+            <div class="ml-4">
+              <h4 class="text-lg leading-6 font-medium text-gray-900">Policy Documents</h4>
+              <p class="mt-1 text-base text-gray-600">
+                Once approved, you'll receive your policy documents via email. You can also download them from your dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+      <div class="px-4 py-5 sm:px-6 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+          Need Help?
+        </h3>
+      </div>
+      <div class="px-4 py-5 sm:p-6">
+        <p class="text-gray-700 mb-4">
+          Our customer support team is here to help you with any questions about your policy.
+        </p>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+              <i class="fas fa-phone-alt text-blue-600"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <a href="tel:+27211234567" class="focus:outline-none">
+                <span class="absolute inset-0" aria-hidden="true"></span>
+                <p class="text-sm font-medium text-gray-900">Call Us</p>
+                <p class="text-sm text-gray-500 truncate">021 123 4567</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+              <i class="fas fa-envelope text-blue-600"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <a href="mailto:support@legacyguard.co.za" class="focus:outline-none">
+                <span class="absolute inset-0" aria-hidden="true"></span>
+                <p class="text-sm font-medium text-gray-900">Email Us</p>
+                <p class="text-sm text-gray-500 truncate">support@legacyguard.co.za</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <div class="flex flex-wrap justify-center gap-4 mb-6">
+        <a href="{% url 'members:download_policy_document' pk=policy.pk %}" target="_blank" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+          <i class="fas fa-file-pdf mr-2"></i> Download Policy Document
+        </a>
+        
+        {% if whatsapp_url %}
+        <a href="{{ whatsapp_url }}" target="_blank" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400">
+          <i class="fab fa-whatsapp mr-2"></i> Share via WhatsApp
+        </a>
+        {% endif %}
+      </div>
+      
+      <a href="{% url 'members:dashboard' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        Go to Dashboard
+      </a>
+      <p class="mt-4 text-sm text-gray-500">
+        You can check the status of your application anytime in your dashboard.
+      </p>
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <p>© {% now "Y" %} Legacy Guard. All rights reserved.</p>
+        <p class="mt-1">Your trusted partner in financial protection.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

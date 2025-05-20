@@ -1,0 +1,334 @@
+{# templates/members/policy_detail/tabs/documents.html #}
+{% load widget_tweaks %}
+
+<div class="space-y-6">
+  <!-- Header and Search -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Documents</h2>
+      <p class="text-sm text-gray-500">Manage policy-related documents and files</p>
+    </div>
+    <div class="relative w-full sm:w-64">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <input type="text" id="document-search" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Search documents...">
+    </div>
+  </div>
+
+  <!-- Upload Button -->
+  <div class="flex justify-end">
+    <button type="button" id="toggle-upload-form" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+      <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+      </svg>
+      Upload Document
+    </button>
+  </div>
+
+  <!-- Upload Form (Initially Hidden) -->
+  <div id="upload-form" class="hidden bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-medium text-gray-900">Upload New Document</h3>
+      <button type="button" id="hide-upload-form" class="text-gray-400 hover:text-gray-500">
+        <span class="sr-only">Close</span>
+        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <form method="post" action="{% url 'members:policy_detail' policy.id %}" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="tab" value="documents">
+
+  <!-- Document List -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    {% if documents %}
+      <!-- Filter Controls -->
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div class="text-sm text-gray-500">
+            Showing <span class="font-medium">{{ documents|length }}</span> documents
+          </div>
+          <div class="mt-2 sm:mt-0">
+            <select id="document-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+              <option value="all">All Documents</option>
+              <option value="pdf">PDF Files</option>
+              <option value="image">Images</option>
+              <option value="doc">Word Documents</option>
+              <option value="xls">Excel Files</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Documents Grid -->
+      <ul class="divide-y divide-gray-200" id="documents-list">
+        {% for document in documents %}
+          {% with file_ext=document.file.name|slice:'-4:'|lower %}
+          <li class="document-item hover:bg-gray-50 transition-colors duration-150" 
+              data-type="{% if file_ext == '.pdf' %}pdf{% elif file_ext in '.jpg,.jpeg,.png,.gif' %}image{% elif file_ext in '.doc,.docx' %}doc{% elif file_ext in '.xls,.xlsx' %}xls{% else %}other{% endif %}"
+              data-name="{{ document.name|lower }}">
+            <div class="px-6 py-4">
+              <div class="flex items-center">
+                <!-- File Icon -->
+                <div class="flex-shrink-0">
+                  {% if file_ext == '.pdf' %}
+                    <div class="h-10 w-10 rounded-md bg-red-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-red-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% elif file_ext in '.jpg,.jpeg,.png,.gif' %}
+                    <div class="h-10 w-10 rounded-md bg-blue-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
+                  {% elif file_ext in '.doc,.docx' %}
+                    <div class="h-10 w-10 rounded-md bg-blue-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% elif file_ext in '.xls,.xlsx' %}
+                    <div class="h-10 w-10 rounded-md bg-green-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v10h8V5H5zm10 0v10a1 1 0 001 1h1a1 1 0 001-1V5a1 1 0 00-1-1h-1a1 1 0 00-1 1z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% else %}
+                    <div class="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <!-- Document Info -->
+                <div class="ml-4 flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                      {{ document.name }}
+                    </p>
+                    <div class="ml-2 flex-shrink-0 flex space-x-2">
+                      <a href="{{ document.file.url }}" target="_blank" class="text-gray-400 hover:text-indigo-600" title="View">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                      </a>
+                      <a href="{% url 'members:delete_document' policy.id document.pk %}" class="text-gray-400 hover:text-red-600" title="Delete" onclick="return confirm('Are you sure you want to delete this document?')">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-sm text-gray-500 mt-1">
+                    <span>{{ document.file.size|filesizeformat }}</span>
+                    <span class="mx-1">•</span>
+                    <span>{{ document.uploaded_at|date:"M j, Y" }}</span>
+                    <span class="mx-1">•</span>
+                    <span class="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                      {{ file_ext|cut:'.'|upper }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="px-6 py-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No documents</h3>
+        <p class="mt-1 text-sm text-gray-500">Get started by uploading a new document.</p>
+        <div class="mt-6">
+          <button type="button" id="show-upload-form-empty" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Upload Document
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  <!-- Upload Form Fields -->
+  <div class="space-y-4">
+    <div>
+      <label for="{{ doc_form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+        Document Name
+      </label>
+      {% render_field doc_form.name class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Policy Document, ID Proof" %}
+      {% if doc_form.name.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ doc_form.name.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        File Upload
+      </label>
+      <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md" id="drop-zone">
+        <div class="space-y-1 text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div class="flex text-sm text-gray-600">
+            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+              <span>Upload a file</span>
+              {% render_field doc_form.file class="sr-only" id="file-upload" onchange="updateFileName(this)" %}
+            </label>
+            <p class="pl-1">or drag and drop</p>
+          </div>
+          <p class="text-xs text-gray-500">
+            PDF, DOC, DOCX, XLS, XLSX, JPG, PNG up to 10MB
+          </p>
+          <p id="file-name" class="text-sm text-gray-900 mt-2"></p>
+        </div>
+      </div>
+      {% if doc_form.file.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ doc_form.file.errors.0 }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flex justify-end space-x-3 pt-2">
+    <button type="button" id="cancel-upload" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+      Cancel
+    </button>
+    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+      Upload Document
+    </button>
+  </div>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Toggle upload form
+    const toggleUploadForm = document.getElementById('toggle-upload-form');
+    const showUploadFormEmpty = document.getElementById('show-upload-form-empty');
+    const hideUploadForm = document.getElementById('hide-upload-form');
+    const cancelUpload = document.getElementById('cancel-upload');
+    const uploadForm = document.getElementById('upload-form');
+    
+    function showForm() {
+      uploadForm.classList.remove('hidden');
+      window.scrollTo({ top: uploadForm.offsetTop - 20, behavior: 'smooth' });
+    }
+    
+    function hideForm() {
+      uploadForm.classList.add('hidden');
+      const fileNameElement = document.getElementById('file-name');
+      const fileInput = document.getElementById('file-upload');
+      if (fileNameElement) fileNameElement.textContent = '';
+      if (fileInput) fileInput.value = '';
+    }
+    
+    if (toggleUploadForm) toggleUploadForm.addEventListener('click', showForm);
+    if (showUploadFormEmpty) showUploadFormEmpty.addEventListener('click', showForm);
+    if (hideUploadForm) hideUploadForm.addEventListener('click', hideForm);
+    if (cancelUpload) cancelUpload.addEventListener('click', hideForm);
+    
+    // Update file name display
+    window.updateFileName = function(input) {
+      const fileName = input.files[0]?.name || '';
+      const fileNameElement = document.getElementById('file-name');
+      if (fileNameElement) fileNameElement.textContent = fileName;
+    };
+    
+    // Drag and drop functionality
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-upload');
+    
+    if (dropZone && fileInput) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight() {
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+      }
+      
+      function unhighlight() {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+      }
+      
+      dropZone.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length) {
+          fileInput.files = files;
+          updateFileName(fileInput);
+        }
+      }
+    }
+    
+    // Document filtering
+    const documentFilter = document.getElementById('document-filter');
+    const documentItems = document.querySelectorAll('.document-item');
+    
+    if (documentFilter && documentItems.length > 0) {
+      documentFilter.addEventListener('change', function() {
+        const filterValue = this.value.toLowerCase();
+        
+        documentItems.forEach(item => {
+          const itemType = item.getAttribute('data-type');
+          
+          if (filterValue === 'all' || 
+              (filterValue === 'image' && ['jpg', 'jpeg', 'png', 'gif'].includes(itemType)) ||
+              itemType === filterValue) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+    
+    // Document search
+    const documentSearch = document.getElementById('document-search');
+    
+    if (documentSearch && documentItems.length > 0) {
+      documentSearch.addEventListener('input', function() {
+        const searchValue = this.value.toLowerCase();
+        
+        documentItems.forEach(item => {
+          const itemName = item.getAttribute('data-name');
+          
+          if (itemName && itemName.includes(searchValue)) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+  });
+</script>

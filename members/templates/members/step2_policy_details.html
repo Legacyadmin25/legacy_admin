@@ -1,0 +1,850 @@
+{% extends base_template|default:'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Step 2: Policy Details{% endblock %}
+
+{% block extra_css %}
+<style>
+  .plan-card {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  
+  .plan-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .plan-card.selected {
+    border-color: #3b82f6;
+    background-color: #f8fafc;
+    border-width: 2px;
+  }
+  
+  .plan-card.selected::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+  }
+  
+  /* Hide amount groups by default */
+  #premium-amount-group,
+  #cover-amount-group {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  /* Show when active */
+  #premium-amount-group.active,
+  #cover-amount-group.active {
+    display: block;
+    opacity: 1;
+  }
+  
+  .plan-name {
+    color: #1e40af;
+    font-weight: 600;
+  }
+  
+  .plan-features {
+    flex-grow: 1;
+    margin: 1rem 0;
+  }
+  
+  .feature-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+  
+  .feature-icon {
+    color: #10b981;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  .price-tag {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin: 0.5rem 0;
+  }
+  
+  .price-period {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .popular-tag {
+    position: absolute;
+    top: 1rem;
+    right: -2rem;
+    transform: rotate(45deg);
+    background-color: #3b82f6;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 2rem;
+    text-align: center;
+    width: 8rem;
+  }
+  
+  .policy-date-picker {
+    max-width: 300px;
+  }
+  
+  .plan-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  .age-warning {
+    color: #ef4444;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+  
+  .currency-symbol {
+    font-size: 1rem;
+    vertical-align: super;
+    margin-right: 2px;
+  }
+  
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #4b5563;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .form-control:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <div class="w-full px-6 py-8">
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step {{ step }}: Policy Details</h2>
+          <span class="text-sm font-medium text-gray-500">Step 2 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 22%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <form id="mainForm" method="post" class="p-6" onsubmit="return validateForm(event)">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-700">
+                  {{ form.non_field_errors.0 }}
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Hidden plan selection field -->
+          <input type="hidden" name="plan" id="id_plan" value="{% if form.plan.value %}{{ form.plan.value }}{% endif %}">
+          
+          <!-- Plan Selection -->
+          <div class="mb-10">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Select Your Plan</h3>
+            
+            <!-- Member age information -->
+            <div class="bg-blue-50 p-4 rounded-lg mb-6">
+              <p class="text-sm text-blue-800">Showing plans available for member age: <span class="font-semibold">{{ member_age }}</span> years</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {% for plan in plans_data %}
+              <div class="relative">
+                {% if plan.is_popular %}
+                <div class="popular-tag">Most Popular</div>
+                {% endif %}
+                <div class="plan-card {% if not plan.in_member_scheme %}disabled{% endif %} {% if form.plan.value == plan.id %}selected{% endif %}" 
+                     data-plan-id="{{ plan.id }}"
+                     data-premium-amount="{{ plan.premium }}"
+                     data-cover-amount="{{ plan.cover_amount }}"
+                     data-spouses-allowed="{{ plan.spouses_allowed }}"
+                     data-children-allowed="{{ plan.children_allowed }}"
+                     data-extended-allowed="{{ plan.extended_allowed }}"
+                     data-policy-type="{{ plan.policy_type }}"
+                     data-plan-tiers='{{ plan.tiers|safe }}'
+                     onclick="selectPlan(this, '{{ plan.id }}')">
+                  
+                  <!-- Plan Header -->
+                  <h4 class="text-lg font-semibold text-gray-900 plan-name">{{ plan.name }}</h4>
+                  
+                  <!-- Plan Description -->
+                  {% if plan.description %}
+                  <p class="text-sm text-gray-600 mb-3">{{ plan.description }}</p>
+                  {% endif %}
+                  
+                  <!-- Premium Amount -->
+                  <div class="price-tag">
+                    <span class="currency-symbol">R</span>{{ plan.premium|floatformat:2 }}
+                    <span class="price-period">per month</span>
+                  </div>
+                  
+                  <!-- Plan Features -->
+                  <div class="plan-features">
+                    <!-- Cover Amount -->
+                    {% if plan.policy_type == 'cash' %}
+                    <div class="feature-item">
+                      <span class="feature-icon">✓</span>
+                      <span>Cover Amount: <span class="font-medium">R{{ plan.cover_amount|floatformat:2 }}</span></span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Lives Covered -->
+                    <p class="mt-2 text-xs text-gray-500 font-medium">Lives Covered:</p>
+                    <ul class="text-xs ml-4 list-disc">
+                      <li>Spouse: {{ plan.spouses_allowed }}</li>
+                      <li>Children: {{ plan.children_allowed }}</li>
+                      <li>Extended: {{ plan.extended_allowed }}</li>
+                    </ul>
+                    
+                    <!-- Waiting Period -->
+                    <div class="feature-item mt-2">
+                      <span class="feature-icon">✓</span>
+                      <span>Waiting Period: <span class="font-medium">{{ plan.waiting_period }} months</span></span>
+                    </div>
+                  </div>
+                  
+                  <!-- Not in member's scheme warning -->
+                  {% if not plan.in_member_scheme %}
+                  <div class="mt-2 text-xs text-red-600">
+                    Not available in your scheme
+                  </div>
+                  {% endif %}
+                  
+                  <div class="mt-4">
+                    <button 
+                      type="button"
+                      class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      {% if not plan.in_member_scheme %}disabled{% endif %}
+                    >
+                      Select Plan
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="col-span-3 text-center py-10">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No plans available</h3>
+                <p class="mt-1 text-sm text-gray-500">There are no plans available for your age group.</p>
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="selected_plan" id="selected_plan" value="{{ available_plans.0.id|default:'' }}">
+          </div>
+
+          <!-- Policy Details Section -->
+          <div class="policy-details-section bg-white rounded-lg shadow p-6 mt-8">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Policy Details</h3>
+            
+            <!-- Premium and Cover Amount Display -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div class="form-group" id="premium-amount-section">
+                <label class="block text-sm font-medium text-gray-700">Monthly Premium</label>
+                <div class="mt-1 text-2xl font-bold text-blue-600" id="premium-display">R0.00</div>
+              </div>
+              
+              <div class="form-group" id="cover-amount-section">
+                <label class="block text-sm font-medium text-gray-700">Cover Amount</label>
+                <div class="mt-1 text-2xl font-bold text-blue-600" id="cover-display">R0.00</div>
+              </div>
+            </div>
+            
+            <!-- Tier Information Container -->
+            <div id="tier-information" class="mt-4"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Policy Start Date -->
+              <div class="form-group">
+                <label for="id_start_date" class="block text-sm font-medium text-gray-700 mb-1">Policy Start Date</label>
+                <div class="relative">
+                  {{ form.start_date|add_class:"block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"|attr:"id:id_start_date" }}
+                  {% if form.start_date.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.start_date.errors.0 }}</p>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <!-- Cover Amount -->
+              <div class="form-group" id="cover-amount-group" style="display: none;">
+                <label for="id_cover_amount" class="block text-sm font-medium text-gray-700 mb-1">Cover Amount</label>
+                <div class="relative mt-1 rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">R</span>
+                  </div>
+                  {{ form.cover_amount|add_class:"block w-full pl-7 pr-12 rounded-md border-gray-300 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"|attr:"readonly"|attr:"id:id_cover_amount" }}
+                </div>
+              </div>
+              
+              <!-- Monthly Premium -->
+              <div class="form-group" id="premium-amount-group" style="display: none;">
+                <label for="id_premium_amount" class="block text-sm font-medium text-gray-700 mb-1">Monthly Premium</label>
+                <div class="relative mt-1 rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">R</span>
+                  </div>
+                  {{ form.premium_amount|add_class:"block w-full pl-7 pr-12 rounded-md border-gray-300 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"|attr:"readonly"|attr:"id:id_premium_amount" }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Additional Members Section -->
+            <div class="mt-8">
+              <h4 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Member Allowances</h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="member-allowances">
+                <!-- These will be populated by JavaScript when a plan is selected -->
+                <div class="form-group">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Spouses Allowed</label>
+                  <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-700" id="spouses-allowed">0</div>
+                </div>
+                
+                <div class="form-group">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Children Allowed</label>
+                  <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-700" id="children-allowed">0</div>
+                </div>
+                
+                <div class="form-group">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Extended Members Allowed</label>
+                  <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-700" id="extended-allowed">0</div>
+                </div>
+              </div>
+              
+              <!-- Additional Member Tiers Table -->
+              <div class="mt-6">
+                <h4 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Member Tiers</h4>
+                <div class="overflow-x-auto rounded-lg border border-gray-200 shadow">
+                  <table class="min-w-full divide-y divide-gray-200" id="member-tiers-table" style="display: none;">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member Type</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age Range</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="member-tiers-body">
+                      <!-- Will be populated by JavaScript -->
+                    </tbody>
+                  </table>
+                  <div id="no-tiers-message" class="p-4 text-center text-gray-500" style="display: none;">
+                    No member tiers defined for this plan.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Important Note -->
+            <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-blue-700">
+                    Please note that cover begins once we've received your first premium. A six-month waiting period applies to claims from natural causes, whereas accidental cover takes effect immediately upon receipt of that initial payment.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between border-t border-gray-200 pt-6">
+            <button type="submit" name="back" value="1" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Back
+            </button>
+            <div class="flex space-x-3">
+              <button type="button" data-url="{% url 'members:incomplete_applications' %}" class="save-exit-btn inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save and Exit
+              </button>
+              <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save and Continue
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Helper function to update member allowances section
+function updateMemberAllowances(spousesAllowed, childrenAllowed, extendedAllowed) {
+  console.log('Updating member allowances:', spousesAllowed, childrenAllowed, extendedAllowed);
+  
+  // Update the existing allowance display elements
+  const spousesElement = document.getElementById('spouses-allowed');
+  const childrenElement = document.getElementById('children-allowed');
+  const extendedElement = document.getElementById('extended-allowed');
+  
+  if (spousesElement) spousesElement.textContent = spousesAllowed;
+  if (childrenElement) childrenElement.textContent = childrenAllowed;
+  if (extendedElement) extendedElement.textContent = extendedAllowed;
+  
+  // Also set hidden form fields for these values
+  const spousesInput = document.createElement('input');
+  spousesInput.type = 'hidden';
+  spousesInput.name = 'spouses_allowed';
+  spousesInput.value = spousesAllowed;
+  
+  const childrenInput = document.createElement('input');
+  childrenInput.type = 'hidden';
+  childrenInput.name = 'children_allowed';
+  childrenInput.value = childrenAllowed;
+  
+  const extendedInput = document.createElement('input');
+  extendedInput.type = 'hidden';
+  extendedInput.name = 'extended_allowed';
+  extendedInput.value = extendedAllowed;
+  
+  // Add these to the form
+  const form = document.getElementById('mainForm');
+  if (form) {
+    // Remove any existing hidden inputs with these names
+    form.querySelectorAll('input[name="spouses_allowed"], input[name="children_allowed"], input[name="extended_allowed"]').forEach(el => el.remove());
+    
+    // Add the new inputs
+    form.appendChild(spousesInput);
+    form.appendChild(childrenInput);
+    form.appendChild(extendedInput);
+  }
+}
+
+// Function to update premium and cover amount displays
+function updatePremiumAndCoverDisplays(premiumAmount, coverAmount, policyType) {
+  console.log('Updating premium and cover displays:', premiumAmount, coverAmount, policyType);
+  
+  // Format currency values
+  const formattedPremium = 'R' + parseFloat(premiumAmount).toFixed(2);
+  const formattedCover = 'R' + parseFloat(coverAmount).toFixed(2);
+  
+  // Set the premium amount in the hidden form field
+  const premiumInput = document.getElementById('id_premium_amount');
+  if (premiumInput) {
+    premiumInput.value = parseFloat(premiumAmount).toFixed(2);
+  }
+  
+  // Set the cover amount in the hidden form field
+  const coverInput = document.getElementById('id_cover_amount');
+  if (coverInput) {
+    coverInput.value = parseFloat(coverAmount).toFixed(2);
+  }
+  
+  // Show the premium amount group
+  const premiumGroup = document.getElementById('premium-amount-group');
+  if (premiumGroup) {
+    premiumGroup.style.display = 'block';
+  }
+  
+  // Show the cover amount group if policy type is cash
+  const coverGroup = document.getElementById('cover-amount-group');
+  if (coverGroup) {
+    if (policyType === 'cash') {
+      coverGroup.style.display = 'block';
+    } else {
+      coverGroup.style.display = 'none';
+    }
+  }
+}
+
+// Function to update tier information
+function updateTierInformation(tiers) {
+  console.log('Updating tier information:', tiers);
+  
+  // Get the tier table and body
+  const tierTable = document.getElementById('member-tiers-table');
+  const tierBody = document.getElementById('member-tiers-body');
+  
+  if (!tierTable || !tierBody) return;
+  
+  // Clear existing content
+  tierBody.innerHTML = '';
+  
+  // Show the table if we have tiers
+  if (tiers && tiers.length > 0) {
+    tierTable.style.display = 'table';
+    
+    // Add rows for each tier
+    tiers.forEach(tier => {
+      const ageFrom = tier.age_from || 0;
+      const ageTo = tier.age_to || 99;
+      const premium = parseFloat(tier.premium || 0).toFixed(2);
+      const cover = parseFloat(tier.cover || 0).toFixed(2);
+      const memberType = tier.member_type || 'Main';
+      
+      const row = document.createElement('tr');
+      
+      // Member Type cell
+      const typeCell = document.createElement('td');
+      typeCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-500';
+      typeCell.textContent = memberType;
+      row.appendChild(typeCell);
+      
+      // Age Range cell
+      const ageCell = document.createElement('td');
+      ageCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-500';
+      ageCell.textContent = `${ageFrom} - ${ageTo} years`;
+      row.appendChild(ageCell);
+      
+      // Cover Amount cell
+      const coverCell = document.createElement('td');
+      coverCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-500';
+      coverCell.textContent = `R${cover}`;
+      row.appendChild(coverCell);
+      
+      // Premium cell
+      const premiumCell = document.createElement('td');
+      premiumCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-500';
+      premiumCell.textContent = `R${premium}`;
+      row.appendChild(premiumCell);
+      
+      // Add the row to the table body
+      tierBody.appendChild(row);
+    });
+  } else {
+    // Hide the table if no tiers
+    tierTable.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded');
+  
+  // Initialize the first available plan if none is selected
+  const initializePlanSelection = () => {
+    const selectedPlanId = document.getElementById('id_plan').value;
+    const planCards = document.querySelectorAll('.plan-card:not(.disabled)');
+    
+    if (planCards.length > 0) {
+      // If a plan is already selected, trigger its selection
+      if (selectedPlanId) {
+        const selectedCard = document.querySelector(`.plan-card[data-plan-id="${selectedPlanId}"]`);
+        if (selectedCard) {
+          selectPlan(selectedCard, selectedPlanId);
+          return;
+        }
+      }
+      
+      // Otherwise select the first available plan
+      const firstPlanCard = planCards[0];
+      const firstPlanId = firstPlanCard.getAttribute('data-plan-id');
+      selectPlan(firstPlanCard, firstPlanId);
+    } else {
+      console.log('No eligible plans available');
+    }
+  };
+  
+  // Call the initialization function
+  initializePlanSelection();
+  
+  // Handle Save and Exit button click
+  const saveExitBtn = document.querySelector('.save-exit-btn');
+  if (saveExitBtn) {
+    saveExitBtn.addEventListener('click', function() {
+      // Submit the form first to save changes
+      const form = document.getElementById('mainForm');
+      if (form) {
+        fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+        .then(() => {
+          // After saving, redirect to incomplete applications
+          window.location.href = this.getAttribute('data-url');
+        })
+        .catch(error => {
+          console.error('Error saving form:', error);
+          // Still redirect even if there's an error
+          window.location.href = this.getAttribute('data-url');
+        });
+      }
+    });
+  }
+  // Handle plan selection
+  function selectPlan(cardElement, planId) {
+    console.log('selectPlan called with planId:', planId);
+    
+    // Check if the card is disabled (not in member's scheme)
+    if (cardElement.classList.contains('disabled')) {
+      console.log('Plan not available in member scheme');
+      return;
+    }
+    
+    // Remove selected class from all cards
+    document.querySelectorAll('.plan-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+
+    // Add selected class to clicked card
+    cardElement.classList.add('selected');
+    
+    // Update the hidden input with the selected plan ID
+    document.getElementById('id_plan').value = planId;
+    
+    // Get the plan data from the data attributes
+    const premiumAmount = cardElement.getAttribute('data-premium-amount') || '0';
+    const coverAmount = cardElement.getAttribute('data-cover-amount') || '0';
+    const spousesAllowed = parseInt(cardElement.getAttribute('data-spouses-allowed') || '0');
+    const childrenAllowed = parseInt(cardElement.getAttribute('data-children-allowed') || '0');
+    const extendedAllowed = parseInt(cardElement.getAttribute('data-extended-allowed') || '0');
+    const policyType = cardElement.getAttribute('data-policy-type') || 'cash';
+    
+    // Try to parse plan tiers data
+    let planTiers = [];
+    try {
+      const tiersData = cardElement.getAttribute('data-plan-tiers');
+      if (tiersData && tiersData !== '[]') {
+        planTiers = JSON.parse(tiersData);
+        console.log('Parsed plan tiers:', planTiers);
+      }
+    } catch (e) {
+      console.error('Error parsing plan tiers:', e);
+      console.error('Raw tiers data:', cardElement.getAttribute('data-plan-tiers'));
+    }
+    
+    // Update member allowances section
+    updateMemberAllowances(spousesAllowed, childrenAllowed, extendedAllowed);
+    
+    // Update premium and cover amount displays
+    updatePremiumAndCoverDisplays(premiumAmount, coverAmount, policyType);
+    
+    // Update tier information if available
+    if (planTiers.length > 0) {
+      updateTierInformation(planTiers);
+    }
+    
+    // Show the amount groups
+    const premiumGroup = document.getElementById('premium-amount-group');
+    const coverGroup = document.getElementById('cover-amount-group');
+    
+    if (premiumGroup) {
+      premiumGroup.style.display = 'block';
+      premiumGroup.style.opacity = '1';
+    }
+    
+    if (coverGroup) {
+      coverGroup.style.display = 'block';
+      coverGroup.style.opacity = '1';
+    }
+    
+    // Update the input values
+    if (premiumInput) {
+      premiumInput.value = premiumAmount;
+    }
+    
+    if (coverInput) {
+      coverInput.value = coverAmount;
+    }
+    
+    // Update member allowances
+    document.getElementById('spouses-allowed').textContent = spousesAllowed;
+    document.getElementById('children-allowed').textContent = childrenAllowed;
+    document.getElementById('extended-allowed').textContent = extendedAllowed;
+    
+    // Update member tiers table
+    const tiersTable = document.getElementById('member-tiers-table');
+    const tiersBody = document.getElementById('member-tiers-body');
+    const noTiersMessage = document.getElementById('no-tiers-message');
+    
+    // Clear existing rows
+    tiersBody.innerHTML = '';
+    
+    // Add rows for each tier
+    if (memberTiers && memberTiers.length > 0) {
+      tiersTable.style.display = 'table';
+      noTiersMessage.style.display = 'none';
+      
+      memberTiers.forEach(tier => {
+        const row = document.createElement('tr');
+        
+        // User Type cell
+        const typeCell = document.createElement('td');
+        typeCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-900';
+        typeCell.textContent = tier.user_type || 'Unknown';
+        row.appendChild(typeCell);
+        
+        // Age Range cell
+        const ageCell = document.createElement('td');
+        ageCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-900';
+        ageCell.textContent = `${tier.age_from} - ${tier.age_to}`;
+        row.appendChild(ageCell);
+        
+        // Cover cell
+        const coverCell = document.createElement('td');
+        coverCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-900';
+        coverCell.textContent = `R ${parseFloat(tier.cover).toFixed(2)}`;
+        row.appendChild(coverCell);
+        
+        // Premium cell
+        const premiumCell = document.createElement('td');
+        premiumCell.className = 'px-4 py-3 whitespace-nowrap text-sm text-gray-900';
+        premiumCell.textContent = `R ${parseFloat(tier.premium).toFixed(2)}`;
+        row.appendChild(premiumCell);
+        
+        tiersBody.appendChild(row);
+      });
+    } else {
+      tiersTable.style.display = 'none';
+      noTiersMessage.style.display = 'block';
+    }
+    
+    // Scroll to the policy details section
+    const policyDetailsSection = document.querySelector('.policy-details-section');
+    if (policyDetailsSection) {
+      setTimeout(() => {
+        policyDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }
+  
+  // Initialize the form with the first plan selected if available
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    
+    // Select the first plan by default
+    const firstPlanCard = document.querySelector('.plan-card');
+    if (firstPlanCard) {
+      const planId = firstPlanCard.getAttribute('data-plan-id');
+      if (planId) {
+        console.log('Selecting first plan:', planId);
+        // Use a small timeout to ensure the DOM is fully ready
+        setTimeout(() => {
+          selectPlan(firstPlanCard, planId);
+        }, 100);
+      }
+    }
+  });
+  
+  // Initialize date picker
+  if (typeof flatpickr !== 'undefined') {
+    flatpickr("#id_start_date", {
+      minDate: "today",
+      dateFormat: "Y-m-d",
+      disable: [
+        function(date) {
+          // Disable weekends
+          return (date.getDay() === 0 || date.getDay() === 6);
+        }
+      ],
+    });
+  }
+  
+  // Form validation - expose to window object for form onsubmit
+  window.validateForm = function(event) {
+    // Check if a plan is selected
+    const selectedPlanId = document.getElementById('id_plan').value;
+    if (!selectedPlanId) {
+      event.preventDefault();
+      alert('Please select a plan before continuing.');
+      return false;
+    }
+    
+    // Check if the selected plan is in the member's scheme
+    const selectedCard = document.querySelector(`.plan-card[data-plan-id="${selectedPlanId}"]`);
+    if (selectedCard && selectedCard.classList.contains('disabled')) {
+      event.preventDefault();
+      alert('The selected plan is not available in your scheme. Please select another plan.');
+      return false;
+    }
+    
+    return true;
+  };
+  
+  // Add data attributes to plan cards for easier access
+  document.querySelectorAll('.plan-card').forEach(card => {
+    const planId = card.getAttribute('data-plan-id');
+    // Get the plan data from the data attributes
+    const coverAmount = card.querySelector('[data-cover-amount]')?.getAttribute('data-cover-amount') || '0';
+    const premiumAmount = card.querySelector('[data-premium-amount]')?.getAttribute('data-premium-amount') || '0';
+    
+    card.setAttribute('data-plan-data', JSON.stringify({
+      cover_amount: coverAmount,
+      premium_amount: premiumAmount
+    }));
+  });
+});
+</script>
+{% endblock %}
+

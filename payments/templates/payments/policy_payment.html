@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load user_tags %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <!-- Breadcrumb -->
+  <nav class="flex mb-6 text-sm text-gray-600" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+      <li class="inline-flex items-center"><a href="/" class="hover:underline">Home</a></li>
+      <li class="inline-flex items-center"><span class="mx-2">/</span><a href="/payments/" class="hover:underline">Payments</a></li>
+      <li class="inline-flex items-center"><span class="mx-2">/</span>Policy Payment</li>
+    </ol>
+  </nav>
+  <h1 class="text-2xl font-bold mb-6">💳 Policy Payment</h1>
+
+  <!-- Search Form -->
+  <div class="max-w-xl mx-auto bg-white rounded-lg shadow p-6 mb-8">
+    <form method="get" class="space-y-4">
+      <label for="q" class="block text-sm font-medium text-gray-700">Search for Member</label>
+      <input type="text" name="q" id="q" value="{{ query }}" class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Member Name, ID, or Membership Number">
+      <p class="text-xs text-gray-500">Search by Member Name, ID, or Membership Number</p>
+      {% if error_message %}<p class="text-red-600 text-sm">{{ error_message }}</p>{% endif %}
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+    </form>
+  </div>
+
+  {% if member %}
+    <!-- Member Summary -->
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-2">Member Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><span class="font-medium">First Name:</span> {{ member.first_name }}</div>
+        <div><span class="font-medium">Last Name:</span> {{ member.last_name }}</div>
+        <div><span class="font-medium">ID Number:</span> {{ member.id_number }}</div>
+        <div><span class="font-medium">Policy Number:</span> {{ policy.unique_policy_number }}</div>
+      </div>
+    </div>
+
+    <!-- AI Payment Summary (role-aware) -->
+    {% if user|has_group:"Internal Admin" or user|has_group:"Branch Owner" or user|has_group:"Scheme Manager" %}
+    <div class="max-w-2xl mx-auto bg-indigo-50 border-l-4 border-indigo-400 p-4 mb-8">
+      <div class="flex items-center mb-2">
+        <span class="mr-2">🧠</span>
+        <span class="font-semibold text-indigo-800">Last Payment Summary</span>
+      </div>
+      <div class="text-indigo-900 text-sm">
+        <!-- AI summary placeholder -->
+        {% if ai_summary %}
+          {{ ai_summary }}
+        {% else %}
+          This member last paid R{{ last_payment.amount }} via {{ last_payment.payment_method }} on {{ last_payment.date|date:"d M Y" }}. Their average payment is R{{ avg_payment }}/month over the past 6 months.
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Payment History -->
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-2">Payment History</h2>
+      {% if payment_history %}
+        <ul class="divide-y divide-gray-100">
+          {% for payment in payment_history %}
+            <li class="py-2 flex justify-between">
+              <span>Amount: <span class="font-medium">R{{ payment.amount }}</span></span>
+              <span>Date: {{ payment.date|date:"d M Y" }}</span>
+              <span>Method: {{ payment.payment_method }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-gray-500">No payment history found for this member.</p>
+      {% endif %}
+    </div>
+
+    <!-- Payment Capture Form -->
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-2">Make Payment</h2>
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Example: highlight amount and method -->
+          <div>
+            <label for="id_payment-amount" class="block text-sm font-medium text-gray-700">Amount</label>
+            <input type="number" name="payment-amount" id="id_payment-amount" value="{{ plan_premium }}" class="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {% if payment_form.amount.errors %}border-red-500{% endif %}" {% if not allow_override %}readonly{% endif %}>
+            {% if payment_form.amount.errors %}<p class="text-red-600 text-xs">{{ payment_form.amount.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_payment-method" class="block text-sm font-medium text-gray-700">Payment Method</label>
+            {{ payment_form.payment_method }}
+            {% if payment_form.payment_method.errors %}<p class="text-red-600 text-xs">{{ payment_form.payment_method.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="md:col-span-2">
+            <label for="id_payment-date" class="block text-sm font-medium text-gray-700">Date</label>
+            {{ payment_form.date }}
+            {% if payment_form.date.errors %}<p class="text-red-600 text-xs">{{ payment_form.date.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <button type="submit" name="submit_payment" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Make Payment</button>
+      </form>
+    </div>
+
+    {% if payment_history %}
+    <!-- Receipt Form -->
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-2">Create Payment Receipt</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ receipt_form.as_p }}
+        <button type="submit" name="submit_receipt" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Create Receipt</button>
+      </form>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% if member %}
+    <h2>Member Details</h2>
+    <p>First Name: {{ member.first_name }}</p>
+    <p>Last Name: {{ member.last_name }}</p>
+    <p>ID Number: {{ member.id_number }}</p>
+    <p>Policy Number: {{ policy.unique_policy_number }}</p>
+
+    <hr>
+
+    <h2>Payment History</h2>
+    {% if payment_history %}
+        <ul>
+            {% for payment in payment_history %}
+                <li>Amount: {{ payment.amount }}, Date: {{ payment.date }}, Method: {{ payment.payment_method }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No payment history found for this member.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>Make Payment</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ payment_form.as_p }}
+        <button type="submit">Make Payment</button>
+    </form>
+
+    {% if payment_history %}
+    <hr>
+
+    <h2>Create Payment Receipt</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ receipt_form.as_p }}
+        <button type="submit">Create Receipt</button>
+    </form>
+    {% endif %}
+{% elif error_message %}
+    <p>{{ error_message }}</p>
+{% endif %}

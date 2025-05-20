@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Lookup Your Policy{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-16 bg-white p-6 rounded-lg shadow">
+
+  <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">
+    Lookup Your Policy
+  </h2>
+  <p class="text-gray-600 mb-6 text-center">
+    Enter your South African ID and the OTP we sent you to view your policy details.
+  </p>
+
+  <form method="get" action="{% url 'members:diy_lookup' %}" class="space-y-4">
+    {{ form.non_field_errors }}
+
+    <div>
+      <label for="{{ form.id_number.id_for_label }}" class="block font-medium mb-1">
+        {{ form.id_number.label }}
+      </label>
+      {{ form.id_number }}
+      {% for err in form.id_number.errors %}
+        <p class="text-red-500 text-sm">{{ err }}</p>
+      {% endfor %}
+    </div>
+
+    <div>
+      <label for="{{ form.otp.id_for_label }}" class="block font-medium mb-1">
+        {{ form.otp.label }}
+      </label>
+      {{ form.otp }}
+      {% for err in form.otp.errors %}
+        <p class="text-red-500 text-sm">{{ err }}</p>
+      {% endfor %}
+    </div>
+
+    <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+      Lookup
+    </button>
+  </form>
+
+  {% if request.session.is_diy_signup %}
+    <div class="mt-6 text-center">
+      <a href="{% url 'members:diy_signup_start' request.session.diy_token %}"
+         class="text-blue-600 hover:underline">
+        ← Back to Your Application
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

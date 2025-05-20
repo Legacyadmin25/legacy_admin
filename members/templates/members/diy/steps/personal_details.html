@@ -1,0 +1,204 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<form method="post" action="{% url 'members_diy:diy_personal_details' %}" x-data="formHandler">
+  {% csrf_token %}
+  
+  <!-- Hidden fields for form state -->
+  <input type="hidden" name="form_type" value="personal_details">
+  
+  <div class="space-y-6">
+    <!-- Title and Names -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-4">
+      <!-- Title -->
+      <div class="sm:col-span-1">
+        <label for="title" class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
+        <select id="title" name="title" x-model="$store.formData.title" required
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+          <option value="">Select title</option>
+          <option value="mr">Mr</option>
+          <option value="mrs">Mrs</option>
+          <option value="ms">Ms</option>
+          <option value="miss">Miss</option>
+          <option value="dr">Dr</option>
+          <option value="prof">Prof</option>
+          <option value="adv">Adv</option>
+        </select>
+      </div>
+      
+      <!-- First Name -->
+      <div class="sm:col-span-1">
+        <label for="first_name" class="block text-sm font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
+        <input type="text" id="first_name" name="first_name" x-model="$store.formData.first_name" required
+               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+      </div>
+      
+      <!-- Middle Name -->
+      <div class="sm:col-span-1">
+        <label for="middle_name" class="block text-sm font-medium text-gray-700">Middle Name</label>
+        <input type="text" id="middle_name" name="middle_name" x-model="$store.formData.middle_name"
+               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+      </div>
+      
+      <!-- Last Name -->
+      <div class="sm:col-span-1">
+        <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
+        <input type="text" id="last_name" name="last_name" x-model="$store.formData.last_name" required
+               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+      </div>
+    </div>
+    
+    <!-- ID Number and Date of Birth -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <!-- ID Number / Passport -->
+      <div class="sm:col-span-2">
+        <div class="flex justify-between items-center">
+          <label for="id_number" class="block text-sm font-medium text-gray-700">
+            <span x-text="$store.formData.is_south_african ? 'South African ID Number' : 'Passport Number'"></span>
+            <span class="text-red-500">*</span>
+          </label>
+          <div class="flex items-center">
+            <input type="checkbox" id="is_south_african" x-model="$store.formData.is_south_african" 
+                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <label for="is_south_african" class="ml-2 block text-sm text-gray-700">
+              <span x-text="$store.formData.is_south_african ? 'SA ID' : 'Passport'"></span>
+            </label>
+          </div>
+        </div>
+        <div class="mt-1 relative rounded-md shadow-sm">
+          <input type="text" id="id_number" name="id_number" x-model="$store.formData.id_number"
+                 x-bind:placeholder="$store.formData.is_south_african ? 'e.g. 9001011234088' : 'Enter passport number'"
+                 x-bind:pattern="$store.formData.is_south_african ? '[0-9]{13}' : '.{6,20}'"
+                 x-bind:title="$store.formData.is_south_african ? 'Please enter a valid 13-digit SA ID number' : 'Please enter a valid passport number'"
+                 required
+                 class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md">
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <i x-bind:class="{'fas fa-id-card': $store.formData.is_south_african, 'fas fa-passport': !$store.formData.is_south_african}" 
+               class="h-5 w-5 text-gray-400"></i>
+          </div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500" x-text="$store.formData.is_south_african ? '13-digit ID number (e.g. 9001011234088)' : 'Enter your passport number'"></p>
+      </div>
+      
+      <!-- Date of Birth -->
+      <div class="sm:col-span-1">
+        <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth <span class="text-red-500">*</span></label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+          <input type="date" id="date_of_birth" name="date_of_birth" x-model="$store.formData.date_of_birth" required
+                 class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-10 py-2 sm:text-sm border-gray-300 rounded-md">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Gender and Marital Status -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <!-- Gender -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gender <span class="text-red-500">*</span></label>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <input type="radio" id="gender_male" name="gender" value="male" x-model="$store.formData.gender" required
+                   class="form-radio h-4 w-4 text-blue-600">
+            <label for="gender_male" class="ml-2 block text-sm text-gray-700">Male</label>
+          </div>
+          <div>
+            <input type="radio" id="gender_female" name="gender" value="female" x-model="$store.formData.gender"
+                   class="form-radio h-4 w-4 text-blue-600">
+            <label for="gender_female" class="ml-2 block text-sm text-gray-700">Female</label>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Marital Status -->
+      <div>
+        <label for="marital_status" class="block text-sm font-medium text-gray-700 mb-2">Marital Status <span class="text-red-500">*</span></label>
+        <select id="marital_status" name="marital_status" x-model="$store.formData.marital_status" required
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+          <option value="">Select marital status</option>
+          <option value="single">Single</option>
+          <option value="married">Married</option>
+          <option value="divorced">Divorced</option>
+          <option value="widowed">Widowed</option>
+          <option value="life_partner">Life Partner</option>
+          <option value="separated">Separated</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form actions are handled by the parent template -->
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  // Auto-format ID number as user types
+  Alpine.effect(() => {
+    const idNumber = Alpine.store('formData').id_number;
+    const isSouthAfrican = Alpine.store('formData').is_south_african;
+    
+    if (isSouthAfrican && idNumber && idNumber.length <= 13) {
+      // Remove any non-numeric characters
+      const cleaned = idNumber.replace(/\D/g, '');
+      
+      // Format as ID number (e.g., 900101 1234 088)
+      let formatted = '';
+      if (cleaned.length > 0) {
+        formatted = cleaned.substring(0, Math.min(cleaned.length, 6));
+      }
+      if (cleaned.length > 6) {
+        formatted += ' ' + cleaned.substring(6, Math.min(cleaned.length, 10));
+      }
+      if (cleaned.length > 10) {
+        formatted += ' ' + cleaned.substring(10, Math.min(cleaned.length, 13));
+      }
+      
+      // Only update if the formatted value is different to prevent cursor jumping
+      if (formatted !== idNumber) {
+        Alpine.store('formData').id_number = formatted;
+      }
+      
+      // If we have a full ID number, try to extract date of birth and gender
+      if (cleaned.length === 13) {
+        // Extract date of birth (YYMMDD format)
+        const year = parseInt(cleaned.substring(0, 2));
+        const month = parseInt(cleaned.substring(2, 4)) - 1; // Months are 0-indexed in JS
+        const day = parseInt(cleaned.substring(4, 6));
+        
+        // Determine century (assume 1900s for now, could be improved)
+        const fullYear = 1900 + year + (year < 20 ? 100 : 0);
+        
+        // Format as YYYY-MM-DD for the date input
+        const dateStr = `${fullYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Only update if the date is valid
+        if (!isNaN(new Date(dateStr).getTime())) {
+          Alpine.store('formData').date_of_birth = dateStr;
+        }
+        
+        // Extract gender (7th digit, 0-4 = female, 5-9 = male)
+        const genderDigit = parseInt(cleaned.charAt(6));
+        Alpine.store('formData').gender = genderDigit < 5 ? 'female' : 'male';
+      }
+    }
+  });
+  
+  // Auto-calculate age from date of birth
+  Alpine.effect(() => {
+    const dob = Alpine.store('formData').date_of_birth;
+    if (dob) {
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      // You could store the age in the form data if needed
+      // Alpine.store('formData').age = age;
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,340 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Apply for funeral cover online with Linkserv. Quick, easy, and affordable coverage for you and your family.">
+  
+  <title>{% block title %}DIY Policy Application - Linkserv{% endblock %}</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    // Tailwind config
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            secondary: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            },
+            success: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            warning: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              500: '#f59e0b',
+              700: '#b45309',
+              900: '#78350f',
+            },
+            danger: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              500: '#ef4444',
+              700: '#b91c1c',
+              900: '#7f1d1d',
+            },
+          },
+          boxShadow: {
+            'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+            'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            'input': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            'input-focus': '0 0 0 3px rgba(59, 130, 246, 0.5)',
+          },
+          borderRadius: {
+            'xl': '0.75rem',
+            '2xl': '1rem',
+          },
+          spacing: {
+            '72': '18rem',
+            '84': '21rem',
+            '96': '24rem',
+            '128': '32rem',
+          },
+        },
+      },
+      variants: {
+        extend: {
+          opacity: ['disabled'],
+          backgroundColor: ['active', 'disabled'],
+          textColor: ['active'],
+          borderColor: ['focus-visible'],
+          ringWidth: ['focus-visible'],
+          ringColor: ['focus-visible'],
+        },
+      },
+    }
+    
+    // Form store for Alpine.js
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('formData', {
+        // Personal Details
+        title: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        id_number: '',
+        date_of_birth: '',
+        gender: '',
+        marital_status: '',
+        is_south_african: true,
+        passport_number: '',
+        
+        // Contact Information
+        email: '',
+        phone_number: '',
+        alternate_phone: '',
+        address_line_1: '',
+        address_line_2: '',
+        city: '',
+        province: '',
+        postal_code: '',
+        country: 'South Africa',
+        communication_preference: 'email',
+        
+        // Beneficiaries
+        beneficiaries: [],
+        
+        // Policy Details
+        policy_type: 'funeral',
+        cover_amount: '10000',
+        custom_cover_amount: '',
+        has_extended_family: false,
+        extended_family_members: 0,
+        premium_frequency: 'monthly',
+        monthly_premium: 100.00,
+        
+        // Payment Options
+        payment_method: 'debit_order',
+        bank_name: '',
+        account_number: '',
+        account_type: 'savings',
+        branch_code: '',
+        account_holder_name: '',
+        same_as_member: true,
+        debit_day: '1',
+        terms_accepted: false,
+        marketing_consent: false,
+        
+        // Consent
+        declaration: false,
+        terms_conditions: false,
+        consent_to_process: false,
+        
+        // Methods
+        init() {
+          // Load from localStorage if available
+          const savedData = localStorage.getItem('diyApplicationData');
+          if (savedData) {
+            try {
+              const data = JSON.parse(savedData);
+              Object.assign(this, data);
+            } catch (e) {
+              console.error('Failed to load saved data', e);
+            }
+          }
+          
+          // Auto-save on changes
+          this.$watch('$store.formData', (value) => {
+            localStorage.setItem('diyApplicationData', JSON.stringify(value));
+          }, { deep: true });
+        },
+      });
+    });
+  </script>
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="{% url 'home' %}" class="flex-shrink-0 flex items-center">
+            <img class="h-8 w-auto" src="{% static 'img/logo.svg' %}" alt="Linkserv Logo">
+            <span class="ml-2 text-xl font-bold text-gray-900">Linkserv</span>
+          </a>
+        </div>
+        
+        <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+          <a href="tel:0861123456" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+            <i class="fas fa-phone-alt mr-1"></i> 0861 123 456
+          </a>
+          <a href="mailto:support@linkserv.co.za" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+            <i class="fas fa-envelope mr-1"></i> support@linkserv.co.za
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white">
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Company</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">About Us</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Careers</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
+          </ul>
+        </div>
+        
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Products</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Funeral Cover</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Life Insurance</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Savings Plans</a></li>
+          </ul>
+        </div>
+        
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Support</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">FAQs</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Claims</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Contact Support</a></li>
+          </ul>
+        </div>
+        
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Legal</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Terms of Service</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Complaints</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="mt-8 pt-8 border-t border-gray-700">
+        <p class="text-base text-gray-400 text-center">
+          &copy; {% now "Y" %} Linkserv. All rights reserved. FSP No. 12345
+        </p>
+      </div>
+    </div>
+  </footer>
+  
+  <!-- Toast Notifications -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden">
+    <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+      <span id="toast-message">Operation completed successfully</span>
+      <button onclick="document.getElementById('toast').classList.add('hidden')" class="ml-4">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+      <p class="mt-4 text-gray-700">Processing your request...</p>
+    </div>
+  </div>
+  
+  <script>
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      
+      // Set message and style based on type
+      toastMessage.textContent = message;
+      toast.className = `fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg flex items-center ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
+      
+      // Show toast
+      toast.classList.remove('hidden');
+      
+      // Hide after 5 seconds
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 5000);
+    }
+    
+    // Show loading overlay
+    function showLoading() {
+      document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+    
+    // Hide loading overlay
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+    
+    // Handle form submissions
+    document.addEventListener('DOMContentLoaded', function() {
+      // Intercept form submissions
+      const forms = document.querySelectorAll('form');
+      forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+          // Only show loading for forms that don't have data-ajax="false"
+          if (form.getAttribute('data-ajax') !== 'false') {
+            showLoading();
+          }
+        });
+      });
+      
+      // Handle back/forward browser buttons
+      window.addEventListener('popstate', function() {
+        window.location.reload();
+      });
+    });
+  </script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col h-full space-y-6">
+
+  <!-- Header and Actions -->
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <h1 class="text-3xl font-bold text-blue-600">Dashboard</h1>
+      <div class="flex gap-2">
+        <!-- Corrected URLs with the dashboard: namespace -->
+        <a href="{% url 'dashboard:dashboard_export_pdf' %}"
+           class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm">📄 Export PDF</a>
+        <a href="{% url 'dashboard:dashboard_export_excel' %}"
+           class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-sm">📊 Export Excel</a>
+        <a href="{% url 'members:step1_personal' %}"
+           class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">➕ Get Started</a>
+      </div>
+    </div>
+
+    {% if inactive_schemes %}
+      <div class="bg-yellow-100 text-yellow-800 p-4 rounded shadow">
+        ⚠️ <strong>{{ inactive_schemes|length }}</strong> scheme(s) have no new sign-ups this month.
+      </div>
+    {% endif %}
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 rounded-lg shadow-md">
+        <h3 class="text-sm font-semibold uppercase tracking-wider">Total Members</h3>
+        <p class="text-2xl font-bold mt-2">{{ total_members }}</p>
+      </div>
+      <div class="bg-gradient-to-r from-green-400 to-blue-500 text-white p-4 rounded-lg shadow-md">
+        <h3 class="text-sm font-semibold uppercase tracking-wider">Total Schemes</h3>
+        <p class="text-2xl font-bold mt-2">{{ total_schemes }}</p>
+      </div>
+      <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-lg shadow-md">
+        <h3 class="text-sm font-semibold uppercase tracking-wider">New Sign-ups (This Month)</h3>
+        <p class="text-2xl font-bold mt-2">{{ monthly_signups }}</p>
+      </div>
+      <div class="bg-gradient-to-r from-red-400 to-pink-500 text-white p-4 rounded-lg shadow-md">
+        <h3 class="text-sm font-semibold uppercase tracking-wider">Active Policies</h3>
+        <p class="text-2xl font-bold mt-2">{{ total_policies }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="flex-1 flex gap-8 overflow-hidden">
+    <div class="bg-white p-4 shadow-md rounded-lg flex flex-col flex-1 overflow-hidden">
+      <h2 class="text-lg font-semibold mb-4 text-gray-800">Monthly Sign-ups</h2>
+      <div class="flex-1">
+        <canvas id="membersChart" class="w-full h-full"></canvas>
+      </div>
+    </div>
+    <div class="bg-white p-4 shadow-md rounded-lg flex flex-col flex-1 overflow-hidden">
+      <h2 class="text-lg font-semibold mb-4 text-gray-800">Plan Distribution</h2>
+      <div class="flex-1">
+        <canvas id="planChart" class="w-full h-full"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Signup Trend -->
+  <div class="bg-white p-4 shadow-md rounded-lg">
+    <h2 class="text-lg font-semibold mb-4 text-gray-800">Agent Signups (This Month)</h2>
+    <canvas id="agentSignupChart" class="w-full h-64"></canvas>
+  </div>
+
+  <!-- Policies by Branch -->
+  <div class="bg-white p-4 shadow-md rounded-lg">
+    <h2 class="text-lg font-semibold mb-4 text-gray-800">Policies by Branch</h2>
+    <canvas id="branchChart" class="w-full h-64"></canvas>
+  </div>
+
+  <!-- Policies by Scheme -->
+  <div class="bg-white p-4 shadow-md rounded-lg">
+    <h2 class="text-lg font-semibold mb-4 text-gray-800">Policies by Scheme</h2>
+    <canvas id="schemeChart" class="w-full h-96"></canvas>
+  </div>
+
+  <!-- Top Agents Leaderboard -->
+  <div class="bg-white p-4 shadow-md rounded-lg mt-6">
+    <h2 class="text-lg font-semibold mb-4 text-gray-800">Top 5 Agents This Period</h2>
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left font-semibold text-gray-600">Rank</th>
+          <th class="px-4 py-2 text-left font-semibold text-gray-600">Agent</th>
+          <th class="px-4 py-2 text-left font-semibold text-gray-600">Scheme</th>
+          <th class="px-4 py-2 text-right font-semibold text-gray-600">Policies</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in top_agents %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2">{{ forloop.counter }}</td>
+            <td class="px-4 py-2">{{ a.name }}</td>
+            <td class="px-4 py-2">{{ a.scheme }}</td>
+            <td class="px-4 py-2 text-right font-bold text-blue-600">{{ a.total }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-sm text-gray-500 py-4">No agent data available.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{ monthly_labels|json_script:"monthly_labels" }}
+{{ monthly_data|json_script:"monthly_data" }}
+{{ plan_labels|json_script:"plan_labels" }}
+{{ plan_data|json_script:"plan_data" }}
+{{ scheme_labels|json_script:"scheme_labels" }}
+{{ scheme_data|json_script:"scheme_data" }}
+{{ agent_signup_labels|json_script:"agent_signup_labels" }}
+{{ agent_signup_counts|json_script:"agent_signup_counts" }}
+{{ branch_labels|json_script:"branch_labels" }}
+{{ branch_data|json_script:"branch_data" }}
+
+<script>
+  // Monthly Signups
+  const membersCtx = document.getElementById('membersChart').getContext('2d');
+  new Chart(membersCtx, {
+    type: 'line',
+    data: {
+      labels: JSON.parse(document.getElementById('monthly_labels').textContent),
+      datasets: [{
+        label: 'Sign-ups',
+        data: JSON.parse(document.getElementById('monthly_data').textContent),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+        borderWidth: 2,
+        pointBackgroundColor: '#3b82f6',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  // Plan Distribution
+  const planCtx = document.getElementById('planChart').getContext('2d');
+  new Chart(planCtx, {
+    type: 'pie',
+    data: {
+      labels: JSON.parse(document.getElementById('plan_labels').textContent),
+      datasets: [{
+        data: JSON.parse(document.getElementById('plan_data').textContent),
+        borderWidth: 0
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+  });
+
+  // Scheme Chart
+  const schemeCtx = document.getElementById('schemeChart').getContext('2d');
+  new Chart(schemeCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(document.getElementById('scheme_labels').textContent),
+      datasets: [{
+        label: 'Policies',
+        data: JSON.parse(document.getElementById('scheme_data').textContent),
+        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        borderRadius: 5
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // Agent Signup Chart
+  const agentCtx = document.getElementById('agentSignupChart').getContext('2d');
+  new Chart(agentCtx, {
+    type: 'line',
+    data: {
+      labels: JSON.parse(document.getElementById('agent_signup_labels').textContent),
+      datasets: [{
+        label: 'Signups',
+        data: JSON.parse(document.getElementById('agent_signup_counts').textContent),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  // Branch Chart
+  const branchCtx = document.getElementById('branchChart').getContext('2d');
+  new Chart(branchCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(document.getElementById('branch_labels').textContent),
+      datasets: [{
+        label: 'Policies',
+        data: JSON.parse(document.getElementById('branch_data').textContent),
+        backgroundColor: '#3b82f6'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+</script>
+{% endblock %}

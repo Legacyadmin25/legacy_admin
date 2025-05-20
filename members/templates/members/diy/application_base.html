@@ -1,0 +1,387 @@
+{% extends 'members/diy/base.html' %}
+
+{% block extra_head %}
+<style>
+  /* Custom styles for the application form */
+  .step-indicator {
+    counter-reset: step;
+  }
+  
+  .step {
+    position: relative;
+    flex: 1;
+    text-align: center;
+    padding: 0 1rem;
+  }
+  
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 1rem;
+    left: 60%;
+    right: 0;
+    height: 2px;
+    background-color: #e5e7eb;
+    z-index: 1;
+  }
+  
+  .step.completed:not(:last-child)::after {
+    background-color: #10b981;
+  }
+  
+  .step.active:not(:last-child)::after {
+    background: linear-gradient(to right, #10b981 50%, #e5e7eb 50%);
+  }
+  
+  .step-number {
+    width: 2rem;
+    height: 2rem;
+    line-height: 2rem;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    color: #6b7280;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .step.active .step-number {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  .step.completed .step-number {
+    background-color: #10b981;
+    color: white;
+  }
+  
+  .step-label {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+  
+  .step.active .step-label,
+  .step.completed .step-label {
+    color: #111827;
+    font-weight: 600;
+  }
+  
+  @media (max-width: 640px) {
+    .step:not(:last-child)::after {
+      left: 70%;
+    }
+    
+    .step-label {
+      display: none;
+    }
+  }
+  
+  /* Form styles */
+  .form-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
+  
+  .form-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1.5rem;
+  }
+  
+  .form-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+  
+  .form-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0.5rem 0 0;
+  }
+  
+  .form-body {
+    padding: 1.5rem;
+  }
+  
+  .form-footer {
+    background-color: #f9fafb;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* Responsive adjustments */
+  @media (min-width: 640px) {
+    .form-header,
+    .form-body,
+    .form-footer {
+      padding: 2rem;
+    }
+  }
+  
+  /* Custom form controls */
+  .form-radio {
+    display: none;
+  }
+  
+  .form-radio + label {
+    display: block;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .form-radio:checked + label {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+  
+  .form-radio:disabled + label {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Tooltip styles */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    margin-left: 0.25rem;
+  }
+  
+  .tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #1f2937;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    font-weight: normal;
+  }
+  
+  .tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+  <!-- Progress Steps -->
+  <div class="mb-8">
+    <div class="step-indicator flex justify-between mb-8">
+      <!-- Step 1: Personal Details -->
+      <div class="step {% if step >= 1 %}completed{% endif %} {% if step == 1 %}active{% endif %}" 
+           x-data="{ step: 1 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_personal_details %}'">
+        <span class="step-number">1</span>
+        <span class="step-label">Personal Details</span>
+      </div>
+      
+      <!-- Step 2: Contact Information -->
+      <div class="step {% if step > 2 %}completed{% elif step == 2 %}active{% else %}{% endif %}"
+           x-data="{ step: 2 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_contact_information %}'">
+        <span class="step-number">2</span>
+        <span class="step-label">Contact Info</span>
+      </div>
+      
+      <!-- Step 3: Beneficiaries -->
+      <div class="step {% if step > 3 %}completed{% elif step == 3 %}active{% else %}{% endif %}"
+           x-data="{ step: 3 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_beneficiaries %}'">
+        <span class="step-number">3</span>
+        <span class="step-label">Beneficiaries</span>
+      </div>
+      
+      <!-- Step 4: Policy Details -->
+      <div class="step {% if step > 4 %}completed{% elif step == 4 %}active{% else %}{% endif %}"
+           x-data="{ step: 4 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_policy_details %}'">
+        <span class="step-number">4</span>
+        <span class="step-label">Policy Details</span>
+      </div>
+      
+      <!-- Step 5: Payment Options -->
+      <div class="step {% if step > 5 %}completed{% elif step == 5 %}active{% else %}{% endif %}"
+           x-data="{ step: 5 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_payment_options %}'">
+        <span class="step-number">5</span>
+        <span class="step-label">Payment</span>
+      </div>
+      
+      <!-- Step 6: Review -->
+      <div class="step {% if step > 6 %}completed{% elif step == 6 %}active{% else %}{% endif %}"
+           x-data="{ step: 6 }" 
+           @click="if (step < {{ step }}) window.location.href='{% url 'members_diy:diy_review %}'">
+        <span class="step-number">6</span>
+        <span class="step-label">Review</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form Content -->
+  <div class="form-card">
+    {% if step_title or step_subtitle %}
+    <div class="form-header">
+      <h2 class="form-title">{{ step_title }}</h2>
+      {% if step_subtitle %}
+      <p class="form-subtitle">{{ step_subtitle }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="form-body">
+      {% block form_content %}
+      <!-- Form content will be inserted here by child templates -->
+      {% endblock %}
+    </div>
+    
+    <div class="form-footer">
+      <div>
+        {% if step > 1 %}
+          {% if step == 2 %}
+            <a href="{% url 'members_diy:diy_personal_details %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          {% elif step == 3 %}
+            <a href="{% url 'members_diy:diy_contact_information %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          {% elif step == 4 %}
+            <a href="{% url 'members_diy:diy_beneficiaries %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          {% elif step == 5 %}
+            <a href="{% url 'members_diy:diy_policy_details %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          {% elif step == 6 %}
+            <a href="{% url 'members_diy:diy_payment_options %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        {% if step < 6 %}
+          <button type="submit" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Save & Continue <i class="fas fa-arrow-right ml-2"></i>
+          </button>
+        {% else %}
+          <button type="submit" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <i class="fas fa-check-circle mr-2"></i> Submit Application
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Help Section -->
+  <div class="mt-6 text-center text-sm text-gray-500">
+    <p>Need help? Call us at <a href="tel:0861123456" class="text-blue-600 hover:text-blue-800">0861 123 456</a> or <a href="mailto:support@linkserv.co.za" class="text-blue-600 hover:text-blue-800">email us</a></p>
+  </div>
+</div>
+
+<!-- Form submission handling -->
+<script>
+  document.addEventListener('alpine:init', () => {
+    // Handle form submission with validation
+    Alpine.data('formHandler', () => ({
+      form: null,
+      isLoading: false,
+      
+      init() {
+        this.form = this.$el;
+      },
+      
+      async submitForm() {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        
+        try {
+          // Validate form
+          if (!this.form.checkValidity()) {
+            this.form.reportValidity();
+            this.isLoading = false;
+            return;
+          }
+          
+          // Submit form
+          const formData = new FormData(this.form);
+          const response = await fetch(this.form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Redirect to next step or success page
+            if (data.redirect_url) {
+              window.location.href = data.redirect_url;
+            }
+          } else {
+            // Show error message
+            showToast(data.message || 'An error occurred. Please try again.', 'error');
+          }
+        } catch (error) {
+          console.error('Form submission error:', error);
+          showToast('An error occurred. Please try again.', 'error');
+        } finally {
+          this.isLoading = false;
+        }
+      }
+    }));
+  });
+</script>
+{% endblock %}

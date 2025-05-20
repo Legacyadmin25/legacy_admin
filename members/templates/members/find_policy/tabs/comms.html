@@ -1,0 +1,379 @@
+{% load widget_tweaks %}
+
+<div class="bg-white px-6 py-6">
+  <div class="md:grid md:grid-cols-3 md:gap-6">
+    <div class="md:col-span-1">
+      <h3 class="text-lg font-medium leading-6 text-gray-900">Communications</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Send messages and track communication history.
+      </p>
+    </div>
+    
+    <div class="mt-5 md:mt-0 md:col-span-2">
+      <div class="grid grid-cols-1 gap-6">
+        <!-- SMS Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 class="ml-3 text-lg leading-6 font-medium text-gray-900">Send SMS</h3>
+            </div>
+            
+            <form method="post" action="{% url 'members:send_sms' policy.id %}" class="mt-4 space-y-4">
+              {% csrf_token %}
+              <div>
+                <label for="sms-to" class="block text-sm font-medium text-gray-700">Recipient</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                  </div>
+                  <input type="text" name="to" id="sms-to" value="{{ policy.member.phone_number|default_if_none:'' }}" 
+                         class="focus:ring-green-500 focus:border-green-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" 
+                         placeholder="Phone number" />
+                </div>
+              </div>
+              
+              <div>
+                <label for="sms-message" class="block text-sm font-medium text-gray-700">Message</label>
+                <div class="mt-1">
+                  <textarea id="sms-message" name="message" rows="3" 
+                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+                            placeholder="Type your message here..."></textarea>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">
+                  Character count: <span id="sms-char-count">0</span>/160
+                </p>
+              </div>
+              
+              <div class="flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                  <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  Send SMS
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+  
+
+        <!-- Email Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 class="ml-3 text-lg leading-6 font-medium text-gray-900">Send Email</h3>
+            </div>
+            
+            <form method="post" action="{% url 'members:send_email' policy.id %}" enctype="multipart/form-data" class="mt-4 space-y-4">
+              {% csrf_token %}
+              <div>
+                <label for="email-to" class="block text-sm font-medium text-gray-700">To</label>
+                <div class="mt-1">
+                  <input type="email" name="to" id="email-to" value="{{ member.email }}" 
+                         class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" 
+                         required />
+                </div>
+              </div>
+              
+              <div>
+                <label for="email-subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <div class="mt-1">
+                  <input type="text" name="subject" id="email-subject" 
+                         class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" 
+                         required />
+                </div>
+              </div>
+              
+              <div>
+                <label for="email-body" class="block text-sm font-medium text-gray-700">Message</label>
+                <div class="mt-1">
+                  <textarea id="email-body" name="body" rows="4" 
+                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+                            required></textarea>
+                </div>
+              </div>
+              
+              <div>
+                <label for="file-upload" class="block text-sm font-medium text-gray-700">Attachment</label>
+                <div class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v20a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="flex text-sm text-gray-600">
+                      <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                        <span>Upload a file</span>
+                        <input id="file-upload" name="attachment" type="file" class="sr-only" />
+                      </label>
+                      <p class="pl-1">or drag and drop</p>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                      PDF, DOC, DOCX up to 10MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                  Send Email
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+  
+
+        <!-- WhatsApp Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.966-.273-.099-.471-.148-.67.15-.197.297-.767.963-.94 1.16-.174.196-.347.221-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.795-1.48-1.78-1.653-2.08-.174-.298-.018-.46.13-.606.136-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.345m-5.421 7.403h-.004a9 9 0 01-4.5-1.199l-.006-.003-.018-.01a9 9 0 01-3.6-3.6l-.009-.018a9 9 0 01-1.2-4.5 9 9 0 015.4-8.1 9 9 0 0110.8 1.5 9 9 0 011.5 10.8 9 9 0 01-8.1 5.4h-.067z" />
+                </svg>
+              </div>
+              <h3 class="ml-3 text-lg leading-6 font-medium text-gray-900">Send WhatsApp</h3>
+            </div>
+            
+            <form method="post" action="{% url 'members:send_whatsapp' policy.id %}" class="mt-4 space-y-4">
+              {% csrf_token %}
+              <div>
+                <label for="whatsapp-to" class="block text-sm font-medium text-gray-700">Recipient</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                  </div>
+                  <input type="text" name="to" id="whatsapp-to" value="{{ policy.member.phone_number }}" 
+                         class="focus:ring-green-500 focus:border-green-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" 
+                         placeholder="Phone number" />
+                </div>
+              </div>
+              
+              <div>
+                <label for="whatsapp-message" class="block text-sm font-medium text-gray-700">Message</label>
+                <div class="mt-1">
+                  <textarea id="whatsapp-message" name="message" rows="3" 
+                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+                            placeholder="Type your message here..."></textarea>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">
+                  Character count: <span id="whatsapp-char-count">0</span>
+                </p>
+              </div>
+              
+              <div class="flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                  <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  Send WhatsApp
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Sent History Card -->
+        <div class="mt-8">
+          <div class="flex items-center">
+            <h3 class="text-lg font-medium text-gray-900">Sent History</h3>
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              {{ comms_logs|length }}
+            </span>
+          </div>
+          
+          <div class="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="flex flex-col">
+              <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                  <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type
+                          </th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Recipient
+                          </th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date & Time
+                          </th>
+                          <th scope="col" class="relative px-6 py-3">
+                            <span class="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        {% for log in comms_logs %}
+                        <tr class="hover:bg-gray-50">
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                              {% if log.type == 'Email' %}
+                                <div class="flex-shrink-0 h-8 w-8 text-blue-500">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              {% elif log.type == 'SMS' %}
+                                <div class="flex-shrink-0 h-8 w-8 text-green-500">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                </div>
+                              {% else %}
+                                <div class="flex-shrink-0 h-8 w-8 text-green-400">
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.966-.273-.099-.471-.148-.67.15-.197.297-.767.963-.94 1.16-.174.196-.347.221-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.795-1.48-1.78-1.653-2.08-.174-.298-.018-.46.13-.606.136-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.345m-5.421 7.403h-.004a9 9 0 01-4.5-1.199l-.006-.003-.018-.01a9 9 0 01-3.6-3.6l-.009-.018a9 9 0 01-1.2-4.5 9 9 0 015.4-8.1 9 9 0 0110.8 1.5 9 9 0 011.5 10.8 9 9 0 01-8.1 5.4h-.067z" />
+                                  </svg>
+                                </div>
+                              {% endif %}
+                              <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                  {{ log.type }}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ log.recipient }}</div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">{{ log.sent_at|date:"j M Y, H:i" }}</div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-blue-600 hover:text-blue-900 mr-4">View</button>
+                            <button class="text-green-600 hover:text-green-900">Resend</button>
+                          </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                          <td colspan="4" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                            No messages sent yet.
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% block extra_js %}
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // SMS Character Count
+            const smsMessage = document.getElementById('sms-message');
+            const smsCharCount = document.getElementById('sms-char-count');
+            
+            if (smsMessage && smsCharCount) {
+              smsMessage.addEventListener('input', function() {
+                updateCharCount(this, smsCharCount, 160);
+              });
+              // Initialize count on page load
+              updateCharCount(smsMessage, smsCharCount, 160);
+            }
+
+
+            // WhatsApp Character Count
+            const whatsappMessage = document.getElementById('whatsapp-message');
+            const whatsappCharCount = document.getElementById('whatsapp-char-count');
+            
+            if (whatsappMessage && whatsappCharCount) {
+              whatsappMessage.addEventListener('input', function() {
+                updateCharCount(this, whatsappCharCount, 4096);
+              });
+              // Initialize count on page load
+              updateCharCount(whatsappMessage, whatsappCharCount, 4096);
+            }
+
+
+            // Function to update character count
+            function updateCharCount(textarea, counterElement, maxLength) {
+              const currentLength = textarea.value.length;
+              counterElement.textContent = `${currentLength}/${maxLength}`;
+              
+              // Update color based on character count
+              if (currentLength > maxLength * 0.9) {
+                counterElement.classList.add('text-red-500');
+                counterElement.classList.remove('text-yellow-500', 'text-gray-500');
+              } else if (currentLength > maxLength * 0.7) {
+                counterElement.classList.add('text-yellow-500');
+                counterElement.classList.remove('text-red-500', 'text-gray-500');
+              } else {
+                counterElement.classList.add('text-gray-500');
+                counterElement.classList.remove('text-red-500', 'text-yellow-500');
+              }
+            }
+
+
+            // File upload preview for email attachments
+            const fileInput = document.getElementById('file-upload');
+            const fileUploadLabel = document.querySelector('label[for="file-upload"]');
+            const fileNameDisplay = document.createElement('span');
+            fileNameDisplay.className = 'block mt-1 text-sm text-gray-600';
+            
+            if (fileInput && fileUploadLabel) {
+              fileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                  fileNameDisplay.textContent = `Selected: ${this.files[0].name} (${formatFileSize(this.files[0].size)})`;
+                  fileUploadLabel.parentNode.appendChild(fileNameDisplay);
+                }
+              });
+            }
+
+
+            // Format file size to human-readable format
+            function formatFileSize(bytes) {
+              if (bytes === 0) return '0 Bytes';
+              const k = 1024;
+              const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+              const i = Math.floor(Math.log(bytes) / Math.log(k));
+              return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+
+            // Form submission handling with loading states
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+              form.addEventListener('submit', function(e) {
+                const submitButton = this.querySelector('button[type="submit"]');
+                if (submitButton) {
+                  submitButton.disabled = true;
+                  submitButton.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  `;
+                }
+              });
+            });
+          });
+        </script>
+        {% endblock %}

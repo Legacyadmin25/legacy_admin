@@ -1,0 +1,14 @@
+Hi {{ member.first_name }},
+
+Thank you for signing up for funeral cover with Trinity Funeral Insurance.
+
+Your policy ({{ policy.membership_number }}) has been successfully created. You can find your policy document attached to this email.
+
+Plan: {{ policy.plan.name }}
+Cover: R{{ policy.cover_amount }}
+Premium: R{{ policy.premium_amount }}
+
+If you have questions, feel free to reach out to your agent or reply to this email.
+
+Warm regards,  
+Trinity Funeral Insurance

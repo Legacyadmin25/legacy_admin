@@ -1,0 +1,303 @@
+{% load widget_tweaks %}
+
+{% if type == 'dependents' %}
+  <!-- Dependents Section -->
+  <div class="bg-white px-6 py-6">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+      <div class="md:col-span-1">
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Dependents</h3>
+        <p class="mt-1 text-sm text-gray-500">
+          Manage policy dependents and their details.
+        </p>
+      </div>
+      
+      <div class="mt-5 md:mt-0 md:col-span-2">
+        <!-- Dependents List -->
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-md font-medium text-gray-900">Current Dependents</h4>
+          </div>
+          
+          {% if policy.dependents.all %}
+            <div class="flex flex-col">
+              <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                  <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        {% for dependent in policy.dependents.all %}
+                          <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="flex items-center">
+                                <div class="text-sm font-medium text-gray-900">
+                                  {{ dependent.first_name }} {{ dependent.last_name }}
+                                </div>
+                              </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="text-sm text-gray-900">{{ dependent.get_relationship_display }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="text-sm text-gray-900">{{ dependent.date_of_birth|date:"M d, Y" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <a href="?tab=dependents&edit_dep_id={{ dependent.id }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Edit</a>
+                              <form method="post" action="{% url 'members:policy_detail' policy.id %}" class="inline" data-confirm="Are you sure you want to delete this dependent?">
+                                {% csrf_token %}
+                                <input type="hidden" name="tab" value="dependents">
+                                <input type="hidden" name="delete_dep_id" value="{{ dependent.id }}">
+                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                              </form>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-4 bg-gray-50 rounded-lg">
+              <p class="text-gray-500">No dependents found.</p>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Add/Edit Dependent Form -->
+        {% if editing_dependent %}
+          <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="dependents">
+            <input type="hidden" name="edit_dep_id" value="{{ editing_dependent.pk }}">
+            
+            <div class="shadow overflow-hidden sm:rounded-md">
+              <div class="px-4 py-5 bg-white sm:p-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Edit Dependent</h4>
+                <div class="grid grid-cols-6 gap-6">
+                  {% for field in edit_dep_form %}
+                    <div class="col-span-6 sm:col-span-3">
+                      <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                      </label>
+                      {% render_field field class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                      {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <a href="?tab=dependents" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2">
+                  Cancel
+                </a>
+                <button type="submit" name="update_dependent" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                  Update Dependent
+                </button>
+              </div>
+            </div>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="dependents">
+            
+            <div class="shadow overflow-hidden sm:rounded-md">
+              <div class="px-4 py-5 bg-white sm:p-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Add New Dependent</h4>
+                <div class="grid grid-cols-6 gap-6">
+                  {% for field in dep_form %}
+                    <div class="col-span-6 sm:col-span-3">
+                      <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                      </label>
+                      {% render_field field class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                      {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <button type="submit" name="save_dependent" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  Add Dependent
+                </button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if type == 'beneficiaries' %}
+  <!-- Beneficiaries Section -->
+  <div class="bg-white px-6 py-6">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+      <div class="md:col-span-1">
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Beneficiaries</h3>
+        <p class="mt-1 text-sm text-gray-500">
+          Manage policy beneficiaries and their details.
+        </p>
+      </div>
+      
+      <div class="mt-5 md:mt-0 md:col-span-2">
+        <!-- Beneficiaries List -->
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-md font-medium text-gray-900">Current Beneficiaries</h4>
+          </div>
+          
+          {% if policy.beneficiaries.all %}
+            <div class="flex flex-col">
+              <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                  <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allocation</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        {% for beneficiary in policy.beneficiaries.all %}
+                          <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="flex items-center">
+                                <div class="text-sm font-medium text-gray-900">
+                                  {{ beneficiary.first_name }} {{ beneficiary.last_name }}
+                                </div>
+                              </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="text-sm text-gray-900">{{ beneficiary.get_relationship_display }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                              <div class="text-sm text-gray-900">{{ beneficiary.allocation }}%</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <a href="?tab=beneficiaries&edit_ben_id={{ beneficiary.id }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Edit</a>
+                              <form method="post" action="{% url 'members:policy_detail' policy.id %}" class="inline" data-confirm="Are you sure you want to delete this beneficiary?">
+                                {% csrf_token %}
+                                <input type="hidden" name="tab" value="beneficiaries">
+                                <input type="hidden" name="delete_ben_id" value="{{ beneficiary.id }}">
+                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                              </form>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-4 bg-gray-50 rounded-lg">
+              <p class="text-gray-500">No beneficiaries found.</p>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Add/Edit Beneficiary Form -->
+        {% if editing_beneficiary %}
+          <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="beneficiaries">
+            <input type="hidden" name="edit_ben_id" value="{{ editing_beneficiary.pk }}">
+            
+            <div class="shadow overflow-hidden sm:rounded-md">
+              <div class="px-4 py-5 bg-white sm:p-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Edit Beneficiary</h4>
+                <div class="grid grid-cols-6 gap-6">
+                  {% for field in edit_ben_form %}
+                    <div class="col-span-6 sm:col-span-3">
+                      <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                      </label>
+                      {% render_field field class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                      {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <a href="?tab=beneficiaries" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2">
+                  Cancel
+                </a>
+                <button type="submit" name="update_beneficiary" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                  Update Beneficiary
+                </button>
+              </div>
+            </div>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="beneficiaries">
+            
+            <div class="shadow overflow-hidden sm:rounded-md">
+              <div class="px-4 py-5 bg-white sm:p-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Add New Beneficiary</h4>
+                <div class="grid grid-cols-6 gap-6">
+                  {% for field in ben_form %}
+                    <div class="col-span-6 sm:col-span-3">
+                      <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                      </label>
+                      {% render_field field class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                      {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <button type="submit" name="save_beneficiary" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                  Add Beneficiary
+                </button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}

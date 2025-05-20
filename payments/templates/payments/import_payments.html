@@ -1,0 +1,654 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load user_groups %}
+
+{% block title %}Unified Payment Import{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'payments:payment_list' %}" class="text-blue-600 hover:text-blue-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800">Unified Payment Import</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'payments:import_log_list' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                View All Import Logs
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Content Area -->
+        <div class="lg:col-span-3">
+            <div class="grid grid-cols-1 gap-6">
+                <!-- EasyPay Import Section -->
+                <div class="bg-white rounded-lg shadow-md p-6" id="easypay-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-800 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </span>
+                            EasyPay CSV Upload
+                        </h2>
+                        <a href="{% static 'templates/easypay_template.csv' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Template
+                        </a>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" class="space-y-4" id="easypay-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="import_type" value="EASYPAY">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="easypay-file" class="block text-sm font-medium text-gray-700 mb-1">Upload EasyPay CSV File</label>
+                                <input type="file" name="file" id="easypay-file" accept=".csv,.txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100">
+                                <p class="mt-1 text-xs text-gray-500">CSV format with Reference Number, Amount, Date, Transaction ID</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Import Action</label>
+                                <button type="submit" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    Upload & Process
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Recent EasyPay Imports -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-md font-medium text-gray-700 mb-3">Recent EasyPay Imports</h3>
+                        {% with recent_easypay_imports=recent_imports|dictsortreversed:"imported_at"|slice:":5" %}
+                        {% if recent_easypay_imports %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for import_item in recent_easypay_imports %}
+                                    {% if import_item.import_type == 'EASYPAY' %}
+                                    <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.imported_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 text-xs rounded-full {% if import_item.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif import_item.status == 'FAILED' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                                {{ import_item.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.total_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.failed_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="{% url 'payments:import_detail' import_item.id %}" class="text-blue-600 hover:text-blue-900">
+                                                View Log
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-500">No recent EasyPay imports found.</p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                
+                <!-- Debit Order Import Section -->
+                <div class="bg-white rounded-lg shadow-md p-6" id="debit-order-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-800 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                            </span>
+                            Debit Order Upload
+                        </h2>
+                        <a href="{% static 'templates/linkserv_template.xlsx' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Template
+                        </a>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" class="space-y-4" id="debit-order-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="import_type" value="LINKSERV">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="debit-order-file" class="block text-sm font-medium text-gray-700 mb-1">Upload Debit Order File</label>
+                                <input type="file" name="file" id="debit-order-file" accept=".csv,.txt,.xls,.xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <p class="mt-1 text-xs text-gray-500">Excel/CSV with Account Holder, Account Number, Bank, Branch Code, Amount, Status, Reference</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Import Action</label>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    Upload & Process
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Recent Debit Order Imports -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-md font-medium text-gray-700 mb-3">Recent Debit Order Imports</h3>
+                        {% with recent_debit_imports=recent_imports|dictsortreversed:"imported_at"|slice:":5" %}
+                        {% if recent_debit_imports %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for import_item in recent_debit_imports %}
+                                    {% if import_item.import_type == 'LINKSERV' %}
+                                    <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.imported_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 text-xs rounded-full {% if import_item.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif import_item.status == 'FAILED' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                                {{ import_item.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.total_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.failed_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="{% url 'payments:import_detail' import_item.id %}" class="text-blue-600 hover:text-blue-900">
+                                                View Log
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-500">No recent Debit Order imports found.</p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                
+                <!-- Bank Reconciliation Import Section -->
+                <div class="bg-white rounded-lg shadow-md p-6" id="bank-reconciliation-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-800 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                </svg>
+                            </span>
+                            Bank Reconciliation Upload
+                        </h2>
+                        <a href="{% static 'templates/bank_reconciliation_template.csv' %}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Template
+                        </a>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" class="space-y-4" id="bank-reconciliation-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="import_type" value="BANK_RECONCILIATION">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="bank-reconciliation-file" class="block text-sm font-medium text-gray-700 mb-1">Upload Bank Statement File</label>
+                                <input type="file" name="file" id="bank-reconciliation-file" accept=".csv,.txt,.xls,.xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                                <p class="mt-1 text-xs text-gray-500">CSV/Excel with Transaction Date, Description, Reference, Amount</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Import Action</label>
+                                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    Upload & Process
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Recent Bank Reconciliation Imports -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-md font-medium text-gray-700 mb-3">Recent Bank Reconciliation Imports</h3>
+                        {% with recent_bank_imports=recent_imports|dictsortreversed:"imported_at"|slice:":5" %}
+                        {% if recent_bank_imports %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for import_item in recent_bank_imports %}
+                                    {% if import_item.import_type == 'BANK_RECONCILIATION' %}
+                                    <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.imported_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 text-xs rounded-full {% if import_item.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif import_item.status == 'FAILED' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                                {{ import_item.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.total_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{{ import_item.failed_records }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="{% url 'payments:import_detail' import_item.id %}" class="text-blue-600 hover:text-blue-900">
+                                                View Log
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-gray-500">No recent Bank Reconciliation imports found.</p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Assistant Panel -->
+        {% if user|has_group:"Internal Admin" %}
+        <div class="bg-yellow-100 text-sm p-2 mb-4">AI Debug Panel Here</div>
+        {% endif %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden lg:col-span-1">
+            <div class="px-6 py-4 border-b border-gray-200 bg-indigo-600">
+                <h2 class="text-lg font-semibold text-white flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    AI Import Assistant
+                </h2>
+            </div>
+            
+            <!-- AI Assistant Chat Interface -->
+            <div class="p-4 bg-indigo-50 border-b border-indigo-100">
+                <p class="text-sm text-indigo-800 mb-3">Ask me anything about importing payments:</p>
+                <div id="ai-chat-messages" class="bg-white rounded-lg p-3 mb-3 h-64 overflow-y-auto border border-indigo-100">
+                    <div class="flex items-start mb-3">
+                        <div class="flex-shrink-0 bg-indigo-500 rounded-full p-2">
+                            <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 bg-indigo-100 rounded-lg py-2 px-3 text-sm">
+                            <p class="text-gray-900">Hello! I'm your AI payment import assistant. How can I help you today?</p>
+                            <p class="text-gray-900 mt-2">You can ask me about:</p>
+                            <ul class="list-disc list-inside text-gray-700 mt-1">
+                                <li>How to format your import files</li>
+                                <li>Troubleshooting import errors</li>
+                                <li>Understanding payment matching</li>
+                                <li>Fixing unmatched records</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="ai-chat-form" class="flex">
+                    <input type="text" id="ai-chat-input" placeholder="Type your question here..." class="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </form>
+                
+                <div class="mt-3">
+                    <p class="text-xs text-gray-500">This AI assistant has been trained on our payment import processes and can help with common questions. For complex issues, please contact support.</p>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="p-4">
+                <h3 class="text-md font-medium text-gray-700 mb-3">Quick Actions</h3>
+                <div class="space-y-2">
+                    <a href="#easypay-section" class="flex items-center p-2 bg-yellow-50 hover:bg-yellow-100 rounded-md transition-colors">
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-800 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">EasyPay Import</p>
+                            <p class="text-xs text-gray-500">Upload EasyPay CSV files</p>
+                        </div>
+                    </a>
+                    
+                    <a href="#debit-order-section" class="flex items-center p-2 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-800 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Debit Order Import</p>
+                            <p class="text-xs text-gray-500">Upload Linkserv files</p>
+                        </div>
+                    </a>
+                    
+                    <a href="#bank-reconciliation-section" class="flex items-center p-2 bg-green-50 hover:bg-green-100 rounded-md transition-colors">
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-800 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Bank Reconciliation</p>
+                            <p class="text-xs text-gray-500">Upload bank statement files</p>
+                        </div>
+                    </a>
+                    
+                    <a href="{% url 'payments:import_log_list' %}" class="flex items-center p-2 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-800 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">View All Import Logs</p>
+                            <p class="text-xs text-gray-500">See all historical imports</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Privacy Notice -->
+            <div class="p-4 bg-gray-50 mt-auto border-t border-gray-200">
+                <div class="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="ml-2 text-xs text-gray-500">
+                        AI features comply with POPIA regulations. All data is processed securely and PII is automatically redacted. 
+                        <a href="/ai-privacy/" class="text-indigo-600 hover:text-indigo-800">View AI Privacy Policy</a>
+                    </p>
+                </div>
+            </div>
+            
+            {% if recent_imports %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for import_item in recent_imports %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ import_item.imported_at|date:"Y-m-d H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if import_item.import_type == 'EASYPAY' %}bg-yellow-100 text-yellow-800
+                                    {% elif import_item.import_type == 'LINKSERV' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ import_item.get_import_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if import_item.status == 'COMPLETED' %}bg-green-100 text-green-800
+                                    {% elif import_item.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                                    {% elif import_item.status == 'PROCESSING' %}bg-blue-100 text-blue-800
+                                    {% elif import_item.status == 'PARTIAL' %}bg-orange-100 text-orange-800
+                                    {% elif import_item.status == 'FAILED' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ import_item.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if import_item.total_records > 0 %}
+                                {{ import_item.successful_records }}/{{ import_item.total_records }}
+                                {% if import_item.failed_records > 0 %}
+                                <span class="text-red-600">({{ import_item.failed_records }} failed)</span>
+                                {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ import_item.imported_by }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'payments:import_detail' import_item.id %}" class="text-blue-600 hover:text-blue-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </a>
+                                    
+                                    {% if import_item.status == 'PENDING' %}
+                                    {% if import_item.import_type == 'EASYPAY' %}
+                                    <a href="{% url 'payments:process_easypay_import' import_item.id %}" class="text-green-600 hover:text-green-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </a>
+                                    {% elif import_item.import_type == 'LINKSERV' %}
+                                    <a href="{% url 'payments:process_linkserv_import' import_item.id %}" class="text-green-600 hover:text-green-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </a>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="px-6 py-4 text-center text-gray-500">
+                <p>No recent imports found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle URL parameters for import type selection
+        const urlParams = new URLSearchParams(window.location.search);
+        const importType = urlParams.get('type');
+        
+        if (importType) {
+            // Scroll to the appropriate section
+            let sectionId;
+            if (importType === 'easypay') {
+                sectionId = 'easypay-section';
+            } else if (importType === 'debit_orders') {
+                sectionId = 'debit-order-section';
+            } else if (importType === 'bank_reconciliation') {
+                sectionId = 'bank-reconciliation-section';
+            }
+            
+            if (sectionId) {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                    // Add a highlight effect
+                    section.classList.add('bg-yellow-50');
+                    setTimeout(() => {
+                        section.classList.remove('bg-yellow-50');
+                    }, 2000);
+                }
+            }
+        }
+        
+        // AI Assistant Chat Functionality
+        const chatForm = document.getElementById('ai-chat-form');
+        const chatInput = document.getElementById('ai-chat-input');
+        const chatMessages = document.getElementById('ai-chat-messages');
+        
+        if (chatForm && chatInput && chatMessages) {
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const userMessage = chatInput.value.trim();
+                if (!userMessage) return;
+                
+                // Add user message to chat
+                addMessageToChat('user', userMessage);
+                
+                // Clear input
+                chatInput.value = '';
+                
+                // Simulate AI thinking
+                setTimeout(() => {
+                    // Add AI response based on user query
+                    const aiResponse = getAIResponse(userMessage);
+                    addMessageToChat('ai', aiResponse);
+                    
+                    // Scroll to bottom of chat
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 1000);
+            });
+        }
+        
+        function addMessageToChat(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start mb-3';
+            
+            let iconSvg, bubbleClass;
+            
+            if (sender === 'user') {
+                iconSvg = `<svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>`;
+                bubbleClass = 'bg-blue-100';
+                messageDiv.className += ' justify-end';
+            } else {
+                iconSvg = `<svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>`;
+                bubbleClass = 'bg-indigo-100';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="flex-shrink-0 ${sender === 'user' ? 'bg-blue-500 order-2 ml-3' : 'bg-indigo-500 mr-3'} rounded-full p-2">
+                    ${iconSvg}
+                </div>
+                <div class="${sender === 'user' ? 'order-1' : 'ml-3'} ${bubbleClass} rounded-lg py-2 px-3 text-sm">
+                    <p class="text-gray-900">${formatMessage(message)}</p>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function formatMessage(message) {
+            // Convert URLs to links
+            message = message.replace(/https?:\/\/[^\s]+/g, url => `<a href="${url}" class="text-indigo-600 hover:text-indigo-800" target="_blank">${url}</a>`);
+            
+            // Convert newlines to <br>
+            message = message.replace(/\n/g, '<br>');
+            
+            return message;
+        }
+        
+        function getAIResponse(userMessage) {
+            // Simple response logic based on keywords in the user's message
+            const lowerMessage = userMessage.toLowerCase();
+            
+            if (lowerMessage.includes('easypay') || (lowerMessage.includes('easy') && lowerMessage.includes('pay'))) {
+                return "For EasyPay imports, you'll need a CSV file with these columns: Reference Number (EasyPay number), Amount, Date, and Transaction ID. The system will match payments to policies based on the reference number.";
+            } 
+            else if (lowerMessage.includes('debit') || lowerMessage.includes('linkserv')) {
+                return "For Debit Order imports, upload a Linkserv file (Excel or CSV) with: Account Holder, Account Number, Bank, Branch Code, Amount, Status, and Reference/Policy Number. Successful transactions will be matched to policies based on the reference number.";
+            }
+            else if (lowerMessage.includes('bank') || lowerMessage.includes('reconciliation') || lowerMessage.includes('statement')) {
+                return "For Bank Reconciliation, upload a bank statement file with Transaction Date, Description, Reference, and Amount columns. The system will attempt to match payments based on reference numbers in the description or reference fields.";
+            }
+            else if (lowerMessage.includes('error') || lowerMessage.includes('fail') || lowerMessage.includes('issue')) {
+                return "Common import errors include:<br>1. Missing required columns<br>2. Invalid date formats<br>3. Unrecognized reference numbers<br>4. Duplicate entries<br><br>Check the error log for specific details, and you can manually match unmatched records from the import detail page.";
+            }
+            else if (lowerMessage.includes('match') || lowerMessage.includes('unmatched')) {
+                return "Unmatched records occur when the system can't find a policy with the provided reference number. You can manually match these records by:<br>1. Going to the import detail page<br>2. Clicking 'Process' next to an unmatched record<br>3. Searching for the correct member<br>4. Selecting the payment method and status<br>5. Adding any notes about the manual match";
+            }
+            else if (lowerMessage.includes('template') || lowerMessage.includes('format') || lowerMessage.includes('column')) {
+                return "You can download templates for each import type using the 'Download Template' buttons. Make sure your data follows the exact column structure in the template. For EasyPay, you need Reference Number, Amount, and Date. For Debit Orders, you need Account details, Amount, Status, and Reference Number. For Bank Reconciliation, you need Transaction Date, Description, Reference, and Amount.";
+            }
+            else if (lowerMessage.includes('help') || lowerMessage.includes('how') || lowerMessage.includes('what')) {
+                return "I can help with payment imports! You can ask me about:<br>- File formats and templates<br>- Troubleshooting import errors<br>- How payment matching works<br>- Handling unmatched records<br>- Viewing import history<br><br>What specific aspect of payment imports would you like to know more about?";
+            }
+            else {
+                return "I'm not sure I understand your question. You can ask me about payment import formats, troubleshooting errors, matching payments, or how to use any of the import features on this page.";
+            }
+        }
+        // Format input fields
+        const importTypeInput = document.getElementById('{{ form.import_type.id_for_label }}');
+        if (importTypeInput) {
+            importTypeInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+        if (fileInput) {
+            fileInput.classList.add('block', 'w-full', 'text-sm', 'text-gray-500', 'file:mr-4', 'file:py-2', 'file:px-4', 
+                                   'file:rounded-md', 'file:border-0', 'file:text-sm', 'file:font-medium', 
+                                   'file:bg-blue-50', 'file:text-blue-700', 'hover:file:bg-blue-100');
+        }
+        
+        const notesInput = document.getElementById('{{ form.notes.id_for_label }}');
+        if (notesInput) {
+            notesInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

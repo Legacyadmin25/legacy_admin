@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Branch Setup{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+  <h1 class="text-3xl font-bold mb-6 text-indigo-700">Branch Setup</h1>
+  <div class="bg-gray-50 p-6 rounded-lg mb-8 border border-gray-200">
+    <h2 class="text-xl font-semibold mb-4">Create a New Branch</h2>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {# Custom layout for bank and account_no #}
+{% for field in form %}
+  {% if field.name == 'bank' %}
+    <div class="md:col-span-1">
+      <label for="{{ field.id_for_label }}" class="block font-medium mb-1">{{ field.label }}</label>
+      {{ field|add_class:"w-full px-3 py-2 border rounded" }}
+      {% if field.help_text %}
+        <p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>
+      {% endif %}
+      {% if field.errors %}
+        <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+      {% endif %}
+    </div>
+    <div class="md:col-span-1">
+      <label for="{{ form.account_no.id_for_label }}" class="block font-medium mb-1">{{ form.account_no.label }}</label>
+      {{ form.account_no|add_class:"w-full px-3 py-2 border rounded" }}
+      {% if form.account_no.help_text %}
+        <p class="text-gray-500 text-xs mt-1">{{ form.account_no.help_text }}</p>
+      {% endif %}
+      {% if form.account_no.errors %}
+        <p class="text-red-600 text-xs mt-1">{{ form.account_no.errors.0 }}</p>
+      {% endif %}
+    </div>
+  {% elif field.name == 'account_no' %}
+    {# skip, already rendered #}
+  {% else %}
+    <div>
+      <label for="{{ field.id_for_label }}" class="block font-medium mb-1">{{ field.label }}</label>
+      {{ field|add_class:"w-full px-3 py-2 border rounded" }}
+      {% if field.help_text %}
+        <p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>
+      {% endif %}
+      {% if field.errors %}
+        <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endfor %}
+      </div>
+      <button type="submit" class="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">Save Branch</button>
+    </form>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Existing Branches</h2>
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white rounded shadow">
+      <thead class="bg-indigo-100">
+        <tr>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">Location</th>
+          <th class="px-4 py-2 text-left">Code</th>
+          <th class="px-4 py-2 text-left">Phone</th>
+          <th class="px-4 py-2 text-left">Cell</th>
+          <th class="px-4 py-2 text-left">Schemes</th>
+          <th class="px-4 py-2 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for branch in branches %}
+        <tr class="border-t">
+          <td class="px-4 py-2 font-bold">{{ branch.name }}</td>
+          <td class="px-4 py-2">{{ branch.get_province_display }}</td>
+          <td class="px-4 py-2">{{ branch.code }}</td>
+          <td class="px-4 py-2">{{ branch.phone }}</td>
+          <td class="px-4 py-2">{{ branch.cell }}</td>
+          <td class="px-4 py-2 align-top">
+  {% if branch.schemes.all %}
+    <ul class="list-disc pl-4 mb-2">
+      {% for scheme in branch.schemes.all %}
+        <li>{{ scheme.name }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <span class="text-gray-400 block mb-2">None</span>
+  {% endif %}
+  <a href="{% url 'settings:scheme_create' %}?branch={{ branch.id }}" class="inline-block mt-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded">Add Scheme</a>
+</td>
+<td class="px-4 py-2 align-top">
+  <a href="{% url 'branches:branch_edit' branch.id %}" class="inline-block mt-1 px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded">Edit</a>
+  <a href="{% url 'branches:branch_delete' branch.id %}" class="inline-block mt-1 px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded" onclick="return confirm('Are you sure you want to delete this branch?');">Delete</a>
+</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

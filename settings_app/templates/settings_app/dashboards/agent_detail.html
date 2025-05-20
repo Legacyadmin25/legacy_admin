@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ agent.full_name }} - Agent Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Agent: {{ agent.full_name }}</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'branch_dashboard' pk=agent.scheme.branch.id %}">{{ agent.scheme.branch.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'scheme_dashboard' pk=agent.scheme.id %}">{{ agent.scheme.name }}</a></li>
+        <li class="breadcrumb-item active">Agent Details</li>
+    </ol>
+    
+    <!-- Agent Overview -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Policies</h5>
+                    <h2 class="display-4">{{ total_policies }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#policy-stats">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Policies</h5>
+                    <h2 class="display-4">{{ monthly_policies }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#monthly-chart">View Trend</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Lapse Rate</h5>
+                    <h2 class="display-4">{{ lapse_percentage }}%</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#policy-stats">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">DIY Link</h5>
+                    <p class="small">Click buttons below to copy or generate QR code</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#diy-link-section">Manage DIY Link</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Metrics -->
+    <div class="row">
+        <div class="col-xl-4 col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Quarterly Performance
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-primary">{{ quarterly_policies }}</div>
+                            <div class="text-muted">Policies (Last 90 Days)</div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-success">R{{ average_cover|floatformat:0 }}</div>
+                            <div class="text-muted">Avg. Cover Amount</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-money-bill-wave me-1"></i>
+                    Commission Structure
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-warning">
+                                {% if agent.commission_percentage %}
+                                {{ agent.commission_percentage }}%
+                                {% elif agent.commission_rand_value %}
+                                R{{ agent.commission_rand_value|floatformat:2 }}
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </div>
+                            <div class="text-muted">Commission Rate</div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-info">{{ agent.scheme.name }}</div>
+                            <div class="text-muted">Scheme</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-users me-1"></i>
+                    Referral Statistics
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-primary">{{ total_referrals }}</div>
+                            <div class="text-muted">Total Referrals</div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <div class="display-4 fw-bold text-success">{{ conversion_rate }}%</div>
+                            <div class="text-muted">Conversion Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Agent Information -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user me-1"></i>
+                    Agent Information
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Full Name:</div>
+                        <div class="col-md-8">{{ agent.full_name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Surname:</div>
+                        <div class="col-md-8">{{ agent.surname }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Contact Number:</div>
+                        <div class="col-md-8">{{ agent.contact_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Email:</div>
+                        <div class="col-md-8">{{ agent.email }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">ID Number:</div>
+                        <div class="col-md-8">{{ agent.id_number|default:"Not provided" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Passport Number:</div>
+                        <div class="col-md-8">{{ agent.passport_number|default:"Not provided" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Agent Code:</div>
+                        <div class="col-md-8">{{ agent.code }}</div>
+                    </div>
+                    {% if not is_read_only %}
+                    <div class="mt-3">
+                        <a href="{% url 'agent_edit' agent_id=agent.id %}" class="btn btn-primary">Edit Agent</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    Address Information
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Address Line 1:</div>
+                        <div class="col-md-8">{{ agent.address1 }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Address Line 2:</div>
+                        <div class="col-md-8">{{ agent.address2 }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Address Line 3:</div>
+                        <div class="col-md-8">{{ agent.address3 }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Postal Code:</div>
+                        <div class="col-md-8">{{ agent.code }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Notes:</div>
+                        <div class="col-md-8">{{ agent.notes|default:"No notes" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Policy Statistics -->
+    <div class="card mb-4" id="policy-stats">
+        <div class="card-header">
+            <i class="fas fa-chart-line me-1"></i>
+            Policy Statistics
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>New Policies</th>
+                            <th>Active</th>
+                            <th>Lapsed</th>
+                            <th>Lapse Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in monthly_stats %}
+                        <tr>
+                            <td>{{ stat.month }}</td>
+                            <td>{{ stat.count }}</td>
+                            <td>{{ stat.active|default:"N/A" }}</td>
+                            <td>{{ stat.lapsed|default:"N/A" }}</td>
+                            <td>{{ stat.lapse_rate|default:"N/A" }}%</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No policy data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Policy Trend Chart -->
+    <div class="card mb-4" id="monthly-chart">
+        <div class="card-header">
+            <i class="fas fa-chart-bar me-1"></i>
+            Monthly Policy Trend
+        </div>
+        <div class="card-body">
+            <canvas id="policyTrendChart" width="100%" height="40"></canvas>
+        </div>
+    </div>
+    
+    <!-- DIY Link Section -->
+    <div class="card mb-4" id="diy-link-section">
+        <div class="card-header">
+            <i class="fas fa-link me-1"></i>
+            DIY Application Link
+        </div>
+        <div class="card-body">
+            <p class="mb-3">
+                This unique link allows the agent to share with clients for direct application submission.
+                All applications submitted through this link will be attributed to this agent.
+            </p>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" value="{{ diy_link }}" id="diyLinkInput" readonly>
+                        <button class="btn btn-outline-primary" type="button" onclick="copyDIYLink()">
+                            <i class="fas fa-copy me-1"></i> Copy Link
+                        </button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="showQRCode('{{ diy_link }}')">
+                            <i class="fas fa-qrcode me-1"></i> Generate QR
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    {% if not is_read_only %}
+                    <button class="btn btn-warning" onclick="regenerateDIYLink()">
+                        <i class="fas fa-sync-alt me-1"></i> Regenerate Link
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-1"></i>
+                <strong>Tip:</strong> Share this link via WhatsApp, email, or generate a QR code for easy access.
+            </div>
+        </div>
+    </div>
+    
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrCodeModalLabel">Agent DIY QR Code</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="qrcode"></div>
+                    <p class="mt-3">Scan this QR code to access the DIY application form</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="downloadQR">Download QR Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Regenerate Modal -->
+    <div class="modal fade" id="confirmRegenerateModal" tabindex="-1" aria-labelledby="confirmRegenerateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmRegenerateModalLabel">Confirm Link Regeneration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Warning:</strong> Regenerating the DIY link will invalidate the previous link.
+                        Any shared links or QR codes will no longer work.
+                    </p>
+                    <p>Are you sure you want to regenerate this agent's DIY link?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="post" action="{% url 'agent_regenerate_diy_link' agent_id=agent.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Regenerate Link</button>
+                    </form>
+                </div>
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrCodeModalLabel">Agent DIY QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcode"></div>
+                <p class="mt-3">Scan this QR code to access the DIY application form</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadQR">Download QR Code</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Regenerate Modal -->
+<div class="modal fade" id="confirmRegenerateModal" tabindex="-1" aria-labelledby="confirmRegenerateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmRegenerateModalLabel">Confirm Link Regeneration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>Warning:</strong> Regenerating the DIY link will invalidate the previous link.
+                    Any shared links or QR codes will no longer work.
+                </p>
+                <p>Are you sure you want to regenerate this agent's DIY link?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'agent_regenerate_diy_link' agent_id=agent.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Regenerate Link</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<!-- Chart Data from Django -->
+<script>
+    // Initialize chart data variables with safe defaults
+    var monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    var policyData = [0, 0, 0, 0, 0, 0];
+    
+    // This will be populated by Django template engine before page load
+    // and won't trigger JavaScript linting errors
+</script>
+
+<!-- Django Template Data Initialization -->
+{% if monthly_stats %}
+<script>
+    // Reset arrays
+    monthLabels = [];
+    policyData = [];
+    
+    {% for stat in monthly_stats %}
+    // Add each data point
+    monthLabels.push("{{ stat.month }}");
+    policyData.push({{ stat.count|default:0 }});
+    {% endfor %}
+</script>
+{% endif %}
+
+<!-- Main JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Policy Trend Chart
+        var ctx = document.getElementById('policyTrendChart').getContext('2d');
+        
+        // Create chart
+        var policyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'New Policies',
+                    data: policyData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Monthly Policy Trend (Last 6 Months)',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' policies';
+                            }
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        
+        // Copy DIY Link
+        function copyDIYLink() {
+            var copyText = document.getElementById('diyLinkInput');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            
+            // Show success toast instead of alert
+            var toastEl = document.createElement('div');
+            toastEl.className = 'position-fixed bottom-0 end-0 p-3';
+            toastEl.style.zIndex = '5';
+            toastEl.innerHTML = `
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-success text-white">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong class="me-auto">Success</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        DIY link copied to clipboard!
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toastEl);
+            
+            // Auto remove after 3 seconds
+            setTimeout(function() {
+                document.body.removeChild(toastEl);
+            }, 3000);
+        }
+        
+        // Attach copy function to button
+        document.querySelector('button[onclick="copyDIYLink()"]').onclick = function(e) {
+            e.preventDefault();
+            copyDIYLink();
+        };
+        
+        // Show QR Code
+        function showQRCode(url) {
+            // Clear previous QR code
+            var qrcodeElement = document.getElementById('qrcode');
+            qrcodeElement.innerHTML = '';
+            
+            // Generate new QR code
+            new QRCode(qrcodeElement, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Set download link
+            document.getElementById('qrUrl').value = url;
+            
+            // Show modal
+            var modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            modal.show();
+        }
+        
+        // Attach QR code function to button
+        var qrButtons = document.querySelectorAll('button[onclick^="showQRCode"]');
+        qrButtons.forEach(function(button) {
+            var url = button.getAttribute('onclick').match(/showQRCode\('([^']*)'\)/)[1];
+            button.onclick = function(e) {
+                e.preventDefault();
+                showQRCode(url);
+            };
+        });
+        
+        // Download QR Code
+        document.getElementById('downloadQR').addEventListener('click', function() {
+            var canvas = document.querySelector("#qrcode canvas");
+            var image = canvas.toDataURL("image/png");
+            var a = document.createElement('a');
+            a.href = image;
+            a.download = 'agent-qr-code.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+        
+        // Regenerate DIY Link
+        function regenerateDIYLink() {
+            var modal = new bootstrap.Modal(document.getElementById('confirmRegenerateModal'));
+            modal.show();
+        }
+        
+        // Attach regenerate function to button
+        var regenerateButton = document.querySelector('button[onclick="regenerateDIYLink()"]');
+        if (regenerateButton) {
+            regenerateButton.onclick = function(e) {
+                e.preventDefault();
+                regenerateDIYLink();
+            };
+        }
+    });
+</script>
+{% endblock %}

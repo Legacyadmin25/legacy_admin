@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h2 class="text-2xl font-bold border-b pb-2">SMS Sending Template Setup</h2>
+
+  <form method="post" class="bg-white p-6 rounded shadow space-y-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="font-semibold">Select Template *</label>
+        <select id="templateSelect" name="template" class="w-full border px-4 py-2 rounded">
+          <option value="">-- Select Template --</option>
+          {% for t in templates %}
+            <option value="{{ t.message|escapejs }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="font-semibold">Characters left: <span id="charCount">160</span></label>
+        <textarea name="message" id="id_message" rows="4" class="w-full px-4 py-2 border rounded resize-none"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-4">
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">Save</button>
+      <a href="" class="bg-orange-400 hover:bg-orange-500 text-white px-6 py-2 rounded">Cancel</a>
+    </div>
+  </form>
+
+  <!-- Placeholder Table -->
+  <div class="bg-white rounded-lg shadow p-6 mt-8">
+    <h3 class="text-lg font-semibold mb-4">Available Placeholders</h3>
+    <table class="min-w-full border text-sm text-left">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="p-2 border">Name</th>
+          <th class="p-2 border">Placeholder</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="p-2 border">ID Number</td><td class="p-2 border">[ID Number]</td></tr>
+        <tr><td class="p-2 border">Policy Number</td><td class="p-2 border">[Policy Number]</td></tr>
+        <tr><td class="p-2 border">Name</td><td class="p-2 border">[Name]</td></tr>
+        <tr><td class="p-2 border">Surname</td><td class="p-2 border">[Surname]</td></tr>
+        <tr><td class="p-2 border">Payment</td><td class="p-2 border">[Payment]</td></tr>
+        <tr><td class="p-2 border">EasyPay Number</td><td class="p-2 border">[EasyPay Number]</td></tr>
+        <tr><td class="p-2 border">Month Paid</td><td class="p-2 border">[Month Paid]</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const select = document.getElementById("templateSelect");
+  const messageBox = document.getElementById("id_message");
+  const charCount = document.getElementById("charCount");
+
+  select.addEventListener("change", function() {
+    if (this.value) {
+      messageBox.value = this.value;
+      charCount.textContent = 160 - this.value.length;
+    }
+  });
+
+  messageBox.addEventListener("input", function () {
+    charCount.textContent = 160 - this.value.length;
+  });
+</script>
+{% endblock %}

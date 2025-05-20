@@ -1,0 +1,639 @@
+{% extends 'base.html' %}
+
+{% load widget_tweaks %}
+
+{% block title %}Step 6: Payment Options{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #4b5563;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .form-control:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .is-invalid {
+    border-color: #ef4444;
+  }
+  
+  .invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #ef4444;
+  }
+  
+  .is-invalid ~ .invalid-feedback {
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <div class="w-full px-6 py-8">
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step {{ step }}: Payment Options</h2>
+          <span class="text-sm font-medium text-gray-500">Step 6 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 66%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-6">
+          <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Payment Options</h3>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Payment Methods -->
+            <div class="space-y-6">
+              <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                <h3 class="text-xl font-semibold mb-4">Select Payment Method</h3>
+                
+                <form method="POST" action="{% url 'members:step6_payment_options' pk=policy.pk %}" id="payment-form" onsubmit="return validatePaymentForm(event)">
+                  {% csrf_token %}
+                  
+                  <!-- Payment Method Selection -->
+                  <div class="space-y-4 mb-6">
+                    <div class="flex items-center p-4 border rounded-lg hover:border-blue-500 cursor-pointer payment-option">
+                      <input type="radio" id="easypay" name="payment_method" value="easypay" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" checked>
+                      <label for="easypay" class="ml-3 block text-sm font-medium text-gray-700 w-full">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <span class="ml-2">EasyPay</span>
+                            <p class="text-xs text-gray-500 mt-1">Pay at any retailer with EasyPay</p>
+                          </div>
+                          <div class="flex items-center">
+                            <img src="https://www.easypay.co.za/wp-content/uploads/2018/04/easypay-logo.png" alt="EasyPay" class="h-6">
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    <div class="flex items-center p-4 border rounded-lg hover:border-blue-500 cursor-pointer payment-option">
+                      <input type="radio" id="debit_order" name="payment_method" value="debit_order" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                      <label for="debit_order" class="ml-3 block text-sm font-medium text-gray-700 w-full">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <span class="ml-2">Debit Order</span>
+                            <p class="text-xs text-gray-500 mt-1">Automatic monthly deduction</p>
+                          </div>
+                          <i class="fas fa-university text-xl text-gray-600"></i>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    <div class="flex items-center p-4 border rounded-lg hover:border-blue-500 cursor-pointer payment-option">
+                      <input type="radio" id="eft" name="payment_method" value="eft" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                      <label for="eft" class="ml-3 block text-sm font-medium text-gray-700 w-full">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <span class="ml-2">EFT (Bank Transfer)</span>
+                            <p class="text-xs text-gray-500 mt-1">Manual bank transfer</p>
+                          </div>
+                          <i class="fas fa-exchange-alt text-xl text-gray-600"></i>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+          
+                  <!-- EasyPay Details (initially shown) -->
+                  <div id="easypay-details" class="space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-md">
+                      <h4 class="font-medium text-blue-800 mb-2">EasyPay Payment Information</h4>
+                      <p class="text-sm text-blue-700 mb-3">
+                        Your unique EasyPay number will be generated and displayed on your policy document. You can use this number to make payments at any retailer that accepts EasyPay.                        
+                      </p>
+                      
+                      <div class="flex items-center justify-center bg-white p-4 rounded-md mb-3">
+                        <div class="text-center">
+                          <p class="text-xs text-gray-500 mb-1">Your EasyPay Number</p>
+                          <p class="font-mono text-lg font-bold" id="easypay-number">{{ policy.easypay_number|default:"Will be generated" }}</p>
+                          <input type="hidden" name="easypay_number" id="easypay-number-input" value="{{ policy.easypay_number }}">
+                        </div>
+                      </div>
+                      
+                      <!-- Barcode and QR Code Display -->
+                      <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-white p-3 rounded-md">
+                          <h5 class="text-sm font-medium text-center mb-2">Scan Barcode</h5>
+                          {% if barcode_url %}
+                            <img src="{{ barcode_url }}" alt="Easypay Barcode" class="mx-auto max-w-full h-auto">
+                          {% else %}
+                            <div class="flex items-center justify-center h-24 bg-gray-100 rounded">
+                              <span class="text-gray-400 text-sm">Barcode will be generated</span>
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="bg-white p-3 rounded-md">
+                          <h5 class="text-sm font-medium text-center mb-2">Scan QR Code</h5>
+                          {% if qr_url %}
+                            <img src="{{ qr_url }}" alt="Easypay QR Code" class="mx-auto max-w-full h-auto">
+                          {% else %}
+                            <div class="flex items-center justify-center h-24 bg-gray-100 rounded">
+                              <span class="text-gray-400 text-sm">QR code will be generated</span>
+                            </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      
+                      <div class="mt-3 space-y-1 text-sm">
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Payment Frequency:</span>
+                          <span class="font-medium">Monthly</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Monthly Premium:</span>
+                          <span class="font-medium">R {{ monthly_premium|default:"0.00" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">First Payment Due:</span>
+                          <span class="font-medium">{{ first_payment_date|default:"Upon approval" }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                      <div class="flex">
+                        <div class="flex-shrink-0">
+                          <i class="fas fa-info-circle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                          <p class="text-sm text-yellow-700">
+                            You can make payments at any retailer displaying the EasyPay logo, including Pick n Pay, Shoprite, Checkers, and many others.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Debit Order Details (initially hidden) -->
+                  <div id="debit-order-details" class="space-y-4 hidden">
+                    <div class="bg-blue-50 p-4 rounded-md mb-4">
+                      <h4 class="font-medium text-blue-800 mb-2">Debit Order Information</h4>
+                      <p class="text-sm text-blue-700">
+                        Please provide your banking details for the monthly debit order. The amount will be deducted automatically on the specified date each month.
+                      </p>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                      <label for="account_holder" class="block text-sm font-medium text-gray-700 mb-1">Account Holder Name</label>
+                      <input type="text" id="account_holder" name="account_holder" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                      <div class="invalid-feedback text-red-500 text-sm mt-1 hidden">Please enter the account holder name.</div>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                      <label for="account_number" class="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                      <input type="text" id="account_number" name="account_number" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" inputmode="numeric" pattern="[0-9]*">
+                      <div class="invalid-feedback text-red-500 text-sm mt-1 hidden">Please enter a valid account number.</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div class="form-group mb-4">
+                        <label for="bank_name" class="block text-sm font-medium text-gray-700 mb-1">Bank</label>
+                        <select id="bank_name" name="bank_name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">Select bank</option>
+                          <option value="absa">ABSA</option>
+                          <option value="capitec">Capitec</option>
+                          <option value="fnb">FNB</option>
+                          <option value="nedbank">Nedbank</option>
+                          <option value="standard_bank">Standard Bank</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <div class="invalid-feedback text-red-500 text-sm mt-1 hidden">Please select your bank.</div>
+                      </div>
+                      
+                      <div class="form-group mb-4">
+                        <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                        <select id="account_type" name="account_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">Select account type</option>
+                          <option value="current">Current/Cheque</option>
+                          <option value="savings">Savings</option>
+                          <option value="transmission">Transmission</option>
+                        </select>
+                        <div class="invalid-feedback text-red-500 text-sm mt-1 hidden">Please select your account type.</div>
+                      </div>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                      <label for="debit_day" class="block text-sm font-medium text-gray-700 mb-1">Debit Day</label>
+                      <select id="debit_day" name="debit_day" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select debit day</option>
+                        {% for i in "123456789"|make_list %}
+                          <option value="{{ i }}">{{ i }}th</option>
+                        {% endfor %}
+                        <option value="10">10th</option>
+                        <option value="15">15th</option>
+                        <option value="20">20th</option>
+                        <option value="25">25th</option>
+                        <option value="30">30th/Last day</option>
+                      </select>
+                      <div class="invalid-feedback text-red-500 text-sm mt-1 hidden">Please select your preferred debit day.</div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 border border-gray-200 rounded-md">
+                      <h4 class="font-medium text-gray-800 mb-2">Debit Order Mandate</h4>
+                      <div class="text-sm text-gray-600 space-y-2">
+                        <p>I/We hereby authorize Legacy Guard to issue and deliver payment instructions to your Banker for collection against my/our account at the above-mentioned Bank on condition that:</p>
+                        <ol class="list-decimal pl-5 space-y-1">
+                          <li>The sum of such payment instructions will not exceed my/our obligations as agreed to in the Agreement.</li>
+                          <li>The debit order mandate may be canceled by me/us by giving 30 days notice in writing.</li>
+                          <li>I/We understand that the withdrawals hereby authorized will be processed through a computerized system.</li>
+                        </ol>
+                      </div>
+                      <div class="mt-4">
+                        <label class="flex items-start">
+                          <input type="checkbox" id="mandate_accepted" name="mandate_accepted" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1">
+                          <span class="ml-2 block text-sm text-gray-700">
+                            I accept the debit order mandate and authorize Legacy Guard to debit my account as specified.
+                          </span>
+                        </label>
+                        <div class="invalid-feedback text-red-500 text-sm mt-1 hidden" id="mandate-error">You must accept the debit order mandate to proceed.</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- EFT Details (initially hidden) -->
+                  <div id="eft-details" class="space-y-4 hidden">
+                    <div class="bg-blue-50 p-4 rounded-md">
+                      <h4 class="font-medium text-blue-800 mb-2">Bank Transfer Instructions</h4>
+                      <p class="text-sm text-blue-700 mb-3">
+                        Please make a transfer to the following account details. Use your policy number as the reference.
+                      </p>
+                      <div class="mt-3 space-y-1 text-sm">
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Bank:</span>
+                          <span class="font-medium">Standard Bank</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Account Name:</span>
+                          <span class="font-medium">Legacy Guard Insurance</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Account Number:</span>
+                          <span class="font-mono">001234567890</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Branch Code:</span>
+                          <span>051001</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Reference:</span>
+                          <span class="font-mono">POL-{{ member.id|stringformat:"06d" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Amount:</span>
+                          <span class="font-medium">R {{ monthly_premium|default:"0.00" }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                      <label class="flex items-start">
+                        <input type="checkbox" id="eft_confirmed" name="eft_confirmed" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1">
+                        <span class="ml-2 block text-sm text-gray-700">
+                          I confirm that I will make the bank transfer using the details provided above.
+                        </span>
+                      </label>
+                      <div class="invalid-feedback text-red-500 text-sm mt-1 hidden" id="eft-error">Please confirm that you will make the bank transfer.</div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
+                      <div class="flex">
+                        <div class="flex-shrink-0">
+                          <i class="fas fa-info-circle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                          <p class="text-sm text-yellow-700">
+                            Please note that your policy will only be activated once we receive your payment. This may take 1-2 business days to reflect in our account.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+          
+          <div class="mt-8 pt-6 border-t">
+            <div class="flex justify-between items-center">
+              <a href="{% url 'members:step5_beneficiaries' pk=policy.pk %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                ← Back
+              </a>
+              <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Continue to OTP Verification →
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Order Summary -->
+    <div class="lg:pl-8">
+      <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 sticky top-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
+        
+        <div class="space-y-4">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Policy Type:</span>
+            <span class="font-medium">{{ member.get_policy_type_display|default:"Standard" }}</span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-600">Coverage Amount:</span>
+            <span class="font-medium">GHS {{ member.coverage_amount|floatformat:2|default:"0.00" }}</span>
+          </div>
+          
+          <div class="border-t border-gray-200 my-3"></div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-600">Monthly Premium:</span>
+            <span class="font-medium">GHS {{ member.monthly_premium|floatformat:2|default:"0.00" }}</span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-600">Annual Premium:</span>
+            <span class="font-medium">GHS {{ member.annual_premium|floatformat:2|default:"0.00" }}</span>
+          </div>
+          
+          <div class="border-t-2 border-gray-200 my-4"></div>
+          
+          <div class="flex justify-between text-lg font-bold">
+            <span>Total Due Now:</span>
+            <span>GHS {{ member.monthly_premium|floatformat:2|default:"0.00" }}</span>
+          </div>
+          
+          <div class="mt-6 space-y-3">
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+              </div>
+              <p class="ml-2 text-sm text-gray-600">
+                Secure payment processing. Your financial information is encrypted and protected.
+              </p>
+            </div>
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+              </div>
+              <p class="ml-2 text-sm text-gray-600">
+                No hidden fees. The price you see is what you'll pay.
+              </p>
+            </div>
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-500 mt-1"></i>
+              </div>
+              <p class="ml-2 text-sm text-gray-600">
+                Cancel anytime. No long-term commitment required.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <h4 class="font-medium text-blue-800 mb-2">Need help?</h4>
+        <p class="text-sm text-blue-700 mb-3">
+          Our customer support team is available 24/7 to assist you with your payment.
+        </p>
+        <div class="flex items-center text-sm text-blue-600">
+          <i class="fas fa-phone-alt mr-2"></i>
+          <span>0302 123 4567</span>
+        </div>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+  const easypayDetails = document.getElementById('easypay-details');
+  const debitOrderDetails = document.getElementById('debit-order-details');
+  const eftDetails = document.getElementById('eft-details');
+  const paymentForm = document.getElementById('payment-form');
+  
+  function updatePaymentDetails() {
+    // Hide all payment details sections
+    easypayDetails.classList.add('hidden');
+    debitOrderDetails.classList.add('hidden');
+    eftDetails.classList.add('hidden');
+    
+    // Show the selected payment details section
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    if (selectedMethod === 'easypay') {
+      easypayDetails.classList.remove('hidden');
+      // Disable required fields for other payment methods
+      toggleDebitOrderFieldsRequired(false);
+    } else if (selectedMethod === 'debit_order') {
+      debitOrderDetails.classList.remove('hidden');
+      // Enable required fields for debit order
+      toggleDebitOrderFieldsRequired(true);
+    } else if (selectedMethod === 'eft') {
+      eftDetails.classList.remove('hidden');
+      // Disable required fields for other payment methods
+      toggleDebitOrderFieldsRequired(false);
+    }
+  }
+  
+  // Function to toggle required attribute for debit order fields
+  function toggleDebitOrderFieldsRequired(isRequired) {
+    const debitOrderFields = [
+      document.getElementById('account_holder'),
+      document.getElementById('account_number'),
+      document.getElementById('bank'),
+      document.getElementById('debit_day')
+    ];
+    
+    debitOrderFields.forEach(field => {
+      if (field) {
+        if (isRequired) {
+          field.setAttribute('required', 'required');
+        } else {
+          field.removeAttribute('required');
+        }
+      }
+    });
+  }
+  
+  // Generate EasyPay number with Luhn validation
+  function generateEasyPayNumber() {
+    // Generate a 12-digit number (first 11 digits random, last digit is check digit)
+    let digits = '5047'; // Biller code prefix
+    
+    // Generate 7 more random digits
+    for (let i = 0; i < 7; i++) {
+      digits += Math.floor(Math.random() * 10);
+    }
+    
+    // Calculate Luhn check digit
+    let sum = 0;
+    let alternate = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let n = parseInt(digits.substring(i, i + 1));
+      if (alternate) {
+        n *= 2;
+        if (n > 9) {
+          n = (n % 10) + 1;
+        }
+      }
+      sum += n;
+      alternate = !alternate;
+    }
+    
+    // Calculate the check digit
+    let checkDigit = (10 - (sum % 10)) % 10;
+    
+    // Return the full EasyPay number
+    return digits + checkDigit;
+  }
+  
+  // Generate EasyPay number on page load
+  const easypayNumber = document.getElementById('easypay-number');
+  const easypayNumberInput = document.getElementById('easypay-number-input');
+  
+  if (easypayNumber && easypayNumberInput) {
+    const generatedNumber = generateEasyPayNumber();
+    easypayNumber.textContent = generatedNumber;
+    easypayNumberInput.value = generatedNumber;
+  }
+  
+  // Luhn validation function for ID numbers and account numbers
+  function luhnCheck(value) {
+    // Check if value is a string and contains only digits
+    if (!/^\d+$/.test(value)) {
+      return false;
+    }
+    
+    let sum = 0;
+    let shouldDouble = false;
+    
+    // Loop through values starting from the rightmost digit
+    for (let i = value.length - 1; i >= 0; i--) {
+      let digit = parseInt(value.charAt(i));
+      
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    
+    return (sum % 10) === 0;
+  }
+  
+  // Add event listeners to payment method radio buttons
+  paymentMethods.forEach(method => {
+    method.addEventListener('change', updatePaymentDetails);
+  });
+  
+  // Form validation
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(event) {
+    let isValid = true;
+    const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    
+    // Clear previous validation errors
+    document.querySelectorAll('.invalid-feedback').forEach(el => {
+      el.classList.add('hidden');
+    });
+    
+    // Validate based on selected payment method
+    if (selectedPaymentMethod === 'debit_order') {
+      // Validate debit order fields
+      const accountHolder = document.getElementById('account_holder');
+      const accountNumber = document.getElementById('account_number');
+      const bankName = document.getElementById('bank_name');
+      const accountType = document.getElementById('account_type');
+      const debitDay = document.getElementById('debit_day');
+      const mandateAccepted = document.getElementById('mandate_accepted');
+      
+      if (!accountHolder.value.trim()) {
+        accountHolder.nextElementSibling.classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (!accountNumber.value.trim() || !/^\d+$/.test(accountNumber.value)) {
+        accountNumber.nextElementSibling.classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (!bankName.value) {
+        bankName.nextElementSibling.classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (!accountType.value) {
+        accountType.nextElementSibling.classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (!debitDay.value) {
+        debitDay.nextElementSibling.classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (!mandateAccepted.checked) {
+        document.getElementById('mandate-error').classList.remove('hidden');
+        isValid = false;
+      }
+    } else if (selectedPaymentMethod === 'eft') {
+      // Validate EFT fields
+      const eftConfirmed = document.getElementById('eft_confirmed');
+      
+      if (!eftConfirmed.checked) {
+        document.getElementById('eft-error').classList.remove('hidden');
+        isValid = false;
+      }
+    }
+    
+    if (!isValid) {
+      event.preventDefault();
+    }
+  });
+  
+  // Initialize payment details
+  updatePaymentDetails();
+});
+</script>
+{% endblock %}

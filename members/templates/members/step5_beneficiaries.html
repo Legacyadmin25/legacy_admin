@@ -1,0 +1,724 @@
+{% extends 'members/base.html' %}
+
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Beneficiaries - Step 5{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  .is-invalid {
+    border-color: #dc3545;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+  .is-valid {
+    border-color: #198754;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+  .invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+  }
+  .is-invalid ~ .invalid-feedback {
+    display: block;
+  }
+  .loading-spinner {
+    display: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0.25rem solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #3498db;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 0.5rem;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <div class="w-full px-6 py-8">
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step {{ step }}: Beneficiaries</h2>
+          <span class="text-sm font-medium text-gray-500">Step 5 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 55%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-6">
+          <!-- Section header with counter -->
+          <div class="flex justify-between items-center border-b pb-2 mb-6">
+            <h3 class="text-xl font-semibold text-gray-900">Beneficiaries</h3>
+            <div class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+              Beneficiaries: {{ beneficiary_count }} of 5
+            </div>
+          </div>
+
+          <!-- Notice banner -->
+          <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-yellow-400"></i>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                  Please add at least one beneficiary. The total share percentage must equal 100%.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Total share indicator -->
+          <div class="mb-4 flex justify-end">
+            <div class="text-sm font-medium px-3 py-1 rounded-full {% if total_share == 100 %}bg-green-100 text-green-800{% elif total_share > 100 %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+              Current Total: <span id="current-total-display">{{ total_share }}</span>%
+            </div>
+          </div>
+
+  <div class="mb-8">
+    <h3 class="text-xl font-semibold mb-4">Add Beneficiary</h3>
+    {% if at_max_beneficiaries %}
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-yellow-700">
+              You have reached the maximum number of beneficiaries allowed (5).
+            </p>
+          </div>
+        </div>
+      </div>
+    {% else %}
+    <form method="POST" action="{% url 'members:step5_beneficiaries' pk=policy.pk %}" class="space-y-4" id="addBeneficiaryForm" onsubmit="return validateBeneficiaryForm(event)">
+      {% csrf_token %}
+      <input type="hidden" name="add_beneficiary" value="1">
+      
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div class="form-group">
+          <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+          {{ form.first_name|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+          {{ form.last_name|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+          <div class="relative">
+            {{ form.id_number|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <div class="loading-spinner" id="id_loading"></div>
+              <i class="fas fa-check-circle text-green-500 hidden" id="id_valid_icon"></i>
+              <i class="fas fa-times-circle text-red-500 hidden" id="id_invalid_icon"></i>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500 mt-1" id="id_number_help">Enter a valid South African ID number</div>
+          <div class="invalid-feedback" id="id_number_error"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.relationship_to_main_member.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
+          {{ form.relationship_to_main_member|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+          {{ form.date_of_birth|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+          {{ form.gender|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" }}
+        </div>
+        
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+        <div class="form-group">
+          <label for="{{ form.share.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Share %</label>
+          <div class="flex">
+            {{ form.share|add_class:"form-control w-full px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="add_beneficiary_btn">
+              Add Beneficiary
+            </button>
+          </div>
+          <div class="flex justify-between">
+            <div class="text-xs text-gray-500 mt-1">Enter a value between 1-100</div>
+            <div class="text-xs mt-1" id="share-feedback"></div>
+          </div>
+        </div>
+      </div>
+      </div>
+      
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm mt-2">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </form>
+  </div>
+  
+  {% if beneficiaries %}
+    <div class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-semibold">Your Beneficiaries</h3>
+        <div class="text-sm font-medium total-share-display {% if total_share == 100 %}text-green-600{% elif total_share > 100 %}text-red-600{% else %}text-gray-600{% endif %}">
+          Total Share: {{ total_share }}%
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Share %</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for beneficiary in beneficiaries %}
+              <tr class="{% if total_share > 100 %}bg-red-50{% endif %}">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ beneficiary.first_name }} {{ beneficiary.last_name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ beneficiary.id_number|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ beneficiary.relationship_to_main_member }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ beneficiary.date_of_birth|date:"Y-m-d"|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ beneficiary.get_gender_display|default:"N/A" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <div class="text-sm font-medium {% if total_share > 100 %}text-red-600{% else %}text-gray-900{% endif %}">{{ beneficiary.share }}%</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <form method="POST" action="{% url 'members:step5_beneficiaries' pk=policy.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="remove_beneficiary" value="{{ beneficiary.id }}">
+                    <button type="submit" class="text-red-600 hover:text-red-900 bg-transparent border-0" onclick="return confirm('Are you sure you want to remove this beneficiary?')">
+                      <i class="fas fa-trash"></i> Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-yellow-400"></i>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-700">
+            No beneficiaries added yet. Please add at least one beneficiary.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  
+  <div class="flex justify-between pt-6 border-t mt-8">
+    <a href="{% url 'members:step4_children_info' pk=policy.pk %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      ← Previous
+    </a>
+    <div class="flex space-x-3">
+      <button type="button" id="save-exit-btn" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        Save & Exit
+      </button>
+      <form method="POST" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="next_step" value="1">
+        <button type="submit" id="continue-btn" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 {% if total_share != 100 %}opacity-50 cursor-not-allowed{% endif %}" {% if total_share != 100 %}disabled{% endif %}>
+          Continue to Payment →
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Add any client-side validation or interactivity here
+  const shareInputs = document.querySelectorAll('input[name$="-share"]');
+  const idNumberInput = document.querySelector('input[name$="-id_number"]');
+  const dateOfBirthInput = document.querySelector('input[name$="-date_of_birth"]');
+  const genderSelect = document.querySelector('select[name$="-gender"]');
+  const addButton = document.getElementById('add_beneficiary_btn');
+  
+  // Function to calculate total share
+  function calculateTotalShare() {
+    let total = 0;
+    // Get all beneficiary rows and sum their share values
+    const beneficiaryShares = document.querySelectorAll('tr .text-sm.font-medium');
+    beneficiaryShares.forEach(element => {
+      const text = element.textContent.trim();
+      if (text.endsWith('%')) {
+        total += parseFloat(text.replace('%', ''));
+      }
+    });
+    
+    // Add the current input value if it exists
+    const shareInput = document.querySelector('input[name$="-share"]');
+    if (shareInput && document.getElementById('addBeneficiaryForm')) {
+      const inputValue = parseFloat(shareInput.value) || 0;
+      // Only add the input value for preview purposes, don't include it in the actual total
+      // since it hasn't been submitted yet
+      const previewTotal = total + inputValue;
+      
+      // Update the share input styling based on whether it would exceed 100%
+      if (previewTotal > 100) {
+        shareInput.classList.add('is-invalid');
+        shareInput.classList.remove('is-valid');
+      } else if (inputValue > 0) {
+        shareInput.classList.add('is-valid');
+        shareInput.classList.remove('is-invalid');
+      }
+    }
+    
+    // Update the total display
+    const totalDisplay = document.querySelector('.total-share-display');
+    const currentTotalDisplay = document.getElementById('current-total-display');
+    
+    if (currentTotalDisplay) {
+      currentTotalDisplay.textContent = total;
+    }
+    
+    if (totalDisplay) {
+      totalDisplay.textContent = `Total Share: ${total}%`;
+      
+      // Update styling based on total
+      if (total === 100) {
+        totalDisplay.classList.remove('text-red-600', 'text-yellow-600');
+        totalDisplay.classList.add('text-green-600');
+      } else if (total > 100) {
+        totalDisplay.classList.remove('text-green-600', 'text-yellow-600');
+        totalDisplay.classList.add('text-red-600');
+      } else {
+        totalDisplay.classList.remove('text-green-600', 'text-red-600');
+        totalDisplay.classList.add('text-yellow-600');
+      }
+    }
+    
+    // Update the continue button state
+    const continueBtn = document.getElementById('continue-btn');
+    if (continueBtn) {
+      const beneficiaryCount = document.querySelectorAll('tbody tr').length;
+      const isValid = total === 100 && beneficiaryCount > 0;
+      
+      continueBtn.disabled = !isValid;
+      continueBtn.classList.toggle('opacity-50', !isValid);
+      continueBtn.classList.toggle('cursor-not-allowed', !isValid);
+    }
+    
+    return total;
+  }
+  
+  // Add event listeners to all share inputs
+  shareInputs.forEach(input => {
+    input.addEventListener('input', function() {
+      calculateTotalShare();
+      updateShareFeedback(this);
+    });
+  });
+  
+  // Function to update share feedback
+  function updateShareFeedback(input) {
+    const shareValue = parseFloat(input.value) || 0;
+    const currentTotal = calculateTotalShare();
+    const shareFeedback = document.getElementById('share-feedback');
+    
+    if (!shareFeedback) return;
+    
+    if (shareValue <= 0) {
+      shareFeedback.textContent = '';
+      shareFeedback.className = 'text-xs mt-1';
+    } else if (currentTotal + shareValue > 100) {
+      shareFeedback.textContent = `Adding ${shareValue}% would exceed 100% total`;
+      shareFeedback.className = 'text-xs mt-1 text-red-600';
+      input.classList.add('is-invalid');
+      input.classList.remove('is-valid');
+    } else {
+      const newTotal = currentTotal + shareValue;
+      if (newTotal === 100) {
+        shareFeedback.textContent = 'Perfect! Total will be 100%';
+        shareFeedback.className = 'text-xs mt-1 text-green-600';
+      } else {
+        shareFeedback.textContent = `New total will be ${newTotal}%`;
+        shareFeedback.className = 'text-xs mt-1 text-yellow-600';
+      }
+      input.classList.add('is-valid');
+      input.classList.remove('is-invalid');
+    }
+  }
+  
+  // Initial calculation
+  calculateTotalShare();
+  
+  // Add event listener to share input for real-time feedback
+  const shareInput = document.querySelector('input[name$="-share"]');
+  if (shareInput) {
+    shareInput.addEventListener('input', function() {
+      updateShareFeedback(this);
+    });
+  }
+  
+  // ID Number validation
+  if (idNumberInput) {
+    const loadingSpinner = document.getElementById('id_loading');
+    const validIcon = document.getElementById('id_valid_icon');
+    const invalidIcon = document.getElementById('id_invalid_icon');
+    const idNumberError = document.getElementById('id_number_error');
+    const idNumberHelp = document.getElementById('id_number_help');
+    
+    let validationTimeout;
+    
+    idNumberInput.addEventListener('input', function() {
+      const idNumber = this.value.trim();
+      
+      // Reset UI
+      clearTimeout(validationTimeout);
+      loadingSpinner.style.display = 'none';
+      validIcon.classList.add('hidden');
+      invalidIcon.classList.add('hidden');
+      idNumberError.textContent = '';
+      this.classList.remove('is-invalid', 'is-valid');
+      
+      // If empty, show help text
+      if (!idNumber) {
+        idNumberHelp.style.display = 'block';
+        return;
+      }
+      
+      // Hide help text when typing
+      idNumberHelp.style.display = 'none';
+      
+      // Show loading spinner
+      loadingSpinner.style.display = 'block';
+      
+      // Clear any previous timeout
+      clearTimeout(validationTimeout);
+      
+      // Set a new timeout
+      validationTimeout = setTimeout(() => {
+        // Basic format validation
+        if (!/^\d{13}$/.test(idNumber)) {
+          showIdValidationError('ID number must be 13 digits');
+          return;
+        }
+        
+        // Validate using Luhn algorithm
+        if (!isValidSAID(idNumber)) {
+          showIdValidationError('Invalid South African ID number');
+          return;
+        }
+        
+        // If we get here, the ID is valid
+        showIdValidationSuccess();
+        
+        // Extract and fill date of birth and gender
+        const dob = extractDOB(idNumber);
+        const gender = extractGender(idNumber);
+        
+        if (dob && dateOfBirthInput) {
+          const formattedDate = `${dob.getFullYear()}-${String(dob.getMonth() + 1).padStart(2, '0')}-${String(dob.getDate()).padStart(2, '0')}`;
+          dateOfBirthInput.value = formattedDate;
+        }
+        
+        if (gender && genderSelect) {
+          // Find and select the matching gender option
+          const options = Array.from(genderSelect.options);
+          const matchingOption = options.find(option => 
+            option.value.toLowerCase() === gender.toLowerCase()
+          );
+          
+          if (matchingOption) {
+            matchingOption.selected = true;
+          }
+        }
+      }, 500); // 500ms debounce
+    });
+    
+    function showIdValidationError(message) {
+      loadingSpinner.style.display = 'none';
+      invalidIcon.classList.remove('hidden');
+      idNumberError.textContent = message;
+      idNumberInput.classList.add('is-invalid');
+      addButton.disabled = true;
+    }
+    
+    function showIdValidationSuccess() {
+      loadingSpinner.style.display = 'none';
+      validIcon.classList.remove('hidden');
+      idNumberInput.classList.add('is-valid');
+      addButton.disabled = false;
+    }
+    
+    // Luhn algorithm implementation
+    function isValidSAID(idNumber) {
+      if (!idNumber || idNumber.length !== 13 || !/^\d+$/.test(idNumber)) {
+        return false;
+      }
+      
+      let sum = 0;
+      let double = false;
+      
+      // Process each digit from right to left
+      for (let i = idNumber.length - 1; i >= 0; i--) {
+        let digit = parseInt(idNumber.charAt(i), 10);
+        
+        if (double) {
+          digit *= 2;
+          if (digit > 9) {
+            digit = (digit % 10) + 1;
+          }
+        }
+        
+        sum += digit;
+        double = !double;
+      }
+      
+      return (sum % 10) === 0;
+    }
+    
+    // Extract date of birth from ID number
+    function extractDOB(idNumber) {
+      if (!idNumber || idNumber.length < 13) return null;
+      
+      const year = parseInt(idNumber.substring(0, 2), 10);
+      const month = parseInt(idNumber.substring(2, 4), 10) - 1; // JS months are 0-11
+      const day = parseInt(idNumber.substring(4, 6), 10);
+      
+      // Handle Y2K - IDs after 2000 have 00-99 as years, so we need to adjust
+      const currentYear = new Date().getFullYear();
+      const currentCentury = Math.floor(currentYear / 100) * 100;
+      const fullYear = currentCentury - 100 + year > currentYear - 100 ? 
+                      currentCentury - 100 + year : 
+                      currentCentury + year;
+      
+      // Create the date (months are 0-11 in JS)
+      const dob = new Date(fullYear, month, day);
+      
+      // Check if the date is valid
+      if (isNaN(dob.getTime())) {
+        return null;
+      }
+      
+      return dob;
+    }
+    
+    // Extract gender from ID number
+    function extractGender(idNumber) {
+      if (!idNumber || idNumber.length < 13) return '';
+      
+      // The 7th digit (0-9) indicates gender: 0-4 = female, 5-9 = male
+      const genderDigit = parseInt(idNumber.charAt(6), 10);
+      return genderDigit >= 5 ? 'M' : 'F';
+    }
+    
+    // Form validation function
+    function validateBeneficiaryForm(event) {
+      const idNumber = idNumberInput.value.trim();
+      const firstName = document.querySelector('input[name$="-first_name"]').value.trim();
+      const lastName = document.querySelector('input[name$="-last_name"]').value.trim();
+      const relationship = document.querySelector('select[name$="-relationship_to_main_member"]').value;
+      const share = document.querySelector('input[name$="-share"]').value.trim();
+      
+      // Check if required fields are filled
+      if (!firstName) {
+        alert('First name is required');
+        return false;
+      }
+      
+      if (!lastName) {
+        alert('Last name is required');
+        return false;
+      }
+      
+      if (!relationship) {
+        alert('Relationship is required');
+        return false;
+      }
+      
+      if (!share) {
+        alert('Share percentage is required');
+        return false;
+      }
+      
+      // Validate share percentage
+      const shareValue = parseFloat(share);
+      if (isNaN(shareValue) || shareValue < 1 || shareValue > 100) {
+        alert('Share percentage must be between 1 and 100');
+        return false;
+      }
+      
+      // Validate ID number if provided
+      if (idNumber && !isValidSAID(idNumber)) {
+        alert('Please enter a valid South African ID number');
+        return false;
+      }
+      
+      // Check if adding this beneficiary would exceed 100% total share
+      let currentTotal = 0;
+      document.querySelectorAll('tr .text-sm.font-medium').forEach(element => {
+        const text = element.textContent.trim();
+        if (text.endsWith('%')) {
+          currentTotal += parseFloat(text.replace('%', ''));
+        }
+      });
+      
+      if (currentTotal + shareValue > 100) {
+        alert(`Adding this beneficiary would exceed 100% total share. Current total: ${currentTotal}%`);
+        return false;
+      }
+      
+      // All validations passed
+      return true;
+    }
+    
+    // Add event listener for the continue button
+    const continueBtn = document.getElementById('continue-btn');
+    if (continueBtn) {
+      continueBtn.addEventListener('click', function(event) {
+        // Check if at least one beneficiary is added
+        const beneficiaryCount = document.querySelectorAll('tbody tr').length;
+        if (beneficiaryCount === 0) {
+          event.preventDefault();
+          alert('Please add at least one beneficiary before continuing.');
+          return false;
+        }
+        
+        // Check if total share is exactly 100%
+        let totalShare = 0;
+        document.querySelectorAll('tr .text-sm.font-medium').forEach(element => {
+          const text = element.textContent.trim();
+          if (text.endsWith('%')) {
+            totalShare += parseFloat(text.replace('%', ''));
+          }
+        });
+        
+        if (totalShare !== 100) {
+          event.preventDefault();
+          alert(`Total share must be exactly 100%. Current total: ${totalShare}%`);
+          return false;
+        }
+      });
+    }
+    
+    // Add event listener for the save & exit button
+    const saveExitBtn = document.getElementById('save-exit-btn');
+    if (saveExitBtn) {
+      saveExitBtn.addEventListener('click', function() {
+        window.location.href = '{% url "members:dashboard" %}';
+      });
+    }
+  }
+  
+  // Form submission validation
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      // Check if ID number is valid
+      const idNumberInput = this.querySelector('input[name$="-id_number"]');
+      if (idNumberInput && !idNumberInput.classList.contains('is-valid')) {
+        e.preventDefault();
+        idNumberInput.focus();
+        return false;
+      }
+      
+      // Check if all required fields are filled
+      const requiredInputs = this.querySelectorAll('[required]');
+      let isValid = true;
+      
+      requiredInputs.forEach(input => {
+        if (!input.value.trim()) {
+          isValid = false;
+          input.classList.add('is-invalid');
+          
+          // Create error message if it doesn't exist
+          if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('invalid-feedback')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = 'This field is required';
+            input.insertAdjacentElement('afterend', errorDiv);
+          }
+        } else {
+          input.classList.remove('is-invalid');
+          const errorDiv = input.nextElementSibling;
+          if (errorDiv && errorDiv.classList.contains('invalid-feedback')) {
+            errorDiv.remove();
+          }
+        }
+      });
+      
+      if (!isValid) {
+        e.preventDefault();
+        return false;
+      }
+      
+      return true;
+    });
+  }
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'members/js/beneficiary_validation.js' %}"></script>
+{% endblock %}

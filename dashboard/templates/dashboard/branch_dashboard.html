@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Branch Dashboard</h1>
+
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% else %}
+    {% if branch %}
+      <h2>Branch: {{ branch.name }}</h2>
+    {% else %}
+      <h2>All Branches (Superuser)</h2>
+    {% endif %}
+
+    <h3>Schemes</h3>
+    <ul>
+      {% for scheme in schemes %}
+        <li>{{ scheme.name }} (Policies: {{ scheme.policy_count }}, Agents: {{ scheme.agent_count }}, Members: {{ scheme.member_count }})</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Agents</h3>
+    <ul>
+      {% for agent in agents %}
+        <li>{{ agent.full_name }}</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Total Members: {{ total_members }}</h3>
+    <h3>Total Policies: {{ total_policies }}</h3>
+    <h3>New Signups (This Month): {{ new_signups }}</h3>
+
+    <h3>Top Agents (by Policy Count)</h3>
+    <ul>
+      {% for agent in top_agents %}
+        <li>{{ agent.underwritten_by__full_name }}: {{ agent.count }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

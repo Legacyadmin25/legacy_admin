@@ -1,0 +1,26 @@
+{% load static %}
+{% load widget_tweaks %}
+
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg shadow p-6 space-y-4">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Policy Profile</h1>
+    </div>
+
+    <!-- Search Results -->
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Search Results</h2>
+      {% if members %}
+        <ul class="list-disc list-inside">
+          {% for member in members %}
+            <li>
+              {{ member.first_name }} {{ member.last_name }} ({{ member.id_number }})
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No members found.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>

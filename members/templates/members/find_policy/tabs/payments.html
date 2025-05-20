@@ -1,0 +1,244 @@
+{% load widget_tweaks %}
+
+<div class="bg-white px-6 py-6">
+  <div class="md:grid md:grid-cols-3 md:gap-6">
+    <div class="md:col-span-1">
+      <h3 class="text-lg font-medium leading-6 text-gray-900">Payment Options</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Manage payment methods and bank details for this policy.
+      </p>
+    </div>
+    
+    <div class="mt-5 md:mt-0 md:col-span-2">
+      <form method="post" action="{% url 'members:policy_detail' policy.id %}" data-tab-submit>
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="payment">
+        
+        <div class="shadow overflow-hidden sm:rounded-md">
+          <div class="px-4 py-5 bg-white sm:p-6">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Payment Method</h4>
+            
+            <!-- Payment Method Selection -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Select Payment Method
+                  <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {% for choice in payment_form.payment_method %}
+                    <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      {{ choice.tag }}
+                      <span class="ml-3 block text-sm font-medium text-gray-700">
+                        {{ choice.choice_label }}
+                      </span>
+                      <div class="absolute inset-0 border-2 border-transparent pointer-events-none rounded-lg" aria-hidden="true"></div>
+                    </label>
+                  {% endfor %}
+                </div>
+                {% if payment_form.payment_method.errors %}
+                  <p class="mt-2 text-sm text-red-600">{{ payment_form.payment_method.errors.0 }}</p>
+                {% endif %}
+              </div>
+
+            <!-- Debit Order Section -->
+            <div id="debit-order-fields" class="space-y-6 p-4 bg-gray-50 rounded-lg hidden">
+              <h5 class="text-sm font-medium text-gray-700">Bank Account Details</h5>
+              
+              <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                <!-- Bank -->
+                <div class="sm:col-span-3">
+                  <label for="id_bank" class="block text-sm font-medium text-gray-700">
+                    {{ payment_form.bank.label }}
+                    <span class="text-red-500">*</span>
+                  </label>
+                  {% render_field payment_form.bank class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                  {% if payment_form.bank.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ payment_form.bank.errors.0 }}</p>
+                  {% endif %}
+                </div>
+                
+                <!-- Branch Code -->
+                <div class="sm:col-span-3">
+                  <label for="id_branch_code" class="block text-sm font-medium text-gray-700">
+                    {{ payment_form.branch_code.label }}
+                  </label>
+                  {% render_field payment_form.branch_code class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" readonly="readonly" %}
+                </div>
+                
+                <!-- Same as Member -->
+                <div class="sm:col-span-6">
+                  <div class="flex items-center">
+                    {% render_field payment_form.same_as_member class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %}
+                    <label for="id_same_as_member" class="ml-2 block text-sm text-gray-700">
+                      {{ payment_form.same_as_member.label }}
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Account Holder -->
+                <div class="sm:col-span-6">
+                  <label for="id_account_holder_name" class="block text-sm font-medium text-gray-700">
+                    {{ payment_form.account_holder_name.label }}
+                    <span class="text-red-500">*</span>
+                  </label>
+                  {% render_field payment_form.account_holder_name class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                  {% if payment_form.account_holder_name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ payment_form.account_holder_name.errors.0 }}</p>
+                  {% endif %}
+                </div>
+                
+                <!-- Account Number -->
+                <div class="sm:col-span-3">
+                  <label for="id_account_number" class="block text-sm font-medium text-gray-700">
+                    {{ payment_form.account_number.label }}
+                    <span class="text-red-500">*</span>
+                  </label>
+                  {% render_field payment_form.account_number class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                  {% if payment_form.account_number.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ payment_form.account_number.errors.0 }}</p>
+                  {% endif %}
+                </div>
+
+                <!-- Debit Instruction Date -->
+                <div class="sm:col-span-3">
+                  <label for="id_debit_instruction_day" class="block text-sm font-medium text-gray-700">
+                    {{ payment_form.debit_instruction_day.label }}
+                    <span class="text-red-500">*</span>
+                  </label>
+                  {% render_field payment_form.debit_instruction_day class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %}
+                  {% if payment_form.debit_instruction_day.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ payment_form.debit_instruction_day.errors.0 }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            
+            <!-- EFT Section -->
+            <div id="eft-section" class="p-4 bg-blue-50 rounded-lg hidden">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h2a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <div class="flex items-center">
+                    {% render_field payment_form.eft_agreed class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %}
+                    <label for="id_eft_agreed" class="ml-2 block text-sm font-medium text-gray-700">
+                      I agree to pay via EFT
+                    </label>
+                  </div>
+                  {% if payment_form.eft_agreed.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ payment_form.eft_agreed.errors.0 }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            
+            <!-- EasyPay Number -->
+            <div class="mt-6 pt-6 border-t border-gray-200">
+              <h4 class="text-md font-medium text-gray-900 mb-4">Payment Reference</h4>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="grid grid-cols-1 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <p class="text-sm font-medium text-gray-500">EasyPay Number</p>
+                    <p class="mt-1 text-sm text-gray-900 font-mono">{{ policy.easypay_number|default:'Not assigned' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-500">Payment Reference</p>
+                    <p class="mt-1 text-sm text-gray-900 font-mono">POL-{{ policy.id|stringformat:"06d" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Save Payment Details
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript
+document.addEventListener('DOMContentLoaded', function() {
+  // Show/hide sections based on payment method
+  function showSections() {
+    var method = document.querySelector('input[name="payment_method"]:checked')?.value;
+    if (!method) return;
+    
+    // Toggle sections
+    document.getElementById('debit-order-fields')?.classList.toggle('hidden', method !== 'DEBIT_ORDER');
+    document.getElementById('eft-section')?.classList.toggle('hidden', method !== 'EFT');
+    
+    // Update visual feedback for selected payment method
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+      const label = radio.closest('label');
+      if (label) {
+        const borderEl = label.querySelector('div[aria-hidden="true"]');
+        if (borderEl) {
+          borderEl.classList.toggle('border-blue-500', radio.checked);
+        }
+      }
+    });
+  }
+  
+  // Initialize payment method selection
+  var radios = document.querySelectorAll('input[name="payment_method"]');
+  radios.forEach(function(radio) { 
+    radio.addEventListener('change', showSections);
+    // Add visual feedback on selection
+    radio.addEventListener('focus', function() {
+      this.closest('label')?.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500');
+    });
+    radio.addEventListener('blur', function() {
+      this.closest('label')?.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500');
+    });
+  });
+  
+  // Initialize sections
+  showSections();
+  
+  // Branch code map
+  var branchMap = {};
+  try { 
+    branchMap = JSON.parse('{{ bank_branch_map_json|escapejs }}'); 
+  } catch(e) {
+    console.error('Error parsing bank branch map:', e);
+  }
+  
+  // Update branch code when bank changes
+  var bankEl = document.getElementById('id_bank');
+  if (bankEl) {
+    bankEl.addEventListener('change', function(){
+      var code = branchMap[this.value] || '';
+      var branchCodeEl = document.getElementById('id_branch_code');
+      if (branchCodeEl) branchCodeEl.value = code;
+    });
+  }
+  
+  // Same-as-member toggle
+  var sameCb = document.getElementById('id_same_as_member');
+  var holderEl = document.getElementById('id_account_holder_name');
+  if (sameCb && holderEl) {
+    sameCb.addEventListener('change', function(){
+      if (this.checked) {
+        holderEl.value = "{{ member.first_name }} {{ member.last_name }}";
+        holderEl.readOnly = true;
+        holderEl.classList.add('bg-gray-100');
+      } else {
+        holderEl.value = '';
+        holderEl.readOnly = false;
+        holderEl.classList.remove('bg-gray-100');
+      }
+    });
+    // Initialize on page load
+    sameCb.dispatchEvent(new Event('change'));
+  }
+});
+</script>

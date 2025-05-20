@@ -1,0 +1,467 @@
+{% extends "diy/base_application.html" %}
+
+{% block title %}Payment Options - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  // Form data
+  formData: {
+    payment_method: 'debit_order',
+    bank_name: '',
+    account_number: '',
+    account_type: 'savings',
+    branch_code: '',
+    account_holder_name: '',
+    same_as_member: true,
+    debit_day: '1',
+    terms_accepted: false,
+    marketing_consent: false,
+    ...(typeof $store !== 'undefined' ? $store.formData : {})
+  },
+  
+  // Bank options (South African banks)
+  banks: [
+    { value: 'absa', label: 'ABSA' },
+    { value: 'fnb', label: 'First National Bank (FNB)' },
+    { value: 'nedbank', label: 'Nedbank' },
+    { value: 'standard', label: 'Standard Bank' },
+    { value: 'capitec', label: 'Capitec Bank' },
+    { value: 'investec', label: 'Investec' },
+    { value: 'african_bank', label: 'African Bank' },
+    { value: 'bidvest', label: 'Bidvest Bank' },
+    { value: 'other', label: 'Other' }
+  ],
+  
+  // Account types
+  accountTypes: [
+    { value: 'savings', label: 'Savings Account' },
+    { value: 'cheque', label: 'Cheque Account' },
+    { value: 'transmission', label: 'Transmission Account' },
+    { value: 'other', label: 'Other' }
+  ],
+  
+  // Debit days
+  debitDays: Array.from({length: 28}, (_, i) => (i + 1).toString()),
+  
+  // Validation state
+  errors: {},
+  
+  // Computed properties
+  get showDebitOrderFields() {
+    return this.formData.payment_method === 'debit_order';
+  },
+  
+  get showEftFields() {
+    return this.formData.payment_method === 'eft';
+  },
+  
+  // Methods
+  validate() {
+    this.errors = {};
+    let isValid = true;
+    
+    // Debit order validation
+    if (this.formData.payment_method === 'debit_order') {
+      if (!this.formData.bank_name) {
+        this.errors.bank_name = 'Please select your bank';
+        isValid = false;
+      }
+      
+      if (!this.formData.account_number || !/^\d+$/.test(this.formData.account_number)) {
+        this.errors.account_number = 'Please enter a valid account number';
+        isValid = false;
+      }
+      
+      if (!this.formData.branch_code || !/^\d+$/.test(this.formData.branch_code)) {
+        this.errors.branch_code = 'Please enter a valid branch code';
+        isValid = false;
+      }
+      
+      if (!this.formData.account_holder_name) {
+        this.errors.account_holder_name = 'Please enter the account holder name';
+        isValid = false;
+      }
+      
+      if (!this.formData.terms_accepted) {
+        this.errors.terms_accepted = 'You must accept the debit order terms';
+        isValid = false;
+      }
+    }
+    
+    return isValid;
+  },
+  
+  copyToClipboard(text, elementId) {
+    navigator.clipboard.writeText(text).then(() => {
+      const tooltip = document.createElement('div');
+      tooltip.textContent = 'Copied!';
+      tooltip.className = 'fixed bg-black text-white text-xs py-1 px-2 rounded z-50';
+      document.body.appendChild(tooltip);
+      
+      // Position tooltip near the button
+      const button = document.getElementById(elementId);
+      const rect = button.getBoundingClientRect();
+      tooltip.style.top = (rect.top - 25) + 'px';
+      tooltip.style.left = (rect.left + rect.width / 2 - 25) + 'px';
+      
+      // Remove tooltip after 2 seconds
+      setTimeout(() => {
+        tooltip.remove();
+      }, 2000);
+    });
+  },
+  
+  // Initialize
+  init() {
+    // Load from store if available
+    if (this.$store.formData) {
+      this.formData = { ...this.formData, ...this.$store.formData };
+    }
+    
+    // Set account holder name to member name if same_as_member is true
+    if (this.formData.same_as_member && !this.formData.account_holder_name) {
+      this.formData.account_holder_name = this.$store.formData?.first_name + ' ' + (this.$store.formData?.last_name || '');
+    }
+  }
+}">
+  <h2 class="text-2xl font-bold text-gray-800 mb-6">Payment Options</h2>
+  
+  <div class="space-y-8">
+    <!-- Payment Method Selection -->
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-3">Select Payment Method <span class="text-red-500">*</span></h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Debit Order Option -->
+        <label 
+          :class="{ 'ring-2 ring-blue-500 border-transparent': formData.payment_method === 'debit_order' }"
+          class="relative p-4 border border-gray-300 rounded-lg bg-white shadow-sm cursor-pointer hover:border-blue-500 transition-colors">
+          <div class="flex items-center">
+            <input 
+              type="radio" 
+              name="payment_method" 
+              value="debit_order"
+              x-model="formData.payment_method"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+            <div class="ml-3">
+              <span class="block text-sm font-medium text-gray-900">Debit Order</span>
+              <span class="block text-xs text-gray-500">Automatic monthly payments from your bank account</span>
+            </div>
+          </div>
+          <div class="absolute top-2 right-2">
+            <i class="fa-solid fa-credit-card text-blue-500"></i>
+          </div>
+        </label>
+        
+        <!-- EFT Option -->
+        <label 
+          :class="{ 'ring-2 ring-blue-500 border-transparent': formData.payment_method === 'eft' }"
+          class="relative p-4 border border-gray-300 rounded-lg bg-white shadow-sm cursor-pointer hover:border-blue-500 transition-colors">
+          <div class="flex items-center">
+            <input 
+              type="radio" 
+              name="payment_method" 
+              value="eft"
+              x-model="formData.payment_method"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+            <div class="ml-3">
+              <span class="block text-sm font-medium text-gray-900">Electronic Funds Transfer (EFT)</span>
+              <span class="block text-xs text-gray-500">Make manual payments via bank transfer</span>
+            </div>
+          </div>
+          <div class="absolute top-2 right-2">
+            <i class="fa-solid fa-building-columns text-green-500"></i>
+          </div>
+        </label>
+      </div>
+    </div>
+    
+    <!-- Debit Order Fields -->
+    <div x-show="showDebitOrderFields" class="space-y-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Bank Account Details</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bank Name -->
+        <div>
+          <label for="bank-name" class="block text-sm font-medium text-gray-700 mb-1">Bank Name <span class="text-red-500">*</span></label>
+          <select 
+            id="bank-name"
+            x-model="formData.bank_name"
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <option value="">Select your bank</option>
+            <template x-for="bank in banks" :key="bank.value">
+              <option :value="bank.value" x-text="bank.label"></option>
+            </template>
+          </select>
+          <p class="mt-1 text-xs text-red-600" x-text="errors.bank_name" x-show="errors.bank_name"></p>
+        </div>
+        
+        <!-- Account Number -->
+        <div>
+          <label for="account-number" class="block text-sm font-medium text-gray-700 mb-1">Account Number <span class="text-red-500">*</span></label>
+          <input 
+            type="text"
+            id="account-number"
+            x-model="formData.account_number"
+            inputmode="numeric"
+            pattern="\d*"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            placeholder="e.g. 1234567890">
+          <p class="mt-1 text-xs text-red-600" x-text="errors.account_number" x-show="errors.account_number"></p>
+        </div>
+        
+        <!-- Account Type -->
+        <div>
+          <label for="account-type" class="block text-sm font-medium text-gray-700 mb-1">Account Type <span class="text-red-500">*</span></label>
+          <select 
+            id="account-type"
+            x-model="formData.account_type"
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <template x-for="type in accountTypes" :key="type.value">
+              <option :value="type.value" x-text="type.label"></option>
+            </template>
+          </select>
+        </div>
+        
+        <!-- Branch Code -->
+        <div>
+          <label for="branch-code" class="block text-sm font-medium text-gray-700 mb-1">Branch Code <span class="text-red-500">*</span></label>
+          <input 
+            type="text"
+            id="branch-code"
+            x-model="formData.branch_code"
+            inputmode="numeric"
+            pattern="\d*"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            placeholder="e.g. 123456">
+          <p class="mt-1 text-xs text-red-600" x-text="errors.branch_code" x-show="errors.branch_code"></p>
+        </div>
+        
+        <!-- Account Holder Name -->
+        <div class="md:col-span-2">
+          <div class="flex items-center mb-1">
+            <input 
+              type="checkbox" 
+              id="same-as-member" 
+              x-model="formData.same_as_member"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <label for="same-as-member" class="ml-2 block text-sm text-gray-700">
+              Account holder is the same as the policyholder
+            </label>
+          </div>
+          
+          <input 
+            type="text"
+            id="account-holder-name"
+            x-model="formData.account_holder_name"
+            :disabled="formData.same_as_member"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            :class="{ 'bg-gray-100': formData.same_as_member }"
+            placeholder="Full name as it appears on bank account">
+          <p class="mt-1 text-xs text-red-600" x-text="errors.account_holder_name" x-show="errors.account_holder_name"></p>
+        </div>
+        
+        <!-- Debit Day -->
+        <div>
+          <label for="debit-day" class="block text-sm font-medium text-gray-700 mb-1">Debit Day <span class="text-red-500">*</span></label>
+          <select 
+            id="debit-day"
+            x-model="formData.debit_day"
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <template x-for="day in debitDays" :key="day">
+              <option :value="day" x-text="day"></option>
+            </template>
+          </select>
+          <p class="mt-1 text-xs text-gray-500">Day of the month for debit order collection</p>
+        </div>
+      </div>
+      
+      <!-- Terms and Conditions -->
+      <div class="mt-6 p-4 bg-white border border-gray-200 rounded-md">
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input 
+              id="terms-accepted" 
+              type="checkbox" 
+              x-model="formData.terms_accepted"
+              class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="terms-accepted" class="font-medium text-gray-700">Debit Order Terms</label>
+            <p class="text-gray-600">
+              I authorize Linkserv (Pty) Ltd to debit my account for the monthly premium as per the policy terms.
+              I understand that this authority will remain in force until I provide 30 days' written notice to cancel.
+            </p>
+            <p class="mt-2 text-xs text-gray-500">
+              <a href="#" class="text-blue-600 hover:text-blue-800">View full debit order terms and conditions</a>
+            </p>
+            <p class="mt-1 text-xs text-red-600" x-text="errors.terms_accepted" x-show="errors.terms_accepted"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- EFT Payment Instructions -->
+    <div x-show="showEftFields" class="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h2a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800">Important Payment Instructions</h3>
+          <div class="mt-2 text-sm text-yellow-700">
+            <p>Please use your ID number as the payment reference when making the EFT payment.</p>
+            <p class="mt-2">Your policy will only be activated once we receive and verify your payment.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Banking Details</h4>
+          <div class="bg-white p-4 rounded-md border border-gray-200">
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div class="text-gray-500">Bank:</div>
+              <div class="font-medium">Standard Bank</div>
+              
+              <div class="text-gray-500">Account Name:</div>
+              <div class="font-medium">Linkserv (Pty) Ltd</div>
+              
+              <div class="text-gray-500">Account Number:</div>
+              <div class="font-mono">
+                <span class="mr-2">1234567890</span>
+                <button 
+                  type="button" 
+                  @click="copyToClipboard('1234567890', 'copy-account')"
+                  id="copy-account"
+                  class="text-blue-600 hover:text-blue-800 text-xs">
+                  <span class="inline-flex items-center">
+                    <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copy
+                  </span>
+                </button>
+              </div>
+              
+              <div class="text-gray-500">Branch Code:</div>
+              <div class="font-mono">051001</div>
+              
+              <div class="text-gray-500">Reference:</div>
+              <div class="font-mono">
+                <span x-text="$store.formData?.id_number || 'Your ID number'"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-sm font-medium text-gray-700 mb-2">How to Pay</h4>
+          <ol class="list-decimal list-inside text-sm space-y-2 text-gray-700">
+            <li>Log in to your online banking</li>
+            <li>Add Linkserv (Pty) Ltd as a beneficiary</li>
+            <li>Use the banking details provided</li>
+            <li>Use your ID number as the reference</li>
+            <li>Make your first payment</li>
+            <li>Email proof of payment to <a href="mailto:payments@linkserv.co.za" class="text-blue-600">payments@linkserv.co.za</a></li>
+          </ol>
+          
+          <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p class="text-sm text-blue-700">
+              <strong>Note:</strong> Please allow 24-48 hours for payment verification and policy activation.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Marketing Consent -->
+    <div class="flex items-start">
+      <div class="flex items-center h-5">
+        <input 
+          id="marketing-consent" 
+          type="checkbox" 
+          x-model="formData.marketing_consent"
+          class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+      </div>
+      <div class="ml-3 text-sm">
+        <label for="marketing-consent" class="font-medium text-gray-700">Marketing Consent</label>
+        <p class="text-gray-500">
+          I agree to receive marketing communications about products, services, and special offers from Linkserv.
+          I understand I can unsubscribe at any time.
+        </p>
+      </div>
+    </div>
+    
+    <!-- Summary -->
+    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
+      
+      <div class="space-y-4">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Policy Type:</span>
+          <span class="font-medium" x-text="$store.formData?.policy_type ? $store.formData.policy_type.charAt(0).toUpperCase() + $store.formData.policy_type.slice(1) : 'N/A'"></span>
+        </div>
+        
+        <div class="flex justify-between">
+          <span class="text-gray-600">Cover Amount:</span>
+          <span class="font-medium" x-text="$store.formData?.cover_amount ? 'R' + parseInt($store.formData.cover_amount).toLocaleString() : 'N/A'"></span>
+        </div>
+        
+        <div class="flex justify-between" x-show="$store.formData?.has_extended_family && $store.formData?.extended_family_members > 0">
+          <span class="text-gray-600">Extended Family Members:</span>
+          <span class="font-medium" x-text="$store.formData?.extended_family_members || '0'"></span>
+        </div>
+        
+        <div class="border-t border-gray-200 my-2"></div>
+        
+        <div class="flex justify-between text-lg font-bold">
+          <span>Total Monthly Premium:</span>
+          <span class="text-blue-700" x-text="$store.formData?.monthly_premium ? 'R' + $store.formData.monthly_premium.toLocaleString() + ' per month' : 'N/A'"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form Actions (handled by parent) -->
+  <div class="hidden">
+    <button type="button" @click="$store.formData = { ...$store.formData, ...formData }; $store.currentStep = 6">Submit Application</button>
+  </div>
+</div>
+
+<script>
+// Add validation function to parent component
+document.addEventListener('alpine:init', () => {
+  // Initialize form data
+  Alpine.store('formData', Alpine.store('formData') || {});
+  
+  // Extend the parent's validateStep function
+  const originalValidate = window.validateStep;
+  window.validateStep = function(step) {
+    if (step === 5) {
+      const form = document.querySelector('[x-data]').__x.$data;
+      if (!form.validate()) {
+        // Scroll to first error
+        const firstError = document.querySelector('.text-red-600:not([style*="display: none"])');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return false;
+      }
+      return true;
+    }
+    return originalValidate ? originalValidate(step) : true;
+  };
+  
+  // Watch for changes to same_as_member and update account_holder_name
+  Alpine.effect(() => {
+    const form = document.querySelector('[x-data]')?.__x.$data;
+    if (form && form.formData.same_as_member && form.$store.formData) {
+      form.formData.account_holder_name = 
+        (form.$store.formData.first_name || '') + ' ' + (form.$store.formData.last_name || '');
+    }
+  });
+});
+</script>
+{% endblock %}

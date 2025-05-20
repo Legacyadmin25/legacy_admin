@@ -1,0 +1,54 @@
+### import_data/templates/import_data/lapsed_reactivations_preview.html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h1 class="text-2xl font-semibold mb-4">Preview Reactivations</h1>
+  <table class="min-w-full bg-white">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2">Row</th>
+        <th class="px-4 py-2">Membership #</th>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in preview_rows %}
+      <tr class="border-t">
+        <td class="px-4 py-2">{{ row.row }}</td>
+        <td class="px-4 py-2">{{ row.membership_number }}</td>
+        <td class="px-4 py-2">
+          {% if row.status == 'Not Found' or row.status == 'Error' %}
+            <span class="text-red-600">{{ row.status }}</span>
+          {% else %}
+            <span class="text-green-600">Success</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-2">
+          {% if row.changes %}
+            <ul class="list-disc pl-5">
+              {% for field, diff in row.changes.items %}
+                <li><strong>{{ field }}:</strong> {{ diff.0 }} → {{ diff.1 }}</li>
+              {% endfor %}
+            </ul>
+          {% elif row.errors %}
+            <ul class="list-disc pl-5 text-red-600">
+              {% for field, err in row.errors.items %}
+                <li>{{ field }}: {{ err }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="text-gray-500">No changes</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Confirm & Apply</button>
+  </form>
+</div>
+{% endblock %}

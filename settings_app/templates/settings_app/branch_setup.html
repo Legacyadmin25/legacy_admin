@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+  <!-- ─── BRANCH SETUP FORM ─── -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-6">
+    <h2 class="text-2xl font-bold border-b pb-2">
+      {% if form.instance.pk %}
+        Editing Branch: {{ form.instance.name }}
+      {% else %}
+        New Branch
+      {% endif %}
+    </h2>
+
+    <form method="post"
+          action="{% if form.instance.pk %}{% url 'settings:branch_edit' form.instance.pk %}{% else %}{% url 'settings:branch_create' %}{% endif %}"
+          class="space-y-6">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- LEFT COLUMN: Basic Info -->
+        <div class="space-y-4">
+          <div>
+            <label class="block font-semibold mb-1">Branch Name</label>
+            {% render_field form.name class="w-full px-4 py-2 border rounded" %}
+            {{ form.name.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Branch Code</label>
+            {% render_field form.code class="w-full px-4 py-2 border rounded" %}
+            {{ form.code.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Phone Number</label>
+            {% render_field form.phone class="w-full px-4 py-2 border rounded" %}
+            {{ form.phone.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Cell Number</label>
+            {% render_field form.cell class="w-full px-4 py-2 border rounded" %}
+            {{ form.cell.errors }}
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Address Fields -->
+        <div class="space-y-4">
+          <div>
+            <label class="block font-semibold mb-1">Physical Address</label>
+            {% render_field form.physical_address class="w-full px-4 py-2 border rounded" %}
+            {{ form.physical_address.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Street</label>
+            {% render_field form.street class="w-full px-4 py-2 border rounded" %}
+            {{ form.street.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Town</label>
+            {% render_field form.town class="w-full px-4 py-2 border rounded" %}
+            {{ form.town.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Province</label>
+            {% render_field form.province class="w-full px-4 py-2 border rounded" %}
+            {{ form.province.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Region</label>
+            {% render_field form.region class="w-full px-4 py-2 border rounded" %}
+            {{ form.region.errors }}
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Postal Code</label>
+            {% render_field form.postal_code class="w-full px-4 py-2 border rounded" %}
+            {{ form.postal_code.errors }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Scheme Selection -->
+      <div>
+        <label class="block font-semibold mb-1">Available Schemes</label>
+        {{ form.schemes.errors }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for checkbox in form.schemes %}
+            <label class="inline-flex items-center space-x-2">
+              {{ checkbox.tag }}
+              <span class="text-gray-800">{{ checkbox.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="flex gap-4">
+        <button type="submit"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
+          {% if form.instance.pk %}Update Branch{% else %}Save Branch{% endif %}
+        </button>
+        <a href="{% url 'settings:branch' %}"
+           class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- ─── BRANCH LIST ─── -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-6 overflow-x-auto">
+    <h2 class="text-2xl font-bold border-b pb-2">Branch List</h2>
+
+    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+      <a href="{% url 'settings_dashboard:branch_export_csv' %}"
+         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+        Export CSV
+      </a>
+      <input id="branchSearch"
+             type="text"
+             placeholder="Search Branch..."
+             class="border px-4 py-2 rounded w-full md:w-64">
+    </div>
+
+    <table class="min-w-full text-sm text-left border border-gray-300 rounded overflow-hidden">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="p-3 border">Name</th>
+          <th class="p-3 border">Code</th>
+          <th class="p-3 border">Phone</th>
+          <th class="p-3 border">Cell</th>
+          <th class="p-3 border">Physical Address</th>
+          <th class="p-3 border">Street</th>
+          <th class="p-3 border">Town</th>
+          <th class="p-3 border">Province</th>
+          <th class="p-3 border">Region</th>
+          <th class="p-3 border">Postal Code</th>
+          <th class="p-3 border">Modified By</th>
+          <th class="p-3 border">Modified Date</th>
+          <th class="p-3 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for branch in branches %}
+        <tr class="hover:bg-gray-50">
+          <td class="p-2 border">{{ branch.name }}</td>
+          <td class="p-2 border">{{ branch.code }}</td>
+          <td class="p-2 border">{{ branch.phone }}</td>
+          <td class="p-2 border">{{ branch.cell }}</td>
+          <td class="p-2 border">{{ branch.physical_address }}</td>
+          <td class="p-2 border">{{ branch.street }}</td>
+          <td class="p-2 border">{{ branch.town }}</td>
+          <td class="p-2 border">{{ branch.province }}</td>
+          <td class="p-2 border">{{ branch.region }}</td>
+          <td class="p-2 border">{{ branch.postal_code }}</td>
+          <td class="p-2 border">{{ branch.modified_user }}</td>
+          <td class="p-2 border">{{ branch.modified_date }}</td>
+          <td class="p-2 border space-x-2">
+            <a href="{% url 'settings:branch_edit' branch.pk %}" class="text-blue-600 hover:underline">Edit</a> |
+            <a href="{% url 'settings:branch_delete' branch.pk %}" class="text-red-600 hover:underline" onclick="return confirm('Delete this branch?');">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="14" class="p-4 text-center text-gray-500">No branches yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

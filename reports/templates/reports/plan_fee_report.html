@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1 class="text-xl font-semibold">Plan Fee Distribution Report</h1>
+
+  <!-- ── Filter Form ─────────────────────────────────────────────── -->
+  <form method="GET" action="" class="space-y-4">
+    {# This hidden field flags “Generate” clicks #}
+    <input type="hidden" name="generate" value="1" />
+
+    <div>
+      <label for="scheme" class="block text-sm font-medium">Scheme</label>
+      <select name="scheme" id="scheme" class="w-full p-2 border rounded-md">
+        <option value="">All Schemes</option>
+        {% for scheme in schemes %}
+          <option value="{{ scheme.id }}"
+            {% if scheme.id|stringformat:"s" == filter_scheme|stringformat:"s" %}selected{% endif %}>
+            {{ scheme.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="status" class="block text-sm font-medium">Policy Status</label>
+      <select name="status" id="status" class="w-full p-2 border rounded-md">
+        <option value="" {% if filter_status == "" %}selected{% endif %}>All Status</option>
+        <option value="active" {% if filter_status == "active" %}selected{% endif %}>Active</option>
+        <option value="lapsed" {% if filter_status == "lapsed" %}selected{% endif %}>Lapsed</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit"
+              class="w-full bg-blue-500 text-white p-2 rounded-md">
+        Generate Report
+      </button>
+    </div>
+  </form>
+
+  <!-- ── Only show after submission ─────────────────────────────── -->
+  {% if submitted %}
+    {% if policy_fees %}
+      <table class="w-full mt-4 border-collapse text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Policy Number</th>
+            <th class="p-2 border">Premium</th>
+            <th class="p-2 border">Fixed Comm.</th>
+            <th class="p-2 border">Pct. Comm.</th>
+            <th class="p-2 border">Admin Fee</th>
+            <th class="p-2 border">Cash Payout</th>
+            <th class="p-2 border">Loyalty Prog.</th>
+            <th class="p-2 border">Total Fee</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in policy_fees %}
+            <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+              <td class="p-2 border">{{ row.membership_number }}</td>
+              <td class="p-2 border">{{ row.main_premium }}</td>
+              <td class="p-2 border">{{ row.fixed_commission }}</td>
+              <td class="p-2 border">{{ row.percentage_commission }}</td>
+              <td class="p-2 border">{{ row.admin_fee }}</td>
+              <td class="p-2 border">{{ row.cash_payout }}</td>
+              <td class="p-2 border">{{ row.loyalty_programme }}</td>
+              <td class="p-2 border">{{ row.total_fee }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="mt-4 text-gray-600">No policies found for those filters.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

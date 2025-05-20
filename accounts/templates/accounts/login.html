@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LegacyAdmin Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background-image: url("{% static 'images/tech-bg.jpg' %}");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+  </style>
+</head>
+<body class="h-full flex items-center justify-center">
+  <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+  <div class="relative w-full max-w-md p-4">
+    <form method="post" action="{% url 'accounts:login' %}" class="bg-gray-900 bg-opacity-75 p-8 rounded-xl shadow-lg space-y-6">
+      {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+      <h2 class="text-3xl font-bold text-cyan-400 text-center">LegacyAdmin Portal</h2>
+      {% if form.non_field_errors %}
+        <div class="text-red-400 text-sm">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div>
+        <label for="id_username" class="block text-sm font-medium text-gray-300">Username</label>
+        <input name="username" id="id_username" type="text" required autofocus
+               class="w-full mt-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-cyan-400 text-gray-100" />
+      </div>
+      <div>
+        <label for="id_password" class="block text-sm font-medium text-gray-300">Password</label>
+        <input name="password" id="id_password" type="password" required
+               class="w-full mt-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-cyan-400 text-gray-100" />
+      </div>
+      <button type="submit" class="w-full py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium uppercase tracking-wide">
+        Sign In
+      </button>
+      <p class="text-center text-gray-400 text-xs mt-4">© {% now "Y" %} LegacyAdmin Systems</p>
+    </form>
+  </div>
+</body>
+</html>

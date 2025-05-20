@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Branch Details{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold">Branch: {{ branch.name }}</h1>
+
+    <div class="mt-6">
+        <p><strong>Location:</strong> {{ branch.location }}</p>
+        <p><strong>Code:</strong> {{ branch.code }}</p>
+        <p><strong>Phone:</strong> {{ branch.phone }}</p>
+        <p><strong>Cell:</strong> {{ branch.cell }}</p>
+        <p><strong>Physical Address:</strong> {{ branch.physical_address }}</p>
+        <p><strong>Street:</strong> {{ branch.street }}</p>
+        <p><strong>Town:</strong> {{ branch.town }}</p>
+        <p><strong>Province:</strong> {{ branch.province }}</p>
+        <p><strong>Region:</strong> {{ branch.region }}</p>
+        <p><strong>Postal Code:</strong> {{ branch.postal_code }}</p>
+    </div>
+
+    <h2 class="mt-6 text-xl font-semibold">Schemes in this Branch</h2>
+    <ul class="list-disc pl-6 mt-2">
+        {% for scheme in branch.schemes.all %}
+        <li>{{ scheme.name }}: {{ scheme.description }}</li>
+        {% empty %}
+        <li>No schemes available for this branch.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

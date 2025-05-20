@@ -1,0 +1,34 @@
+{% load static %}
+{% load tz %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Trinity | DIY Signup{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow py-4 mb-6">
+    <div class="max-w-3xl mx-auto px-4 flex justify-between items-center">
+      <h1 class="text-lg font-bold text-blue-700">Trinity Funeral Cover</h1>
+      <span class="text-sm text-gray-500">Step-by-Step Signup</span>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-grow py-4 px-4 max-w-3xl mx-auto space-y-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-200 text-sm text-center text-gray-700 py-4 mt-6">
+    &copy; {% now "Y" %} Trinity Funeral Insurance. All rights reserved.
+  </footer>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

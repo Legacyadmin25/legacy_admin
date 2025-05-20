@@ -1,0 +1,756 @@
+{% extends base_template|default:'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Step 3: Spouse Information{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #4b5563;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .form-control:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .is-invalid {
+    border-color: #ef4444;
+  }
+  
+  .invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #ef4444;
+  }
+  
+  .is-invalid ~ .invalid-feedback {
+    display: block;
+  }
+  
+  /* Toggle switch styling */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+  
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+  }
+  
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .toggle-slider {
+    background-color: #3b82f6;
+  }
+  
+  input:focus + .toggle-slider {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  }
+  
+  input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+  
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .toggle-label {
+    margin-left: 10px;
+    font-size: 0.875rem;
+    color: #4b5563;
+    font-weight: 500;
+  }
+  
+  /* Hide foreign citizen fields by default */
+  #foreign-citizen-fields {
+    display: none;
+  }
+  
+  /* Show foreign citizen fields when needed */
+  #is_foreign:checked ~ #foreign-citizen-fields {
+    display: block;
+  }
+  
+  /* Hide SA ID fields when foreigner is checked */
+  #is_foreign:checked ~ #sa-citizen-fields {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <div class="w-full px-6 py-8">
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-2xl font-semibold text-gray-800">New Application - Step {{ step }}: Spouse Information</h2>
+          <span class="text-sm font-medium text-gray-500">Step 3 of {{ steps|length }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 33%;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-500">
+          {% for s in steps %}
+            <span class="{% if s < step %}text-blue-600 font-medium{% elif s == step %}text-blue-800 font-bold{% endif %}">
+              Step {{ s }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <form id="mainForm" method="post" action="{% url 'members:step3_spouse_info' pk=member.id %}" class="p-6">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-600">
+                  {% for error in form.non_field_errors %}
+                    {{ error }}
+                  {% endfor %}
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <div class="mb-8">
+            <div class="flex justify-between items-center border-b pb-2 mb-6">
+              <h3 class="text-xl font-semibold text-gray-900">Spouse Information</h3>
+              <!-- Spouse Counter -->
+              <div class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                Spouse: {{ spouse_count }} of {{ spouses_allowed }}
+              </div>
+            </div>
+            
+            {% if at_max_spouses and not spouse_exists %}
+            <!-- Warning if at max spouses -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-yellow-700">
+                    You have reached the maximum number of spouses allowed for this plan.
+                  </p>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            
+            <div class="flex items-center mb-4">
+              <span class="text-sm font-medium text-gray-700 mr-2">Click here if your spouse is not a South African citizen</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="is_foreign" name="is_foreign" class="sr-only peer" {% if form.is_foreign.value %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            
+            <!-- South African Spouse Fields (Default) -->
+            <div id="sa-citizen-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label for="id_spouse_first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" name="spouse_first_name" id="id_spouse_first_name" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_first_name.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_first_name.value|default:'' }}" required>
+                {% if form.spouse_first_name.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_first_name.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label for="id_spouse_last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" name="spouse_last_name" id="id_spouse_last_name" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_last_name.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_last_name.value|default:'' }}" required>
+                {% if form.spouse_last_name.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_last_name.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <div id="sa-id-field" class="form-group">
+                <label for="id_spouse_id_number" class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                <input type="text" name="spouse_id_number" id="id_spouse_id_number" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_id_number.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_id_number.value|default:'' }}">
+                <span id="id-validation-message" class="mt-1 text-sm"></span>
+                <span id="id-valid-icon" class="hidden text-green-600">✔</span>
+                <span id="id-invalid-icon" class="hidden text-red-600">✖</span>
+                {% if form.spouse_id_number.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_id_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label for="id_spouse_date_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <input type="date" name="spouse_date_of_birth" id="id_spouse_date_of_birth" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_date_of_birth.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_date_of_birth.value|date:'Y-m-d' }}" required>
+                {% if form.spouse_date_of_birth.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_date_of_birth.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <label for="id_spouse_gender" class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select name="spouse_gender" id="id_spouse_gender" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_gender.errors %}border-red-500{% endif %}" required>
+                  <option value="">Select gender</option>
+                  <option value="Male" {% if form.spouse_gender.value == 'Male' or form.spouse_gender.value == 'M' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if form.spouse_gender.value == 'Female' or form.spouse_gender.value == 'F' %}selected{% endif %}>Female</option>
+                  <option value="Other" {% if form.spouse_gender.value == 'Other' or form.spouse_gender.value == 'O' %}selected{% endif %}>Other</option>
+                </select>
+                {% if form.spouse_gender.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_gender.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <!-- Phone number and email fields removed as requested -->
+            </div>
+            
+            <!-- Foreign fields shown only for foreign spouse -->
+            <div id="foreign-extra-fields" class="hidden">
+              <div class="form-group">
+                <label for="id_spouse_passport_number" class="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
+                <input type="text" name="spouse_passport_number" id="id_spouse_passport_number" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_passport_number.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_passport_number.value|default:'' }}">
+                {% if form.spouse_passport_number.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_passport_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+              <div class="form-group">
+                <label for="id_spouse_nationality" class="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                <input type="text" name="spouse_nationality" id="id_spouse_nationality" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_nationality.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_nationality.value|default:'' }}">
+                {% if form.spouse_nationality.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_nationality.errors.0 }}</div>
+                {% endif %}
+              </div>
+              <div class="form-group">
+                <label for="id_spouse_country_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Country of Birth</label>
+                <input type="text" name="spouse_country_of_birth" id="id_spouse_country_of_birth" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_country_of_birth.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_country_of_birth.value|default:'' }}">
+                {% if form.spouse_country_of_birth.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_country_of_birth.errors.0 }}</div>
+                {% endif %}
+              </div>
+              <div class="form-group">
+                <label for="id_spouse_country_of_residence" class="block text-sm font-medium text-gray-700 mb-1">Country of Residence</label>
+                <input type="text" name="spouse_country_of_residence" id="id_spouse_country_of_residence" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.spouse_country_of_residence.errors %}border-red-500{% endif %}" 
+                       value="{{ form.spouse_country_of_residence.value|default:'' }}">
+                {% if form.spouse_country_of_residence.errors %}
+                  <div class="invalid-feedback">{{ form.spouse_country_of_residence.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between pt-6 border-t">
+            <a href="{% url 'members:step2_policy_details' member.id %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              ← Previous
+            </a>
+            <div class="flex space-x-3">
+              <button type="submit" name="save" value="true" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save & Exit
+              </button>
+              <button type="submit" name="next" value="true" class="ml-3 px-6 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save & Continue
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ID number validation function with Luhn algorithm
+function validateIdNumber(idNumber) {
+  if (!idNumber || idNumber.length !== 13 || !/^\d+$/.test(idNumber)) {
+    return {
+      valid: false,
+      message: 'ID number must be 13 digits',
+      gender: null,
+      date: null
+    };
+  }
+  
+  // Extract date components
+  const year = idNumber.substring(0, 2);
+  const month = idNumber.substring(2, 4);
+  const day = idNumber.substring(4, 6);
+  
+  // Validate month and day
+  const monthNum = parseInt(month);
+  const dayNum = parseInt(day);
+  
+  if (monthNum < 1 || monthNum > 12) {
+    return {
+      valid: false,
+      message: 'ID contains invalid month',
+      gender: null,
+      date: null
+    };
+  }
+  
+  // Check days in month (simplified)
+  const maxDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (dayNum < 1 || dayNum > maxDays[monthNum]) {
+    return {
+      valid: false,
+      message: 'ID contains invalid day',
+      gender: null,
+      date: null
+    };
+  }
+  
+  // Determine century (19xx or 20xx)
+  const fullYear = parseInt(year) < 50 ? '20' + year : '19' + year;
+  
+  // Format date as YYYY-MM-DD for input field
+  const dateStr = `${fullYear}-${month}-${day}`;
+  
+  // Extract gender from 7th digit
+  // If the digit is less than 5, the gender is Female
+  // If the digit is 5 or more, the gender is Male
+  const genderDigit = parseInt(idNumber.charAt(6));
+  const gender = genderDigit < 5 ? 'Female' : 'Male';
+  
+  // Basic validation - check if date is valid
+  const dateObj = new Date(dateStr);
+  if (isNaN(dateObj.getTime())) {
+    return {
+      valid: false,
+      message: 'ID contains invalid date',
+      gender: null,
+      date: null
+    };
+  }
+  
+  // Luhn algorithm validation
+  let checksum = 0;
+  let double = false;
+  
+  for (let i = idNumber.length - 1; i >= 0; i--) {
+    let digit = parseInt(idNumber.charAt(i));
+    
+    if (double) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+    
+    checksum += digit;
+    double = !double;
+  }
+  
+  if (checksum % 10 !== 0) {
+    return {
+      valid: false,
+      message: 'ID checksum is invalid',
+      gender: null,
+      date: null
+    };
+  }
+  
+  return {
+    valid: true,
+    message: 'ID number is valid',
+    gender: gender,
+    date: dateStr
+  };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Get DOM elements
+  const mainForm = document.getElementById('mainForm');
+  const isForeignToggle = document.getElementById('is_foreign');
+  const saIdField = document.getElementById('sa-id-field');
+  const foreignExtraFields = document.getElementById('foreign-extra-fields');
+  const spouseIdNumber = document.getElementById('id_spouse_id_number');
+  const saveExitBtn = document.getElementById('save-exit-btn');
+  
+  // Form validation function
+  function validateForm(event) {
+    const isForeign = isForeignToggle ? isForeignToggle.checked : false;
+    let isValid = true;
+    
+    // Clear previous error messages
+    document.querySelectorAll('.invalid-feedback').forEach(el => {
+      el.style.display = 'block';
+      el.textContent = '';
+    });
+    document.querySelectorAll('.border-red-500').forEach(el => {
+      el.classList.remove('border-red-500');
+    });
+    
+    // Validate required fields
+    if (!isForeign) {
+      // For South African citizens, check ID number and date of birth
+      if (spouseIdNumber && !spouseIdNumber.value.trim()) {
+        showError(spouseIdNumber, 'ID number is required for South African citizens');
+        isValid = false;
+      }
+      
+      const dob = document.getElementById('id_spouse_date_of_birth');
+      if (dob && !dob.value) {
+        showError(dob, 'Date of birth is required');
+        isValid = false;
+      }
+    }
+    
+    return isValid;
+  }
+  
+  // Helper function to show error messages
+  function showError(input, message) {
+    if (!input) return;
+    
+    input.classList.add('border-red-500');
+    
+    // Find the error message container
+    let errorDiv = null;
+    let sibling = input.nextElementSibling;
+    
+    while (sibling) {
+      if (sibling.classList && sibling.classList.contains('invalid-feedback')) {
+        errorDiv = sibling;
+        break;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+    
+    if (errorDiv) {
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+  }
+  
+  // Toggle between SA citizen and foreign citizen fields
+  function toggleFields() {
+    if (!isForeignToggle) return;
+    
+    const isForeign = isForeignToggle.checked;
+    
+    // Show/hide ID or passport/country fields
+    if (isForeign) {
+      if (saIdField) saIdField.classList.add('hidden');
+      if (foreignExtraFields) foreignExtraFields.classList.remove('hidden');
+      
+      // Make SA ID field not required when foreign
+      if (spouseIdNumber) spouseIdNumber.required = false;
+    } else {
+      if (saIdField) saIdField.classList.remove('hidden');
+      if (foreignExtraFields) foreignExtraFields.classList.add('hidden');
+      
+      // Make SA ID field required when SA citizen
+      if (spouseIdNumber) spouseIdNumber.required = true;
+    }
+  }
+  
+  // Function to update ID validation UI
+  function updateIdValidationUI(isValid, message) {
+    const idValidIcon = document.getElementById('id-valid-icon');
+    const idInvalidIcon = document.getElementById('id-invalid-icon');
+    const idValidationMessage = document.getElementById('id-validation-message');
+    
+    if (!idValidationMessage || !spouseIdNumber) return;
+    
+    if (isValid) {
+      if (idValidIcon) idValidIcon.classList.remove('hidden');
+      if (idInvalidIcon) idInvalidIcon.classList.add('hidden');
+      idValidationMessage.textContent = message;
+      idValidationMessage.className = 'mt-1 text-sm text-green-600';
+      spouseIdNumber.classList.remove('border-red-500');
+      spouseIdNumber.classList.add('border-green-500');
+    } else {
+      if (idValidIcon) idValidIcon.classList.add('hidden');
+      if (idInvalidIcon) idInvalidIcon.classList.remove('hidden');
+      idValidationMessage.textContent = message;
+      idValidationMessage.className = 'mt-1 text-sm text-red-600';
+      spouseIdNumber.classList.add('border-red-500');
+      spouseIdNumber.classList.remove('border-green-500');
+    }
+  }
+  
+  // Handle ID number input
+  function handleIdInput() {
+    if (!spouseIdNumber) return;
+    
+    const idNumber = spouseIdNumber.value.trim();
+    
+    // Only validate if we have a complete ID number
+    if (idNumber.length === 13) {
+      const result = validateIdNumber(idNumber);
+      
+      if (result.valid) {
+        // Update UI for valid ID
+        updateIdValidationUI(true, result.message);
+        
+        // Auto-fill date of birth and gender if valid
+        const dobField = document.getElementById('id_spouse_date_of_birth');
+        const genderField = document.getElementById('id_spouse_gender');
+        if (dobField && result.date) {
+          dobField.value = result.date;
+        }
+        if (genderField && result.gender) {
+          genderField.value = result.gender;
+        }
+      } else {
+        // Update UI for invalid ID
+        updateIdValidationUI(false, result.message);
+      }
+    } else if (idNumber.length > 0) {
+      // Show error for incomplete ID
+      updateIdValidationUI(false, 'ID number must be 13 digits');
+    } else {
+      // Clear validation UI when field is empty
+      const idValidIcon = document.getElementById('id-valid-icon');
+      const idInvalidIcon = document.getElementById('id-invalid-icon');
+      const idValidationMessage = document.getElementById('id-validation-message');
+      
+      if (idValidIcon) idValidIcon.classList.add('hidden');
+      if (idInvalidIcon) idInvalidIcon.classList.add('hidden');
+      if (idValidationMessage) idValidationMessage.textContent = '';
+      if (spouseIdNumber) spouseIdNumber.classList.remove('border-red-500', 'border-green-500');
+    }
+  }
+  
+  // Set up form validation
+  if (mainForm) {
+    // Form submission validation
+    mainForm.addEventListener('submit', function(e) {
+      if (!validateForm(e)) {
+        e.preventDefault();
+      }
+    });
+  }
+  
+  // Save and exit functionality
+  if (saveExitBtn && mainForm) {
+    saveExitBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Set a flag to indicate save and exit
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'save_and_exit';
+      input.value = '1';
+      mainForm.appendChild(input);
+      
+      // Submit the form
+      mainForm.submit();
+    });
+  }
+  
+  // Toggle between SA and foreign fields
+  if (isForeignToggle) {
+    isForeignToggle.addEventListener('change', toggleFields);
+  }
+  
+  // ID validation
+  if (spouseIdNumber) {
+    spouseIdNumber.addEventListener('input', handleIdInput);
+    spouseIdNumber.addEventListener('blur', handleIdInput);
+  }
+  
+  // Initialize form state
+  toggleFields();
+});
+</script>
+{% endblock %}
+        phoneField.required = false;
+      }
+      
+      // Validate gender matches ID number if ID is provided and gender is selected
+      const spouseIdInput = document.getElementById('id_spouse_id_number');
+      const genderSelect = document.getElementById('id_spouse_gender');
+      
+      if (spouseIdInput && genderSelect && genderSelect.value) {
+        const idValue = spouseIdInput.value.trim();
+        if (idValue.length === 13) {
+          const idCheck = validateIdNumber(idValue);
+          if (idCheck.valid) {
+            // Compare gender values directly (now using Male/Female)
+            const formGender = genderSelect.value;
+            const idGender = idCheck.gender;
+            
+            if (formGender !== idGender) {
+              // Show error on gender field
+              genderSelect.classList.add('border-red-500');
+              const errorElement = document.createElement('div');
+              errorElement.className = 'mt-1 text-sm text-red-600';
+              errorElement.textContent = 'Gender does not match ID number';
+              genderSelect.parentNode.insertBefore(errorElement, genderSelect.nextSibling);
+              isValid = false;
+            }
+          }
+        }
+      }
+      
+      saRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && field.required && !field.value.trim()) {
+          field.classList.add('border-red-500');
+          isValid = false;
+          
+          // Show error message if not already present
+          let errorElement = field.nextElementSibling;
+          if (!errorElement || !errorElement.classList.contains('text-red-600')) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'mt-1 text-sm text-red-600';
+            errorElement.textContent = 'This field is required';
+            field.parentNode.insertBefore(errorElement, field.nextSibling);
+          }
+        }
+      });
+    } else {
+      // Validate required fields for foreign citizens
+      const foreignRequiredFields = [
+        'id_spouse_passport_number',
+        'id_spouse_nationality',
+        'id_spouse_country_of_birth',
+        'id_spouse_country_of_residence',
+        'foreign_spouse_first_name',
+        'foreign_spouse_last_name',
+        'foreign_spouse_date_of_birth',
+        'foreign_spouse_gender',
+        'foreign_spouse_phone_number'
+      ];
+      
+      foreignRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && field.required && !field.value.trim()) {
+          field.classList.add('border-red-500');
+          isValid = false;
+          
+          // Show error message if not already present
+          let errorElement = field.nextElementSibling;
+          if (!errorElement || !errorElement.classList.contains('text-red-600')) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'mt-1 text-sm text-red-600';
+            errorElement.textContent = 'This field is required';
+            field.parentNode.insertBefore(errorElement, field.nextSibling);
+          }
+        }
+      });
+    }
+    
+    // Prevent form submission if validation fails
+    if (!isValid) {
+      event.preventDefault();
+      
+      // Scroll to the first error
+      const firstError = document.querySelector('.border-red-500');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // Save and exit functionality
+  const saveExitBtn = document.getElementById('save-exit-btn');
+  const mainForm = document.getElementById('mainForm');
+  
+  if (saveExitBtn && mainForm) {
+    saveExitBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Set a flag to indicate save and exit
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'save_and_exit';
+      input.value = '1';
+      mainForm.appendChild(input);
+      
+      // Submit the form
+      mainForm.submit();
+    });
+  }
+  
+  // Add event listeners
+  isForeignToggle.addEventListener('change', toggleFields);
+  spouseIdNumber.addEventListener('input', handleIdInput);
+  spouseIdNumber.addEventListener('blur', handleIdInput);
+  
+  // Initialize form state
+  toggleFields();
+});
+</script>

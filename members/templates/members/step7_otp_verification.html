@@ -1,0 +1,215 @@
+{% extends base_template %}
+
+{% load widget_tweaks %}
+
+{% block title %}Step 7: OTP Verification{% endblock %}
+
+{% block content %}
+{% include 'members/includes/step_navigation.html' %}
+
+<div class="max-w-2xl mx-auto p-8 bg-white rounded-xl shadow-lg">
+  <div class="text-center mb-8">
+    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+      <i class="fas fa-shield-alt text-2xl text-green-600"></i>
+    </div>
+    <h2 class="text-3xl font-bold text-gray-900 mb-2">Verify Your Identity</h2>
+    <p class="text-gray-600">
+      We've sent a 6-digit verification code to your {% if member.phone_number %}phone number ending in {{ member.phone_number|slice:"-4:" }}{% else %}email address{% endif %}. 
+      Please enter it below to continue.
+    </p>
+  </div>
+
+  <form method="POST" action="{% url 'members:step7_otp_verification' pk=policy.pk %}" class="space-y-6">
+    {% csrf_token %}
+    
+    <div class="space-y-2">
+      <label for="otp" class="block text-sm font-medium text-gray-700">Verification Code</label>
+      <div class="mt-1">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-key text-gray-400"></i>
+          </div>
+          <input type="text" name="otp" id="otp" 
+                 class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-xl tracking-widest"
+                 placeholder="• • • • • •" 
+                 maxlength="6"
+                 inputmode="numeric"
+                 pattern="\d{6}"
+                 autocomplete="one-time-code"
+                 required>
+        </div>
+        <p class="mt-2 text-sm text-gray-500">
+          Enter the 6-digit code we sent to you
+        </p>
+      </div>
+    </div>
+
+    <div class="bg-blue-50 p-4 rounded-md">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-blue-400"></i>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">Didn't receive the code?</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <p class="mb-2">
+              The code may take a few minutes to arrive. Please check your spam folder if you don't see it in your inbox.
+            </p>
+            <button type="button" id="resend-code" class="font-medium text-blue-600 hover:text-blue-500">
+              Resend code <span id="countdown" class="text-blue-500">(60s)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-4 border-t mt-8">
+      <div class="flex justify-between">
+        <a href="{% url 'members:step6_payment_options' pk=policy.pk %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          ← Back
+        </a>
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          Verify & Continue →
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-focus the OTP input
+  const otpInput = document.getElementById('otp');
+  if (otpInput) {
+    otpInput.focus();
+    
+    // Auto-tab between OTP digits
+    otpInput.addEventListener('input', function(e) {
+      // Remove any non-numeric characters
+      this.value = this.value.replace(/\D/g, '');
+      
+      // Auto-submit when 6 digits are entered
+      if (this.value.length === 6) {
+        // Add a brief delay to show the completed code before submitting
+        setTimeout(() => {
+          // Show a loading indicator
+          const submitBtn = document.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
+            submitBtn.disabled = true;
+          }
+          this.form.submit();
+        }, 300);
+      }
+    });
+    
+    // Handle paste event for OTP
+    otpInput.addEventListener('paste', function(e) {
+      // Get pasted data
+      let pastedData = (e.clipboardData || window.clipboardData).getData('text');
+      
+      // Extract only digits
+      pastedData = pastedData.replace(/\D/g, '');
+      
+      // Limit to 6 digits
+      if (pastedData.length > 6) {
+        pastedData = pastedData.substring(0, 6);
+      }
+      
+      // Set the value and trigger input event
+      this.value = pastedData;
+      
+      // Trigger the input event to handle auto-submission
+      const inputEvent = new Event('input', { bubbles: true });
+      this.dispatchEvent(inputEvent);
+      
+      // Prevent the default paste behavior
+      e.preventDefault();
+    });
+  }
+  
+  // Resend OTP functionality
+  const resendBtn = document.getElementById('resend-code');
+  const countdownEl = document.getElementById('countdown');
+  
+  if (resendBtn && countdownEl) {
+    let timeLeft = 60;
+    let countdown;
+    
+    function startCountdown() {
+      resendBtn.disabled = true;
+      timeLeft = 60;
+      updateCountdown();
+      
+      countdown = setInterval(() => {
+        timeLeft--;
+        updateCountdown();
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          resendBtn.disabled = false;
+          countdownEl.textContent = '';
+        }
+      }, 1000);
+    }
+    
+    function updateCountdown() {
+      countdownEl.textContent = `(${timeLeft}s)`;
+    }
+    
+    resendBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Call your backend to resend OTP
+      fetch('{% url "members:resend_otp" policy.pk %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Show success message
+          const alert = document.createElement('div');
+          alert.className = 'mt-4 p-3 bg-green-50 text-green-700 rounded-md text-sm';
+          alert.innerHTML = `
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-400"></i>
+              </div>
+              <div class="ml-3">
+                <p>Verification code has been resent successfully!</p>
+              </div>
+            </div>
+          `;
+          
+          const form = document.querySelector('form');
+          form.insertBefore(alert, form.firstChild);
+          
+          // Remove the alert after 5 seconds
+          setTimeout(() => {
+            alert.remove();
+          }, 5000);
+          
+          // Restart countdown
+          startCountdown();
+        } else {
+          // Show error
+          alert('Failed to resend code. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+      });
+    });
+    
+    // Start initial countdown
+    startCountdown();
+  }
+});
+</script>
+{% endblock %}

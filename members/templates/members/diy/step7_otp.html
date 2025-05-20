@@ -1,0 +1,266 @@
+{% extends "members/diy/base_application.html" %}
+{% load widget_tweaks %}
+
+{% block title %}OTP Verification - DIY Policy Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+  otp: ['', '', '', '', '', ''],
+  isVerifying: false,
+  error: null,
+  success: false,
+  resendDisabled: false,
+  countdown: 30,
+  
+  // Initialize timer
+  init() {
+    if (this.resendDisabled) {
+      this.startCountdown();
+    }
+  },
+  
+  // Handle input in OTP fields
+  handleInput(index, event) {
+    // Allow only numbers
+    const value = event.target.value.replace(/[^0-9]/g, '');
+    
+    // Update the current field
+    this.otp[index] = value.slice(-1);
+    
+    // Auto-focus to next field if value is entered
+    if (value && index < 5) {
+      this.$refs[`otp-${index + 1}`].focus();
+    }
+    
+    // Check if all fields are filled
+    if (this.otp.every(digit => digit)) {
+      this.verifyOTP();
+    }
+  },
+  
+  // Handle keydown in OTP fields
+  handleKeyDown(index, event) {
+    // Handle backspace
+    if (event.key === 'Backspace' && !this.otp[index] && index > 0) {
+      this.$refs[`otp-${index - 1}`].focus();
+    }
+  },
+  
+  // Handle paste event
+  handlePaste(event) {
+    event.preventDefault();
+    
+    // Get pasted data
+    const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+    
+    // Check if pasted data is a 6-digit number
+    if (/^\d{6}$/.test(pastedData)) {
+      // Fill all fields
+      for (let i = 0; i < 6; i++) {
+        this.otp[i] = pastedData[i];
+      }
+      
+      // Verify OTP
+      this.verifyOTP();
+    }
+  },
+  
+  // Verify OTP
+  verifyOTP() {
+    const otpCode = this.otp.join('');
+    if (otpCode.length !== 6) return;
+    
+    this.isVerifying = true;
+    this.error = null;
+    
+    fetch('/api/diy/verify-otp/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({
+        otp_code: otpCode,
+        application_id: '{{ application.application_id }}'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      this.isVerifying = false;
+      
+      if (data.error) {
+        this.error = data.error;
+        return;
+      }
+      
+      if (data.success) {
+        this.success = true;
+        
+        // Redirect to next step after a short delay
+        setTimeout(() => {
+          window.location.href = '{% url 'members:diy_review' %}';
+        }, 1500);
+      }
+    })
+    .catch(error => {
+      this.isVerifying = false;
+      this.error = 'An error occurred. Please try again.';
+      console.error('Error:', error);
+    });
+  },
+  
+  // Resend OTP
+  resendOTP() {
+    if (this.resendDisabled) return;
+    
+    this.resendDisabled = true;
+    this.error = null;
+    
+    fetch('/api/diy/generate-otp/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({
+        application_id: '{{ application.application_id }}'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        this.error = data.error;
+        this.resendDisabled = false;
+        return;
+      }
+      
+      // Start countdown
+      this.countdown = 30;
+      this.startCountdown();
+    })
+    .catch(error => {
+      this.error = 'An error occurred. Please try again.';
+      this.resendDisabled = false;
+      console.error('Error:', error);
+    });
+  },
+  
+  // Start countdown for resend button
+  startCountdown() {
+    const timer = setInterval(() => {
+      this.countdown--;
+      
+      if (this.countdown <= 0) {
+        clearInterval(timer);
+        this.resendDisabled = false;
+      }
+    }, 1000);
+  }
+}">
+  <h2 class="text-xl font-semibold text-gray-800 mb-6">OTP Verification</h2>
+  
+  <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
+    <div class="flex items-start">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">Verification Required</h3>
+        <div class="mt-2 text-sm text-blue-700">
+          <p>We've sent a 6-digit verification code to your mobile number <strong>{{ applicant.phone_number }}</strong> and email <strong>{{ applicant.email }}</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Error message -->
+  <div x-show="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium text-red-800" x-text="error"></p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Success message -->
+  <div x-show="success" class="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium text-green-800">OTP verified successfully! Redirecting to the next step...</p>
+      </div>
+    </div>
+  </div>
+  
+  <form method="post" action="{% url 'members:diy_otp_verification' %}" class="space-y-6" @submit.prevent>
+    {% csrf_token %}
+    
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Enter 6-digit verification code</label>
+      <div class="flex justify-center space-x-2 sm:space-x-4" @paste="handlePaste">
+        {% for i in '012345' %}
+        <input 
+          type="text" 
+          x-ref="otp-{{ i }}"
+          x-model="otp[{{ i }}]"
+          @input="handleInput({{ i }}, $event)"
+          @keydown="handleKeyDown({{ i }}, $event)"
+          maxlength="1"
+          class="w-10 h-12 text-center text-xl border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="flex items-center justify-center">
+      <button 
+        type="button"
+        @click="resendOTP"
+        :disabled="resendDisabled"
+        :class="{'text-gray-400 cursor-not-allowed': resendDisabled, 'text-blue-600 hover:text-blue-800': !resendDisabled}"
+        class="text-sm font-medium focus:outline-none">
+        <span x-show="!resendDisabled">Resend code</span>
+        <span x-show="resendDisabled">Resend code in <span x-text="countdown"></span>s</span>
+      </button>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div x-show="isVerifying" class="flex justify-center">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
+    </div>
+  </form>
+  
+  <div class="flex justify-between pt-8 mt-8 border-t border-gray-200">
+    <a 
+      href="{% url 'members:diy_payment' %}" 
+      class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+      </svg>
+      Back
+    </a>
+  </div>
+</div>
+
+<script>
+// Add validation function to parent component
+document.addEventListener('alpine:init', () => {
+  if (typeof Alpine.store('stepValidation') !== 'undefined') {
+    Alpine.store('stepValidation').validateStep7 = function() {
+      // This step is validated through the OTP verification process
+      return true;
+    };
+  }
+});
+</script>
+{% endblock %}

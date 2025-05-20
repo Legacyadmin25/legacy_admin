@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Policy Payment{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Policy Payment</h1>
+        <div class="flex space-x-2">
+            <a href="{% url 'payments:payment_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                Payment History
+            </a>
+            <a href="{% url 'payments:import_payments' %}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+                Import Payments
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <form method="get" class="flex flex-col md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
+            <div class="flex-grow">
+                <label for="q" class="block text-sm font-medium text-gray-700 mb-1">Search for Member</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" name="q" id="q" value="{{ query }}" placeholder="Search by ID number, policy number, or name" 
+                           class="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Enter ID number, policy number, or full name</p>
+            </div>
+            <div>
+                <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if error_message %}
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+        <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+
+    {% if member %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Member Details Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-1">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Member Details</h2>
+                <span class="px-2 py-1 text-xs rounded-full {% if policy.status == 'ACTIVE' %}bg-green-100 text-green-800{% elif policy.status == 'LAPSED' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ policy.status }}
+                </span>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="flex">
+                    <span class="text-gray-500 w-32">Full Name:</span>
+                    <span class="font-medium">{{ member.first_name }} {{ member.last_name }}</span>
+                </div>
+                <div class="flex">
+                    <span class="text-gray-500 w-32">ID Number:</span>
+                    <span class="font-medium">{{ member.id_number }}</span>
+                </div>
+                <div class="flex">
+                    <span class="text-gray-500 w-32">Policy Number:</span>
+                    <span class="font-medium">{{ policy.unique_policy_number }}</span>
+                </div>
+                <div class="flex">
+                    <span class="text-gray-500 w-32">Plan:</span>
+                    <span class="font-medium">{{ policy.plan.name }}</span>
+                </div>
+                <div class="flex">
+                    <span class="text-gray-500 w-32">Premium:</span>
+                    <span class="font-medium">R{{ policy.premium_amount }}</span>
+                </div>
+                <div class="flex">
+                    <span class="text-gray-500 w-32">Start Date:</span>
+                    <span class="font-medium">{{ policy.start_date }}</span>
+                </div>
+                {% if policy.easypay_number %}
+                <div class="flex">
+                    <span class="text-gray-500 w-32">EasyPay:</span>
+                    <span class="font-medium">{{ policy.easypay_number }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <a href="{% url 'members:member_detail' member.id %}" class="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View Full Member Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Make Payment Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Make Payment</h2>
+            
+            <form method="post" id="paymentForm">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="payment">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-1">
+                        <label for="{{ payment_form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Amount (R)
+                        </label>
+                        {{ payment_form.amount }}
+                        {% if payment_form.amount.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ payment_form.amount.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-1">
+                        <label for="{{ payment_form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Date
+                        </label>
+                        {{ payment_form.date }}
+                        {% if payment_form.date.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ payment_form.date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-1">
+                        <label for="{{ payment_form.payment_method.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Method
+                        </label>
+                        {{ payment_form.payment_method }}
+                        {% if payment_form.payment_method.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ payment_form.payment_method.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-1">
+                        <label for="{{ payment_form.reference_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Reference Number
+                        </label>
+                        {{ payment_form.reference_number }}
+                        {% if payment_form.reference_number.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ payment_form.reference_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label for="{{ payment_form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Notes
+                        </label>
+                        {{ payment_form.notes }}
+                        {% if payment_form.notes.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ payment_form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Process Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="mt-6">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Payment History</h2>
+            </div>
+            
+            {% if payment_history %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for payment in payment_history %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ payment.date }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">R{{ payment.amount }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if payment.payment_method == 'CASH' %}bg-green-100 text-green-800
+                                    {% elif payment.payment_method == 'CARD' %}bg-blue-100 text-blue-800
+                                    {% elif payment.payment_method == 'EFT' %}bg-purple-100 text-purple-800
+                                    {% elif payment.payment_method == 'DEBIT_ORDER' %}bg-indigo-100 text-indigo-800
+                                    {% elif payment.payment_method == 'EASYPAY' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ payment.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if payment.status == 'COMPLETED' %}bg-green-100 text-green-800
+                                    {% elif payment.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                                    {% elif payment.status == 'FAILED' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ payment.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ payment.reference_number|default:"-" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'payments:detail' payment.id %}" class="text-blue-600 hover:text-blue-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </a>
+                                    {% if user.is_superuser or user.groups.all.0.name in 'Admin,Branch Manager' %}
+                                    <a href="{% url 'payments:update' payment.id %}" class="text-indigo-600 hover:text-indigo-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </a>
+                                    {% endif %}
+                                    {% if user.is_superuser %}
+                                    <a href="{% url 'payments:delete' payment.id %}" class="text-red-600 hover:text-red-900">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="px-6 py-4 text-center text-gray-500">
+                <p>No payment history found for this member.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Receipt Generation -->
+    {% if payment_history %}
+    <div class="mt-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Create Payment Receipt</h2>
+            
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="receipt">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-1">
+                        <label for="{{ receipt_form.payment.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Select Payment
+                        </label>
+                        {{ receipt_form.payment }}
+                        {% if receipt_form.payment.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ receipt_form.payment.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-1">
+                        <label for="{{ receipt_form.receipt_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Receipt Number
+                        </label>
+                        {{ receipt_form.receipt_number }}
+                        {% if receipt_form.receipt_number.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ receipt_form.receipt_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label for="{{ receipt_form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Notes
+                        </label>
+                        {{ receipt_form.notes }}
+                        {% if receipt_form.notes.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ receipt_form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Generate Receipt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format input fields
+        const amountInput = document.getElementById('{{ payment_form.amount.id_for_label }}');
+        if (amountInput) {
+            amountInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const dateInput = document.getElementById('{{ payment_form.date.id_for_label }}');
+        if (dateInput) {
+            dateInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+            dateInput.type = 'date';
+        }
+        
+        const methodInput = document.getElementById('{{ payment_form.payment_method.id_for_label }}');
+        if (methodInput) {
+            methodInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const referenceInput = document.getElementById('{{ payment_form.reference_number.id_for_label }}');
+        if (referenceInput) {
+            referenceInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const notesInput = document.getElementById('{{ payment_form.notes.id_for_label }}');
+        if (notesInput) {
+            notesInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        // Receipt form fields
+        const paymentSelect = document.getElementById('{{ receipt_form.payment.id_for_label }}');
+        if (paymentSelect) {
+            paymentSelect.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const receiptNumberInput = document.getElementById('{{ receipt_form.receipt_number.id_for_label }}');
+        if (receiptNumberInput) {
+            receiptNumberInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+        
+        const receiptNotesInput = document.getElementById('{{ receipt_form.notes.id_for_label }}');
+        if (receiptNotesInput) {
+            receiptNotesInput.classList.add('block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-blue-500', 'focus:ring-blue-500');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

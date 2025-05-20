@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Upload CSV{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-bold mb-4">Upload CSV</h1>
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      Upload
+    </button>
+  </form>
+{% endblock %}

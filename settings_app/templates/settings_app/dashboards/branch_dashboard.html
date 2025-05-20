@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ branch.name }} Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">{{ branch.name }} Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+        <li class="breadcrumb-item active">Branch Dashboard</li>
+    </ol>
+    
+    {% if has_ai_access %}
+    <!-- AI Insights Panel -->
+    <div class="card mb-4" id="ai-insights-panel">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-robot me-1"></i>
+            AI Insights Assistant
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group mb-3">
+                        <label for="ai-question" class="form-label">Ask a question about this branch:</label>
+                        <input type="text" class="form-control" id="ai-question" placeholder="e.g., Which scheme has the highest lapse rate?">
+                    </div>
+                    <div class="d-flex">
+                        <button class="btn btn-primary me-2" id="ask-ai-btn">Ask AI</button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sample-questions" data-bs-toggle="dropdown" aria-expanded="false">
+                                Sample Questions
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="sample-questions">
+                                {% for question in sample_ai_questions %}
+                                <li><a class="dropdown-item sample-question" href="#">{{ question }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> About AI Insights</h5>
+                        <p class="small">This feature uses AI to analyze branch data and provide insights. Ask questions about performance, trends, or specific metrics.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4" id="ai-response-container" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <span id="ai-question-display"></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="ai-loading" style="display: none;">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Analyzing data...</p>
+                        </div>
+                        <div id="ai-response"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Branch Overview -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Policies</h5>
+                    <h2 class="display-4">{{ total_policies }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Policies</h5>
+                    <h2 class="display-4">{{ monthly_policies }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Lapse Percentage</h5>
+                    <h2 class="display-4">{{ lapse_percentage }}%</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Schemes</h5>
+                    <h2 class="display-4">{{ schemes|length }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Performing Schemes Chart -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    Top Performing Schemes (This Quarter)
+                </div>
+                <div class="card-body">
+                    <canvas id="topSchemesChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Schemes List -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Schemes under {{ branch.name }}
+        </div>
+        <div class="card-body">
+            <table id="schemesTable" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Scheme Name</th>
+                        <th>Registration No</th>
+                        <th>Total Policies</th>
+                        <th>Monthly Policies</th>
+                        <th>Lapse %</th>
+                        <th>Agents</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scheme in schemes %}
+                    <tr>
+                        <td>{{ scheme.name }}</td>
+                        <td>{{ scheme.registration_no }}</td>
+                        <td>
+                            {% with scheme_policies=scheme.policies.all %}
+                            {{ scheme_policies|length }}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% with scheme_monthly_policies=scheme.policies.all|dictsortreversed:"created_at"|slice:":30" %}
+                            {{ scheme_monthly_policies|length }}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% with scheme_lapsed=scheme.policies.filter.status="lapsed"|length %}
+                            {% with scheme_total=scheme.policies.all|length %}
+                            {% if scheme_total > 0 %}
+                                {{ scheme_lapsed|floatformat:2 }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                            {% endwith %}
+                            {% endwith %}
+                        </td>
+                        <td>{{ agents_by_scheme|get_item:scheme|length }}</td>
+                        <td>
+                            <a href="{% url 'scheme_dashboard' scheme_id=scheme.id %}" class="btn btn-primary btn-sm">View</a>
+                            {% if not is_read_only %}
+                            <a href="{% url 'scheme_edit' scheme_id=scheme.id %}" class="btn btn-secondary btn-sm">Edit</a>
+                            {% endif %}
+                            <a href="{% url 'scheme_reports' scheme_id=scheme.id %}" class="btn btn-info btn-sm">Reports</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Download Reports -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-download me-1"></i>
+            Download Reports
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'branch_reports' branch_id=branch.id %}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="scheme">Scheme</label>
+                            <select name="scheme" id="scheme" class="form-control">
+                                <option value="">All Schemes</option>
+                                {% for scheme in schemes %}
+                                <option value="{{ scheme.id }}">{{ scheme.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="month">Month</label>
+                            <input type="month" name="month" id="month" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="report_type">Report Type</label>
+                            <select name="report_type" id="report_type" class="form-control">
+                                <option value="policies">Policies</option>
+                                <option value="payments">Payments</option>
+                                <option value="agents">Agents</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Download Report</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Top Schemes Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('topSchemesChart').getContext('2d');
+        
+        // Prepare data from Django template
+        var schemeLabels = [];
+        var schemeData = [];
+        
+        {% for scheme_data in top_schemes %}
+            schemeLabels.push('{{ scheme_data.scheme.name }}');
+            schemeData.push({{ scheme_data.policies_count }});
+        {% endfor %}
+        
+        // Create chart
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: schemeLabels,
+                datasets: [{
+                    label: 'Policies This Quarter',
+                    data: schemeData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // AI Insights functionality
+        {% if has_ai_access %}
+        // Get DOM elements
+        const aiQuestion = document.getElementById('ai-question');
+        const askAiBtn = document.getElementById('ask-ai-btn');
+        const aiResponseContainer = document.getElementById('ai-response-container');
+        const aiQuestionDisplay = document.getElementById('ai-question-display');
+        const aiResponse = document.getElementById('ai-response');
+        const aiLoading = document.getElementById('ai-loading');
+        const sampleQuestions = document.querySelectorAll('.sample-question');
+        
+        // Function to ask AI
+        function askAI(question) {
+            // Show loading state
+            aiResponseContainer.style.display = 'block';
+            aiQuestionDisplay.textContent = question;
+            aiResponse.innerHTML = '';
+            aiLoading.style.display = 'block';
+            
+            // Make AJAX request to AI insights endpoint
+            fetch('{{ ai_insights_url }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    question: question
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading state
+                aiLoading.style.display = 'none';
+                
+                // Display response
+                if (data.error) {
+                    aiResponse.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    aiResponse.innerHTML = `<div class="ai-insight">${data.insight}</div>`;
+                }
+            })
+            .catch(error => {
+                // Hide loading state
+                aiLoading.style.display = 'none';
+                
+                // Display error
+                aiResponse.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        }
+        
+        // Event listener for Ask AI button
+        askAiBtn.addEventListener('click', function() {
+            const question = aiQuestion.value.trim();
+            if (question) {
+                askAI(question);
+            }
+        });
+        
+        // Event listener for Enter key in input
+        aiQuestion.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const question = aiQuestion.value.trim();
+                if (question) {
+                    askAI(question);
+                }
+            }
+        });
+        
+        // Event listeners for sample questions
+        sampleQuestions.forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const question = this.textContent;
+                aiQuestion.value = question;
+                askAI(question);
+            });
+        });
+        
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}

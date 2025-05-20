@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <h2 class="text-xl font-semibold">Full Policy Report</h2>
+
+  <!-- Filter Form -->
+  <form method="GET" action="{% url 'reports:full_policy_report' %}" class="space-y-4">
+    <div>
+      <label for="scheme" class="block text-sm font-medium">Scheme</label>
+      <select name="scheme" id="scheme" class="w-full p-2 border rounded-md">
+        <option value="">All Schemes</option>
+        {% for scheme in schemes %}
+          <option value="{{ scheme.id }}" {% if scheme.id == filter_scheme %}selected{% endif %}>
+            {{ scheme.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="status" class="block text-sm font-medium">Policy Status</label>
+      <select name="status" id="status" class="w-full p-2 border rounded-md">
+        <option value="" {% if filter_status == "" %}selected{% endif %}>All</option>
+        <option value="active" {% if filter_status == "active" %}selected{% endif %}>Active</option>
+        <option value="lapsed" {% if filter_status == "lapsed" %}selected{% endif %}>Lapsed</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded-md">Generate Report</button>
+    </div>
+  </form>
+
+  <!-- Report Table -->
+  {% if policies %}
+    <table class="w-full mt-4 border-collapse">
+      <thead>
+        <tr>
+          <th class="p-2 border">Member Name</th>
+          <th class="p-2 border">Membership Number</th>
+          <th class="p-2 border">Plan</th>
+          <th class="p-2 border">Selling Premium</th>
+          <th class="p-2 border">Underwriter Premium</th>
+          <th class="p-2 border">Agent</th>
+          <th class="p-2 border">Dependents</th>
+          <th class="p-2 border">Beneficiaries</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for policy in policies %}
+          <tr>
+            <td class="p-2 border">{{ policy.member.full_name }}</td>
+            <td class="p-2 border">{{ policy.membership_number }}</td>
+            <td class="p-2 border">{{ policy.plan.name }}</td>
+            <td class="p-2 border">{{ policy.main_premium }}</td>
+            <td class="p-2 border">{{ policy.main_uw_premium }}</td>
+            <td class="p-2 border">{{ policy.agent.first_name }} {{ policy.agent.last_name }}</td>
+            <td class="p-2 border">{{ policy.dependents_count }}</td>
+            <td class="p-2 border">{{ policy.beneficiaries_count }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No policies found for the selected filters.</p>
+  {% endif %}
+{% endblock %}

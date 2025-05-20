@@ -1,0 +1,500 @@
+{% extends 'members/diy/application_base.html' %}
+
+{% block form_content %}
+<form method="post" action="{% url 'members_diy:diy_policy_details' %}" x-data="policyDetailsHandler">
+  {% csrf_token %}
+  
+  <!-- Hidden fields for form state -->
+  <input type="hidden" name="form_type" value="policy_details">
+  
+  <div class="space-y-6">
+    <!-- Policy Type -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900">Policy Type</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Select the type of policy that best suits your needs.
+      </p>
+      
+      <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <!-- Funeral Cover Option -->
+        <div>
+          <input type="radio" id="policy_type_funeral" name="policy_type" value="funeral" 
+                 x-model="policyType" class="form-radio sr-only" 
+                 @change="updatePolicyType('funeral')">
+          <label for="policy_type_funeral" 
+                 class="relative flex flex-col p-4 border rounded-lg cursor-pointer focus:outline-none"
+                 :class="{'border-blue-500 ring-2 ring-blue-500': policyType === 'funeral', 'border-gray-300'}">
+            <div class="flex justify-between">
+              <h4 class="text-base font-medium text-gray-900">Funeral Cover</h4>
+              <div class="flex-shrink-0 text-blue-600" :class="{'invisible': policyType !== 'funeral'}">
+                <i class="fas fa-check-circle h-6 w-6"></i>
+              </div>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">
+              Comprehensive coverage for funeral expenses, providing financial support during difficult times.
+            </p>
+            <div class="mt-4">
+              <span class="text-sm font-medium text-blue-600">Learn more <i class="fas fa-chevron-right ml-1 text-xs"></i></span>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Life Cover Option -->
+        <div>
+          <input type="radio" id="policy_type_life" name="policy_type" value="life" 
+                 x-model="policyType" class="form-radio sr-only"
+                 @change="updatePolicyType('life')">
+          <label for="policy_type_life" 
+                 class="relative flex flex-col p-4 border rounded-lg cursor-pointer focus:outline-none"
+                 :class="{'border-blue-500 ring-2 ring-blue-500': policyType === 'life', 'border-gray-300'}">
+            <div class="flex justify-between">
+              <h4 class="text-base font-medium text-gray-900">Life Cover</h4>
+              <div class="flex-shrink-0 text-blue-600" :class="{'invisible': policyType !== 'life'}">
+                <i class="fas fa-check-circle h-6 w-6"></i>
+              </div>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">
+              Financial protection for your loved ones with a lump sum payout in the event of your passing.
+            </p>
+            <div class="mt-4">
+              <span class="text-sm font-medium text-blue-600">Learn more <i class="fas fa-chevron-right ml-1 text-xs"></i></span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Cover Amount -->
+    <div class="pt-4 border-t border-gray-200">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-medium text-gray-900">Cover Amount</h3>
+        <span class="text-sm font-medium text-blue-600 cursor-pointer" @click="showCoverCalculator = !showCoverCalculator">
+          <i class="fas fa-calculator mr-1"></i> Calculate my needs
+        </span>
+      </div>
+      
+      <p class="mt-1 text-sm text-gray-500">
+        Select the cover amount that best fits your needs and budget.
+      </p>
+      
+      <!-- Cover Amount Options -->
+      <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <template x-for="amount in coverAmounts" :key="amount">
+          <div>
+            <input type="radio" :id="'cover_amount_' + amount" name="cover_amount" :value="amount" 
+                   x-model="coverAmount" class="form-radio sr-only"
+                   @change="updateCoverAmount(amount)">
+            <label :for="'cover_amount_' + amount" 
+                   class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer text-center h-full"
+                   :class="{'border-blue-500 ring-2 ring-blue-500': coverAmount === amount, 'border-gray-300'}">
+              <span class="text-lg font-medium" x-text="'R' + amount.toLocaleString()"></span>
+              <span class="mt-1 text-xs text-gray-500">Cover</span>
+            </label>
+          </div>
+        </template>
+        
+        <!-- Custom Amount -->
+        <div>
+          <input type="radio" id="cover_amount_custom" name="cover_amount" value="custom" 
+                 x-model="coverAmount" class="form-radio sr-only"
+                 @change="showCustomAmount = true">
+          <label for="cover_amount_custom" 
+                 class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer text-center h-full"
+                 :class="{'border-blue-500 ring-2 ring-blue-500': showCustomAmount, 'border-gray-300'}">
+            <span class="text-lg font-medium">Custom</span>
+            <span class="mt-1 text-xs text-gray-500">Amount</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Custom Amount Input -->
+      <div x-show="showCustomAmount" x-transition class="mt-4 max-w-xs">
+        <label for="custom_cover_amount" class="block text-sm font-medium text-gray-700">
+          Enter custom amount (R)
+        </label>
+        <div class="mt-1 relative rounded-md shadow-sm">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span class="text-gray-500 sm:text-sm">R</span>
+          </div>
+          <input type="number" id="custom_cover_amount" name="custom_cover_amount" 
+                 x-model="customCoverAmount"
+                 @input="updateCustomCoverAmount"
+                 min="1000" max="1000000" step="1000"
+                 class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                 placeholder="e.g. 25000">
+        </div>
+        <p class="mt-1 text-xs text-gray-500">
+          Enter an amount between R1,000 and R1,000,000
+        </p>
+      </div>
+      
+      <!-- Cover Calculator (Collapsible) -->
+      <div x-show="showCoverCalculator" x-transition class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">Cover Amount Calculator</h4>
+        <p class="text-sm text-gray-500 mb-4">
+          Use our calculator to estimate the right cover amount based on your needs.
+        </p>
+        
+        <div class="space-y-4">
+          <!-- Funeral Expenses -->
+          <div>
+            <label for="funeral_expenses" class="block text-sm font-medium text-gray-700">
+              Estimated Funeral Expenses (R)
+            </label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">R</span>
+              </div>
+              <input type="number" id="funeral_expenses" 
+                     x-model.number="calculator.funeralExpenses"
+                     @input="calculateRecommendedCover"
+                     class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                     placeholder="e.g. 50000">
+            </div>
+          </div>
+          
+          <!-- Outstanding Debt -->
+          <div>
+            <label for="outstanding_debt" class="block text-sm font-medium text-gray-700">
+              Outstanding Debt (R)
+            </label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">R</span>
+              </div>
+              <input type="number" id="outstanding_debt" 
+                     x-model.number="calculator.outstandingDebt"
+                     @input="calculateRecommendedCover"
+                     class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                     placeholder="e.g. 100000">
+            </div>
+          </div>
+          
+          <!-- Living Expenses (Months) -->
+          <div>
+            <label for="living_expenses_months" class="block text-sm font-medium text-gray-700">
+              Living Expenses Coverage (Months)
+            </label>
+            <select id="living_expenses_months" 
+                    x-model.number="calculator.livingExpensesMonths"
+                    @change="calculateRecommendedCover"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+              <option value="0">0 months</option>
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+              <option value="24">24 months</option>
+            </select>
+          </div>
+          
+          <!-- Monthly Expenses -->
+          <div>
+            <label for="monthly_expenses" class="block text-sm font-medium text-gray-700">
+              Monthly Living Expenses (R)
+            </label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">R</span>
+              </div>
+              <input type="number" id="monthly_expenses" 
+                     x-model.number="calculator.monthlyExpenses"
+                     @input="calculateRecommendedCover"
+                     class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                     placeholder="e.g. 15000">
+            </div>
+          </div>
+          
+          <!-- Recommended Cover -->
+          <div class="mt-4 p-3 bg-blue-50 rounded-md">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-gray-700">Recommended Cover:</span>
+              <span class="text-lg font-bold text-blue-700" x-text="'R' + recommendedCover.toLocaleString()"></span>
+            </div>
+            <button type="button" @click="applyRecommendedCover" 
+                    class="mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Apply Recommended Cover
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Extended Family -->
+    <div class="pt-4 border-t border-gray-200">
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <input id="has_extended_family" name="has_extended_family" type="checkbox" 
+                 class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                 x-model="hasExtendedFamily">
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="has_extended_family" class="font-medium text-gray-700">Include extended family members</label>
+          <p class="text-gray-500">
+            Add parents, parents-in-law, and other extended family members to your policy.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Extended Family Details -->
+      <div x-show="hasExtendedFamily" x-transition class="mt-4 ml-8 p-4 bg-gray-50 rounded-lg">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">Extended Family Members</h4>
+        
+        <div class="space-y-4">
+          <!-- Number of Extended Family Members -->
+          <div>
+            <label for="extended_family_count" class="block text-sm font-medium text-gray-700">
+              Number of Extended Family Members
+            </label>
+            <select id="extended_family_count" 
+                    x-model.number="extendedFamilyCount"
+                    @change="updateExtendedFamilyCount"
+                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5+</option>
+            </select>
+          </div>
+          
+          <!-- Extended Family List -->
+          <div x-show="extendedFamilyCount > 0" x-transition>
+            <p class="text-sm text-gray-500 mb-2">
+              You'll be able to provide details for each extended family member in the next step.
+            </p>
+            <div class="bg-white p-3 rounded-md border border-gray-200">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs font-medium text-gray-500">Members Included</p>
+                  <p class="text-sm font-medium" x-text="extendedFamilyCount + (extendedFamilyCount > 1 ? ' members' : ' member')"></p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-gray-500">Additional Premium</p>
+                  <p class="text-sm font-medium text-blue-600" x-text="'R' + (extendedFamilyCount * 50).toLocaleString() + '/month'"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Premium Summary -->
+    <div class="pt-4 border-t border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">Your Premium</h3>
+      
+      <div class="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Monthly Premium</p>
+              <p class="mt-1 text-3xl font-bold text-gray-900" x-text="'R' + calculatedPremium.toLocaleString() + '/month'"></p>
+              <p class="mt-1 text-sm text-gray-500">
+                For <span x-text="1 + (hasExtendedFamily ? parseInt(extendedFamilyCount) : 0)"></span> 
+                <span x-text="1 + (hasExtendedFamily ? parseInt(extendedFamilyCount) : 0) > 1 ? 'people' : 'person'"></span>
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <i class="fas fa-shield-alt text-4xl text-blue-500"></i>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Coverage Summary</h4>
+            <dl class="mt-2 space-y-2">
+              <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Main Member</dt>
+                <dd class="font-medium text-gray-900" x-text="'R' + coverAmount.toLocaleString()"></dd>
+              </div>
+              <div x-show="hasExtendedFamily && extendedFamilyCount > 0" class="flex justify-between text-sm">
+                <dt class="text-gray-500">Extended Family Members</dt>
+                <dd class="font-medium text-gray-900" x-text="extendedFamilyCount + ' x R' + (coverAmount * 0.5).toLocaleString()"></dd>
+              </div>
+              <div class="border-t border-gray-200 pt-2 flex justify-between text-sm font-medium">
+                <dt>Total Cover</dt>
+                <dd class="text-blue-600" x-text="'R' + totalCoverAmount.toLocaleString()"></dd>
+              </div>
+            </dl>
+          </div>
+          
+          <div class="mt-6">
+            <div class="rounded-md bg-blue-50 p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <i class="h-5 w-5 text-blue-400 fas fa-info-circle"></i>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800">Premium Calculation</h3>
+                  <div class="mt-2 text-sm text-blue-700">
+                    <p>Your premium is calculated based on the cover amount and number of members.</p>
+                    <p class="mt-1 text-xs">
+                      Base rate: R5 per R1,000 of cover + R50 per extended family member
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Form actions are handled by the parent template -->
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('policyDetailsHandler', () => ({
+    // Form state
+    policyType: 'funeral',
+    coverAmount: 25000,
+    customCoverAmount: 25000,
+    showCustomAmount: false,
+    hasExtendedFamily: false,
+    extendedFamilyCount: 0,
+    
+    // Cover calculator state
+    showCoverCalculator: false,
+    calculator: {
+      funeralExpenses: 50000,
+      outstandingDebt: 100000,
+      livingExpensesMonths: 6,
+      monthlyExpenses: 15000
+    },
+    recommendedCover: 0,
+    
+    // Predefined cover amounts
+    coverAmounts: [10000, 25000, 50000, 100000],
+    
+    init() {
+      // Load from store if available
+      if (this.$store.formData.policy_type) {
+        this.policyType = this.$store.formData.policy_type;
+      }
+      
+      if (this.$store.formData.cover_amount) {
+        this.coverAmount = parseInt(this.$store.formData.cover_amount);
+        if (!this.coverAmounts.includes(this.coverAmount)) {
+          this.customCoverAmount = this.coverAmount;
+          this.showCustomAmount = true;
+        }
+      }
+      
+      if (this.$store.formData.has_extended_family) {
+        this.hasExtendedFamily = this.$store.formData.has_extended_family === 'true';
+      }
+      
+      if (this.$store.formData.extended_family_count) {
+        this.extendedFamilyCount = parseInt(this.$store.formData.extended_family_count);
+      }
+      
+      // Calculate initial recommended cover
+      this.calculateRecommendedCover();
+    },
+    
+    // Computed properties
+    get calculatedPremium() {
+      // Base premium: R5 per R1,000 of cover
+      let premium = (this.coverAmount / 1000) * 5;
+      
+      // Add R50 for each extended family member
+      if (this.hasExtendedFamily && this.extendedFamilyCount > 0) {
+        premium += this.extendedFamilyCount * 50;
+      }
+      
+      // Ensure minimum premium of R50
+      return Math.max(50, Math.round(premium));
+    },
+    
+    get totalCoverAmount() {
+      let total = this.coverAmount;
+      
+      // Add 50% of cover amount for each extended family member
+      if (this.hasExtendedFamily && this.extendedFamilyCount > 0) {
+        total += Math.floor(this.coverAmount * 0.5) * this.extendedFamilyCount;
+      }
+      
+      return total;
+    },
+    
+    // Methods
+    updatePolicyType(type) {
+      this.policyType = type;
+      this.updateStore();
+    },
+    
+    updateCoverAmount(amount) {
+      this.coverAmount = amount;
+      this.showCustomAmount = false;
+      this.updateStore();
+    },
+    
+    updateCustomCoverAmount() {
+      if (this.customCoverAmount >= 1000 && this.customCoverAmount <= 1000000) {
+        this.coverAmount = parseInt(this.customCoverAmount);
+        this.updateStore();
+      }
+    },
+    
+    updateExtendedFamilyCount() {
+      this.extendedFamilyCount = Math.min(5, Math.max(0, this.extendedFamilyCount));
+      this.updateStore();
+    },
+    
+    calculateRecommendedCover() {
+      // Simple calculation based on inputs
+      const { funeralExpenses, outstandingDebt, livingExpensesMonths, monthlyExpenses } = this.calculator;
+      
+      // Calculate recommended cover
+      let recommended = funeralExpenses + outstandingDebt;
+      
+      // Add living expenses if applicable
+      if (livingExpensesMonths > 0 && monthlyExpenses > 0) {
+        recommended += livingExpensesMonths * monthlyExpenses;
+      }
+      
+      // Round to nearest R10,000
+      this.recommendedCover = Math.round(recommended / 10000) * 10000;
+      
+      // Ensure it's within allowed range
+      this.recommendedCover = Math.max(10000, Math.min(1000000, this.recommendedCover));
+    },
+    
+    applyRecommendedCover() {
+      this.coverAmount = this.recommendedCover;
+      this.customCoverAmount = this.recommendedCover;
+      this.showCustomAmount = true;
+      this.showCoverCalculator = false;
+      this.updateStore();
+    },
+    
+    updateStore() {
+      // Update the store with current values
+      this.$store.formData.policy_type = this.policyType;
+      this.$store.formData.cover_amount = this.coverAmount.toString();
+      this.$store.formData.has_extended_family = this.hasExtendedFamily.toString();
+      this.$store.formData.extended_family_count = this.extendedFamilyCount.toString();
+      this.$store.formData.monthly_premium = this.calculatedPremium.toString();
+      
+      // If custom amount is shown, ensure it's synced
+      if (this.showCustomAmount) {
+        this.coverAmount = parseInt(this.customCoverAmount) || 0;
+      }
+    }
+  }));
+  
+  // Watch for changes in form data to update the store
+  document.addEventListener('alpine:init', () => {
+    Alpine.effect(() => {
+      // This will trigger whenever any reactive property changes
+      const handler = document.querySelector('[x-data="policyDetailsHandler"]').__x.$data;
+      if (handler) {
+        handler.updateStore();
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
