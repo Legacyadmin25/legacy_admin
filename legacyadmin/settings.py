@@ -206,3 +206,6 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Set a default model if not specified in environment
 DEFAULT_OPENAI_MODEL = os.getenv('DEFAULT_OPENAI_MODEL', 'gpt-3.5-turbo')
+
+# Use the namespaced login URL for authentication redirects
+LOGIN_URL = 'accounts:login'
