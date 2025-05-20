@@ -86,15 +86,9 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-            'phone', 'date_of_birth', 'gender', 'address', 'city',
-            'state', 'postal_code', 'country', 'timezone', 'language',
-            'profile_picture', 'bio', 'website', 'twitter', 'facebook',
-            'linkedin', 'instagram', 'github', 'stackoverflow', 'youtube',
-            'reddit', 'discord', 'slack', 'telegram', 'whatsapp', 'signal',
-            'matrix', 'mastodon', 'pixelfed', 'peertube', 'element', 'jitsi',
-            'bigbluebutton', 'jami', 'jitsi_meet', 'jitsi_videobridge',
-            'jitsi_prosody', 'jitsi_jicofo', 'jitsi_jvb', 'jitsi_jigasi',
-            'jitsi_jibri', 'jitsi_jibrixmpp', 'jitsi_jibri_recorder',
+            'phone', 'date_of_birth', 'address', 'city',
+            'state', 'postal_code', 'country',
+            'profile_picture', 'bio', 'is_verified', 'is_active'
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
