@@ -16,24 +16,30 @@ from django.contrib.auth.decorators import login_required
 # ─── Scheme List View ───────────────────────────────────────────────────────
 class SchemeListView(LoginRequiredMixin, ListView):
     model = Scheme
-    template_name = 'settings_app/scheme_setup.html'
+    template_name = 'settings_app/scheme_list.html'
     context_object_name = 'schemes'
     paginate_by = 10
 
     def get_queryset(self):
-        user = self.request.user
-        branch = user.profile.branch if hasattr(user, 'profile') else None
-        
-        if user.is_superuser:
-            return Scheme.objects.all()
-        if user.groups.filter(name='Branch Owner').exists():
-            return Scheme.objects.filter(branch=branch)
-        return Scheme.objects.none()
+        qs = super().get_queryset().order_by('-id')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(fsp_number__icontains=q) |
+                Q(prefix__icontains=q) |
+                Q(registration_no__icontains=q)
+            )
+        if not self.request.user.is_superuser:
+            branch = getattr(self.request.user, 'branchuser', None)
+            qs = qs.filter(branch=branch.branch) if branch else Scheme.objects.none()
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = SchemeForm()
         ctx['doc_form'] = SchemeDocumentForm()
+        ctx['q'] = self.request.GET.get('q', '')
         return ctx
 
 
@@ -44,10 +50,15 @@ class SchemeCreateView(LoginRequiredMixin, CreateView):
     template_name = 'settings_app/scheme_setup.html'
     success_url = reverse_lazy('settings:scheme')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['schemes'] = Scheme.objects.all().order_by('-id')
+        return context
+
     def form_valid(self, form):
-        form.save()
+        response = super().form_valid(form)
         messages.success(self.request, "Scheme created successfully.")
-        return redirect(self.success_url)
+        return response
 
 
 # ─── Scheme Update View ───────────────────────────────────────────────────────
@@ -57,9 +68,15 @@ class SchemeUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'settings_app/scheme_setup.html'
     success_url = reverse_lazy('settings:scheme')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['schemes'] = Scheme.objects.all().order_by('-id')
+        return context
+
     def form_valid(self, form):
+        response = super().form_valid(form)
         messages.success(self.request, "Scheme updated successfully.")
-        return super().form_valid(form)
+        return response
 
 
 # ─── Scheme Delete View ───────────────────────────────────────────────────────

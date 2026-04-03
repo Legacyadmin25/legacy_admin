@@ -1,0 +1,70 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Address Details - Policy Application{% endblock %}
+{% block header_title %}Address Information{% endblock %}
+{% block header_subtitle %}Where do you live?{% endblock %}
+{% block current_step %}2{% endblock %}
+{% block progress_percent %}33%{% endblock %}
+{% block progress_label %}Address Details{% endblock %}
+
+{% block form_content %}
+    <div class="form-section">
+        <h4>Residential Address</h4>
+
+        <!-- Street Address -->
+        <div class="form-group">
+            <label for="{{ form.physical_address_line_1.id_for_label }}">
+                Street Address <span class="required">*</span>
+            </label>
+            {{ form.physical_address_line_1 }}
+            <div class="help-text">e.g., 123 Main Street or Building Name</div>
+            {% if form.physical_address_line_1.errors %}
+                <div class="invalid-feedback d-block">{{ form.physical_address_line_1.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Suburb/Area -->
+        <div class="form-group">
+            <label for="{{ form.physical_address_line_2.id_for_label }}">
+                Suburb / Area (Optional)
+            </label>
+            {{ form.physical_address_line_2 }}
+            <div class="help-text">e.g., Unit 45, Complex name, etc.</div>
+            {% if form.physical_address_line_2.errors %}
+                <div class="invalid-feedback d-block">{{ form.physical_address_line_2.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- City -->
+        <div class="form-group">
+            <label for="{{ form.physical_address_city.id_for_label }}">
+                City / Town <span class="required">*</span>
+            </label>
+            {{ form.physical_address_city }}
+            {% if form.physical_address_city.errors %}
+                <div class="invalid-feedback d-block">{{ form.physical_address_city.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Postal Code -->
+        <div class="form-group">
+            <label for="{{ form.physical_address_postal_code.id_for_label }}">
+                Postal Code <span class="required">*</span>
+            </label>
+            {{ form.physical_address_postal_code }}
+            <div class="help-text">e.g., 2000</div>
+            {% if form.physical_address_postal_code.errors %}
+                <div class="invalid-feedback d-block">{{ form.physical_address_postal_code.errors.0 }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Note:</strong> Please provide your current physical address. This is where we'll send important documents about your policy.
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-primary">Continue to Plans</button>
+{% endblock %}

@@ -14,13 +14,16 @@ from django.db.models.functions import TruncMonth, TruncDay
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.contrib.auth.models import Group
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.serializers.json import DjangoJSONEncoder
+import json
 from openpyxl import Workbook 
 from members.models import Member, Policy, DiySignupLog
 from schemes.models import Plan, Scheme
-from settings_app.models import Agent
+from settings_app.models import Agent, Underwriter
 from reports.models import Report
+from config.permissions import filter_by_user_scope, get_user_schemes, get_user_branches
 
 
 # ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
@@ -28,26 +31,16 @@ from reports.models import Report
 def index(request):
     user = request.user
     is_superuser = user.is_superuser
-    is_branch_owner = user.groups.filter(name='Branch Owner').exists()
-    is_scheme_admin = user.groups.filter(name='Scheme Admin').exists()
 
     selected_scheme = request.GET.get('scheme', '')
     selected_month = request.GET.get('month', '')
 
-    # Base querysets depending on user role
-    if is_superuser:
-        schemes = Plan.objects.all()
-        members_qs = Member.objects.all()
-    elif is_branch_owner:
-        branch = user.userprofile.branch
-        schemes = Plan.objects.filter(scheme__branch=branch)
-        members_qs = Member.objects.filter(policy__plan__in=schemes)
-    elif is_scheme_admin:
-        schemes = Plan.objects.filter(scheme__admin_user=user)
-        members_qs = Member.objects.filter(policy__plan__in=schemes)
-    else:
-        schemes = Plan.objects.none()
-        members_qs = Member.objects.none()
+    # Get user's accessible schemes using multi-tenancy helper
+    accessible_schemes = get_user_schemes(user)
+    
+    # Base querysets with multi-tenancy filtering
+    schemes = filter_by_user_scope(Plan.objects.all(), user, Plan)
+    members_qs = filter_by_user_scope(Member.objects.all(), user, Member)
 
     # Filter by scheme if provided
     if selected_scheme.isdigit():
@@ -199,7 +192,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Count
-from members.models import Policy, Member, Agent
+from members.models import Policy, Member
+from settings_app.models import Agent
 from branches.models import Branch
 from schemes.models import Scheme
 
@@ -298,17 +292,164 @@ def export_dashboard_pdf(request):
     return HttpResponse("PDF export is temporarily disabled.")
 
 
+# ─── ENHANCED ADMIN DASHBOARD ────────────────────────────────────────────────
+@login_required
+def admin_dashboard(request):
+    """Enhanced admin dashboard with visualizations and metrics"""
+    # Check if user is admin/superuser
+    if not request.user.is_superuser:
+        return redirect('dashboard:index')
+    
+    today = timezone.now().date()
+    current_month = today.month
+    current_year = today.year
+    
+    # Summary counts
+    total_plans = Plan.objects.count()
+    active_plans = Plan.objects.filter(is_active=True).count()
+    inactive_plans = total_plans - active_plans
+    
+    total_policies = Policy.objects.count()
+    active_policies = Policy.objects.filter(is_active=True).count()
+    inactive_policies = total_policies - active_policies
+    
+    total_members = Member.objects.count()
+    total_agents = Agent.objects.count()
+    total_underwriters = Underwriter.objects.count() if 'Underwriter' in globals() else 0
+    
+    # Monthly premium data for chart (last 6 months)
+    months = []
+    premium_data = []
+    policy_counts = []
+    
+    for i in range(5, -1, -1):  # Last 6 months
+        # Calculate month and year
+        month = current_month - i
+        year = current_year
+        if month <= 0:
+            month += 12
+            year -= 1
+        
+        # Get month name
+        month_name = calendar.month_name[month][:3] + f" '{str(year)[2:]}"  # e.g. Jan '23
+        months.append(month_name)
+        
+        # Get premium sum for this month
+        month_policies = Policy.objects.filter(
+            created__year=year,
+            created__month=month
+        )
+        monthly_premium = sum(policy.premium or 0 for policy in month_policies)
+        premium_data.append(monthly_premium)
+        
+        # Count policies created this month
+        policy_counts.append(month_policies.count())
+    
+    # Recent activity - new policies, plan changes, etc.
+    recent_policies = Policy.objects.order_by('-created')[:10]
+    recent_plans = Plan.objects.order_by('-modified_date')[:10]
+    
+    # Combine and sort by date
+    recent_activities = [
+        {'type': 'policy', 'item': policy, 'date': policy.created, 'action': 'created'}
+        for policy in recent_policies
+    ] + [
+        {'type': 'plan', 'item': plan, 'date': plan.modified_date, 'action': 'modified'}
+        for plan in recent_plans
+    ]
+    
+    # Sort by date (newest first) and limit to 10
+    recent_activities.sort(key=lambda x: x['date'], reverse=True)
+    recent_activities = recent_activities[:10]
+    
+    context = {
+        'total_plans': total_plans,
+        'active_plans': active_plans,
+        'inactive_plans': inactive_plans,
+        'total_policies': total_policies,
+        'active_policies': active_policies,
+        'inactive_policies': inactive_policies,
+        'total_members': total_members,
+        'total_agents': total_agents,
+        'total_underwriters': total_underwriters,
+        'months_json': months,
+        'premium_data_json': premium_data,
+        'policy_counts_json': policy_counts,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'dashboard/admin_dashboard.html', context)
+
+
 # ─── EXPORT EXCEL ─────────────────────────────────────────────────────────────
 @login_required
 def export_dashboard_excel(request):
+    """Export dashboard data to Excel file"""
     wb = Workbook()
     ws = wb.active
-    ws.title = "Reports"
-    ws.append(["Title", "Description", "Created At", "Updated At"])
-    for rpt in Report.objects.all().order_by("created_at"):
-        ws.append([rpt.title, rpt.description, rpt.created_at.strftime("%Y-%m-%d %H:%M:%S"), rpt.updated_at.strftime("%Y-%m-%d %H:%M:%S")])
+    ws.title = "Dashboard Data"
+    
+    # Add headers
+    headers = ['Category', 'Metric', 'Value']
+    for col_num, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_num, value=header)
+    
+    # Get data similar to the dashboard view
+    user = request.user
+    is_superuser = user.is_superuser
+    
+    # Add summary data
+    row = 2
+    
+    # Plans data
+    total_plans = Plan.objects.count()
+    active_plans = Plan.objects.filter(is_active=True).count()
+    inactive_plans = total_plans - active_plans
+    
+    ws.cell(row=row, column=1, value="Plans")
+    ws.cell(row=row, column=2, value="Total")
+    ws.cell(row=row, column=3, value=total_plans)
+    row += 1
+    
+    ws.cell(row=row, column=1, value="Plans")
+    ws.cell(row=row, column=2, value="Active")
+    ws.cell(row=row, column=3, value=active_plans)
+    row += 1
+    
+    ws.cell(row=row, column=1, value="Plans")
+    ws.cell(row=row, column=2, value="Inactive")
+    ws.cell(row=row, column=3, value=inactive_plans)
+    row += 1
+    
+    # Policies data
+    total_policies = Policy.objects.count()
+    active_policies = Policy.objects.filter(is_active=True).count()
+    inactive_policies = total_policies - active_policies
+    
+    ws.cell(row=row, column=1, value="Policies")
+    ws.cell(row=row, column=2, value="Total")
+    ws.cell(row=row, column=3, value=total_policies)
+    row += 1
+    
+    ws.cell(row=row, column=1, value="Policies")
+    ws.cell(row=row, column=2, value="Active")
+    ws.cell(row=row, column=3, value=active_policies)
+    row += 1
+    
+    ws.cell(row=row, column=1, value="Policies")
+    ws.cell(row=row, column=2, value="Inactive")
+    ws.cell(row=row, column=3, value=inactive_policies)
+    row += 1
+    
+    # Members data
+    total_members = Member.objects.count()
+    ws.cell(row=row, column=1, value="Members")
+    ws.cell(row=row, column=2, value="Total")
+    ws.cell(row=row, column=3, value=total_members)
+    
+    # Prepare response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="reports.xlsx"'
+    response['Content-Disposition'] = 'attachment; filename=dashboard_data.xlsx'
     wb.save(response)
     return response
 

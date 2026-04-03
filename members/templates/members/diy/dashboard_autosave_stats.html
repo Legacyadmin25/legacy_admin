@@ -1,0 +1,72 @@
+{% load static %}
+
+<div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8" x-data="autosaveStats()">
+    <div class="flex items-center">
+        <div class="flex-shrink-0">
+            <span class="text-2xl sm:text-3xl leading-none font-bold text-gray-900" x-text="totalCount">--</span>
+            <h3 class="text-base font-normal text-gray-500">Total DIY Applications</h3>
+        </div>
+        <div class="ml-5 w-0 flex items-center justify-end flex-1 text-green-500 text-base font-bold">
+            <i class="fas fa-clipboard-list mr-1"></i>
+        </div>
+    </div>
+    
+    <div class="mt-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-blue-50 rounded-lg p-3 flex flex-col items-center justify-center">
+                <span class="text-xl font-semibold text-blue-600" x-text="incompleteCount">--</span>
+                <span class="text-sm text-blue-500">In Progress</span>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-3 flex flex-col items-center justify-center">
+                <span class="text-xl font-semibold text-yellow-600" x-text="abandonedCount">--</span>
+                <span class="text-sm text-yellow-500">Abandoned</span>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 flex flex-col items-center justify-center">
+                <span class="text-xl font-semibold text-green-600" x-text="completedCount">--</span>
+                <span class="text-sm text-green-500">Completed</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{% url 'members:incomplete_applications' %}" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+            View all applications <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+    </div>
+</div>
+
+<script>
+    function autosaveStats() {
+        return {
+            incompleteCount: '--',
+            abandonedCount: '--',
+            completedCount: '--',
+            totalCount: '--',
+            
+            init() {
+                this.fetchStats();
+                // Refresh stats every 5 minutes
+                setInterval(() => this.fetchStats(), 5 * 60 * 1000);
+            },
+            
+            fetchStats() {
+                fetch('/members/diy/autosave/api/diy/application-stats/')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.incompleteCount = data.incomplete_count;
+                        this.abandonedCount = data.abandoned_count;
+                        this.completedCount = data.completed_count;
+                        this.totalCount = data.total_count;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching application stats:', error);
+                    });
+            }
+        };
+    }
+</script>

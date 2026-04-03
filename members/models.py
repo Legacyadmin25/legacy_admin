@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Max
+from encrypted_model_fields.fields import EncryptedCharField
 
 
 class Member(models.Model):
@@ -23,13 +24,13 @@ class Member(models.Model):
     title = models.CharField(max_length=20, choices=TITLE_CHOICES, blank=True, null=True)
     first_name = models.CharField(max_length=255, verbose_name=_('First Name'))
     last_name = models.CharField(max_length=255, verbose_name=_('Last Name'))
-    id_number = models.CharField(max_length=13, blank=True, null=True, verbose_name=_('ID Number'))
-    passport_number = models.CharField(max_length=20, blank=True, verbose_name=_('Passport Number'))
+    id_number = EncryptedCharField(max_length=13, blank=True, null=True, verbose_name=_('ID Number'), db_index=True)
+    passport_number = EncryptedCharField(max_length=20, blank=True, verbose_name=_('Passport Number'))
     gender = models.CharField(max_length=6, choices=[('Female','Female'),('Male','Male')], verbose_name=_('Gender'))
     date_of_birth = models.DateField(verbose_name=_('Date of Birth'))
     phone_number = models.CharField(max_length=20, verbose_name=_('Phone Number'))
     whatsapp_number = models.CharField(max_length=20, blank=True, verbose_name=_('WhatsApp Number'))
-    email = models.EmailField(blank=True, verbose_name=_('Email'))
+    email = models.EmailField(blank=True, verbose_name=_('Email'), db_index=True)
     marital_status = models.CharField(max_length=10, choices=MARITAL_STATUS_CHOICES, verbose_name=_('Marital Status'), blank=True, null=True)
 
     nationality = models.CharField(max_length=100, blank=True, verbose_name=_('Nationality'))
@@ -44,7 +45,7 @@ class Member(models.Model):
     # Spouse information
     spouse_first_name = models.CharField(max_length=100, blank=True, verbose_name=_("Spouse's First Name"))
     spouse_last_name = models.CharField(max_length=100, blank=True, verbose_name=_("Spouse's Last Name"))
-    spouse_id_number = models.CharField(max_length=13, blank=True, null=True, verbose_name=_("Spouse's ID Number"))
+    spouse_id_number = EncryptedCharField(max_length=13, blank=True, null=True, verbose_name=_("Spouse's ID Number"))
     spouse_date_of_birth = models.DateField(null=True, blank=True, verbose_name=_("Spouse's Date of Birth"))
     spouse_gender = models.CharField(
         max_length=6, 
@@ -54,7 +55,7 @@ class Member(models.Model):
     )
     spouse_phone_number = models.CharField(max_length=20, blank=True, verbose_name=_("Spouse's Phone Number"))
     spouse_email = models.EmailField(blank=True, verbose_name=_("Spouse's Email"))
-    spouse_passport_number = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Spouse's Passport Number"))
+    spouse_passport_number = EncryptedCharField(max_length=50, blank=True, null=True, verbose_name=_("Spouse's Passport Number"))
     spouse_nationality = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Spouse's Nationality"))
     spouse_country_of_birth = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Spouse's Country of Birth"))
     spouse_country_of_residence = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Spouse's Country of Residence"))
@@ -63,7 +64,7 @@ class Member(models.Model):
     
     def validate_id_number(self, id_number):
         """Validate South African ID number using Luhn algorithm"""
-        from utils.luhn import luhn_check
+        from members.utils import luhn_check
         return luhn_check(id_number)
 
     def __str__(self):
@@ -71,7 +72,6 @@ class Member(models.Model):
 
 
 from django.db import models
-from settings_app.models import Agent  # Import the Agent model
 
 class Policy(models.Model):
     member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='policies')
@@ -96,7 +96,7 @@ class Policy(models.Model):
     bank = models.ForeignKey('branches.Bank', null=True, blank=True, on_delete=models.SET_NULL)
     branch_code = models.CharField(max_length=10, blank=True)
     account_holder_name = models.CharField(max_length=100, blank=True)
-    account_number = models.CharField(max_length=20, blank=True)
+    account_number = EncryptedCharField(max_length=20, blank=True)  # 🔒 ENCRYPTED
     debit_instruction_day = models.CharField(max_length=20, blank=True)
     eft_agreed = models.BooleanField(default=False)
     easypay_number = models.CharField(
@@ -111,8 +111,8 @@ class Policy(models.Model):
 
     otp_confirmed = models.BooleanField(default=False)
     
-    # Change this to a ForeignKey to Agent model
-    underwritten_by = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True)
+    # Reference to Agent model (using string reference to avoid circular imports)
+    underwritten_by = models.ForeignKey('settings_app.Agent', on_delete=models.SET_NULL, null=True, blank=True)
     
     cover_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     premium_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -210,7 +210,7 @@ class Dependent(models.Model):
     ]
     policy = models.ForeignKey(Policy, on_delete=models.CASCADE, related_name='dependents')
     relationship = models.CharField(max_length=50, verbose_name=_('Relationship'))
-    id_number = models.CharField(max_length=13, blank=True, verbose_name=_('ID Number'))
+    id_number = EncryptedCharField(max_length=13, blank=True, verbose_name=_('ID Number'))  # 🔒 ENCRYPTED
     first_name = models.CharField(max_length=255, verbose_name=_('First Name'))
     last_name = models.CharField(max_length=255, verbose_name=_('Last Name'))
     gender = models.CharField(max_length=6, choices=GENDER_CHOICES, verbose_name=_('Gender'))
@@ -228,7 +228,7 @@ class Beneficiary(models.Model):
     
     policy = models.ForeignKey(Policy, on_delete=models.CASCADE, related_name='beneficiaries')
     relationship_to_main_member = models.CharField(max_length=50, verbose_name=_('Relationship to Main Member'))
-    id_number = models.CharField(max_length=13, blank=True, verbose_name=_('ID Number'))
+    id_number = EncryptedCharField(max_length=13, blank=True, verbose_name=_('ID Number'))  # 🔒 ENCRYPTED
     first_name = models.CharField(max_length=255, verbose_name=_('First Name'))
     last_name = models.CharField(max_length=255, verbose_name=_('Last Name'))
     date_of_birth = models.DateField(null=True, blank=True, verbose_name=_('Date of Birth'))
@@ -281,11 +281,8 @@ class OtpVerification(models.Model):
         self.save()
         return False
 
-from django.db import models
-from settings_app.models import Agent
-
 class DiySignupLog(models.Model):
-    agent        = models.ForeignKey(Agent, on_delete=models.CASCADE)
+    agent        = models.ForeignKey('settings_app.Agent', on_delete=models.CASCADE)  # String reference to avoid circular imports
     member       = models.ForeignKey("self", null=True, on_delete=models.SET_NULL)
     completed_at = models.DateTimeField(auto_now_add=True)
 

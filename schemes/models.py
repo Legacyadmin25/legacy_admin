@@ -1,5 +1,6 @@
 from django.db import models
-from branches.models import Branch
+from branches.models import Branch, Bank
+from .constants import PROVINCE_CHOICES
 
 class Scheme(models.Model):
     # — assign each Scheme to a Branch
@@ -21,22 +22,43 @@ class Scheme(models.Model):
     logo = models.ImageField(upload_to='logos/', blank=True, null=True)
     terms = models.TextField(blank=True)
     debit_order_no = models.CharField(max_length=50)
-    bank_name = models.CharField(max_length=100)
-    branch_code = models.CharField(max_length=20)
+    bank = models.ForeignKey(
+        Bank,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='schemes',
+        help_text="Bank for this scheme"
+    )
+    
+
     account_no = models.CharField(max_length=50)
     account_type = models.CharField(
         max_length=50,
-        choices=[('Savings', 'Savings'), ('Current', 'Current')]
+        choices=[('Savings', 'Savings'), ('Current', 'Current')],
+        default='Savings'
     )
-
+    branch_code = models.CharField(max_length=20, blank=True, null=True, help_text="Auto-filled when bank is selected")
     address = models.CharField(max_length=255, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
-    province = models.CharField(max_length=100, blank=True, null=True)
+    province = models.CharField(
+        max_length=3,
+        choices=PROVINCE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Select the province where the scheme is located"
+    )
     village = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
     postal_code = models.CharField(max_length=20, blank=True, null=True)
     allow_auto_policy_number = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        # Update branch_code when bank is set
+        if self.bank:
+            self.branch_code = self.bank.branch_code
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.branch.name})"

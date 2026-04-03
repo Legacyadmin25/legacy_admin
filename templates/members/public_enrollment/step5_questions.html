@@ -1,0 +1,138 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Additional Questions - Policy Application{% endblock %}
+{% block header_title %}A Few More Questions{% endblock %}
+{% block header_subtitle %}Help us customize your coverage{% endblock %}
+{% block current_step %}5{% endblock %}
+{% block progress_percent %}83%{% endblock %}
+{% block progress_label %}Additional Information{% endblock %}
+
+{% block form_content %}
+    <div class="alert alert-info">
+        <strong>Smart Questions:</strong> These questions are tailored based on your plan selection. 
+        They help us set up the right coverage for you.
+    </div>
+
+    {% if questions %}
+        {% for question in questions %}
+            <div class="form-section" data-question-key="{{ question.question_key }}">
+                <label style="font-weight: 600; color: var(--primary-color); margin-bottom: 12px; display: block;">
+                    {{ question.question_text }}
+                    {% if question.is_required %}<span class="required">*</span>{% endif %}
+                </label>
+
+                {% if question.question_type == 'text' %}
+                    <input type="text" name="answer_{{ question.id }}" class="form-control" 
+                        placeholder="Enter your answer"
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}">
+
+                {% elif question.question_type == 'email' %}
+                    <input type="email" name="answer_{{ question.id }}" class="form-control" 
+                        placeholder="Enter your email"
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}">
+
+                {% elif question.question_type == 'phone' %}
+                    <input type="tel" name="answer_{{ question.id }}" class="form-control" 
+                        placeholder="Enter your phone number"
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}">
+
+                {% elif question.question_type == 'number' %}
+                    <input type="number" name="answer_{{ question.id }}" class="form-control" 
+                        placeholder="Enter a number"
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}">
+
+                {% elif question.question_type == 'date' %}
+                    <input type="date" name="answer_{{ question.id }}" class="form-control" 
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}">
+
+                {% elif question.question_type == 'yes_no' %}
+                    <div class="form-radio-group">
+                        <label class="form-radio">
+                            <input type="radio" name="answer_{{ question.id }}" value="Yes" 
+                                {% if question.is_required %}required{% endif %}
+                                data-question-id="{{ question.id }}"
+                                onchange="handleConditionalLogic()">
+                            <label>Yes</label>
+                        </label>
+                        <label class="form-radio">
+                            <input type="radio" name="answer_{{ question.id }}" value="No" 
+                                {% if question.is_required %}required{% endif %}
+                                data-question-id="{{ question.id }}"
+                                onchange="handleConditionalLogic()">
+                            <label>No</label>
+                        </label>
+                    </div>
+
+                {% elif question.question_type == 'choice' %}
+                    <select name="answer_{{ question.id }}" class="form-select" 
+                        {% if question.is_required %}required{% endif %}
+                        data-question-id="{{ question.id }}"
+                        onchange="handleConditionalLogic()">
+                        <option value="">-- Please Select --</option>
+                        {% for option in question.options_list %}
+                            <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+
+                {% elif question.question_type == 'checkbox' %}
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="answer_{{ question.id }}" 
+                            name="answer_{{ question.id }}" value="checked"
+                            data-question-id="{{ question.id }}"
+                            onchange="handleConditionalLogic()">
+                        <label class="form-check-label" for="answer_{{ question.id }}">
+                            {{ question.question_text }}
+                        </label>
+                    </div>
+                {% endif %}
+
+                {% if question.help_text %}
+                    <div class="help-text">{{ question.help_text }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <strong>No additional questions</strong> for your plan. You're all set!
+        </div>
+    {% endif %}
+
+    <div class="info-box">
+        <strong>Next Step:</strong> Review and confirm your POPIA consent to complete your application.
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-primary">
+        {% if questions %}Continue to Consent{% else %}Continue{% endif %}
+    </button>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        function handleConditionalLogic() {
+            // This function would be expanded to show/hide questions based on
+            // the conditional_on and conditional_value fields
+            console.log('Conditional logic triggered');
+            
+            // Example: Hide/show elements based on answers
+            const yesNoAnswers = document.querySelectorAll('input[type="radio"][data-question-id]');
+            yesNoAnswers.forEach(radio => {
+                if (radio.checked) {
+                    console.log(`Question ${radio.name} answered: ${radio.value}`);
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            handleConditionalLogic();
+        });
+    </script>
+{% endblock %}

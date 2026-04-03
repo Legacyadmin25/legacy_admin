@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legacyadmin-celery
+  labels:
+    app: legacyadmin
+    component: celery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: legacyadmin
+      component: celery
+  template:
+    metadata:
+      labels:
+        app: legacyadmin
+        component: celery
+    spec:
+      containers:
+      - name: celery
+        image: ${DOCKER_REGISTRY}/legacyadmin-celery:${TAG}
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        command: ["celery", "-A", "legacyadmin", "worker", "--loglevel=info"]
+        env:
+        - name: DJANGO_SETTINGS_MODULE
+          value: "legacyadmin.settings_prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: redis-url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: django-secret-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: openai-api-key
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-secret-access-key
+        - name: AWS_STORAGE_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-storage-bucket-name
+        - name: EMAIL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host
+        - name: EMAIL_HOST_USER
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host-user
+        - name: EMAIL_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host-password
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: twilio-account-sid
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: twilio-auth-token

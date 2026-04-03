@@ -24,7 +24,7 @@ from .forms import (
     NotesForm,
 )
 from members.communications.sms_sender import send_bulk_sms
-from utils.luhn import validate_id_number, luhn_check
+from members.utils import luhn_check, validate_sa_id as validate_id_number
 from utils.easypay import generate_easypay_number
 from schemes.models import Scheme
 from schemes.models import Plan
@@ -465,7 +465,7 @@ def create_children_info(request, pk):
     plan = policy.plan
     
     # Import utility functions
-    from members.utils import should_skip_step, get_allowed_counts, get_member_age_from_dob, get_cover_amount_for_dependent, luhn_check, extract_dob_from_id, extract_gender_from_id
+    from members.utils import should_skip_step, get_allowed_counts, get_member_age_from_dob, get_cover_amount_for_dependent, luhn_check, validate_sa_id, extract_dob_from_id, extract_gender_from_id
     
     # Check if we should skip this step based on plan configuration
     if should_skip_step(policy, 'children'):
@@ -588,7 +588,7 @@ def create_beneficiaries(request, pk):
     member = policy.member
     
     # Import utility functions
-    from members.utils import validate_beneficiaries, luhn_check, extract_dob_from_id, extract_gender_from_id
+    from members.utils import validate_beneficiaries, luhn_check, validate_sa_id, extract_dob_from_id, extract_gender_from_id
     
     # Get existing beneficiaries and calculate total share
     beneficiaries = policy.beneficiaries.all()

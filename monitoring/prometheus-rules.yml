@@ -1,0 +1,112 @@
+groups:
+- name: legacyadmin_alerts
+  rules:
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+    for: 2m
+    labels:
+      severity: critical
+      service: legacyadmin
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is above 5% for more than 2 minutes (current value: {{ $value | humanizePercentage }})"
+
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1.0
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "High response time detected"
+      description: "95th percentile of response time is above 1 second for more than 5 minutes (current value: {{ $value }}s)"
+
+  - alert: LowCacheHitRate
+    expr: sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m]))) < 0.7
+    for: 10m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "Low cache hit rate"
+      description: "Cache hit rate is below 70% for more than 10 minutes (current value: {{ $value | humanizePercentage }})"
+
+  - alert: HighCpuUsage
+    expr: avg(container_cpu_usage_percentage{namespace="legacyadmin"}) by (pod) > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "High CPU usage detected"
+      description: "CPU usage is above 80% for more than 5 minutes (current value: {{ $value }}%)"
+
+  - alert: HighMemoryUsage
+    expr: avg(container_memory_usage_percentage{namespace="legacyadmin"}) by (pod) > 85
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "High memory usage detected"
+      description: "Memory usage is above 85% for more than 5 minutes (current value: {{ $value }}%)"
+
+  - alert: LowDiskSpace
+    expr: min(node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100) < 15
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "Low disk space"
+      description: "Disk space is below 15% for more than 5 minutes (current value: {{ $value | humanizePercentage }})"
+
+  - alert: PodCrashLoopBackOff
+    expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="legacyadmin"} == 1
+    for: 5m
+    labels:
+      severity: critical
+      service: legacyadmin
+    annotations:
+      summary: "Pod in CrashLoopBackOff"
+      description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is in CrashLoopBackOff state for more than 5 minutes"
+
+  - alert: DatabaseConnectionFailures
+    expr: rate(database_connection_failures_total[5m]) > 0
+    for: 2m
+    labels:
+      severity: critical
+      service: legacyadmin
+    annotations:
+      summary: "Database connection failures detected"
+      description: "Database connection failures detected for more than 2 minutes (current rate: {{ $value }})"
+
+  - alert: CeleryTaskFailures
+    expr: sum(increase(celery_tasks_failed_total[10m])) > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "High Celery task failure rate"
+      description: "More than 5 Celery tasks failed in the last 10 minutes (current value: {{ $value }})"
+
+  - alert: SlowDatabaseQueries
+    expr: histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket[5m])) by (le)) > 1.0
+    for: 5m
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "Slow database queries detected"
+      description: "95th percentile of database query time is above 1 second for more than 5 minutes (current value: {{ $value }}s)"
+
+  - alert: TooManyPendingMigrations
+    expr: django_migrations_applied_pending_count > 0
+    for: 1h
+    labels:
+      severity: warning
+      service: legacyadmin
+    annotations:
+      summary: "Pending database migrations"
+      description: "There are {{ $value }} pending database migrations for more than 1 hour"

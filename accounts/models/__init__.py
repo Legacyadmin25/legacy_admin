@@ -8,11 +8,11 @@ from django.conf import settings
 
 # Import models directly
 from .user import User
-from .profile import Profile
-from .role import Role, UserRole
+# Profile model has been consolidated into User model
+# Role and UserRole have been removed - using Django Groups instead
 
 # This is needed for Django to recognize the models
-__all__ = ['User', 'Profile', 'Role', 'UserRole']
+__all__ = ['User']
 
 def get_user_model():
     """Helper function to get the User model when needed."""
@@ -21,7 +21,3 @@ def get_user_model():
 def get_profile_model():
     """Helper function to get the Profile model when needed."""
     return Profile
-
-def get_role_models():
-    """Helper function to get the Role and UserRole models when needed."""
-    return Role, UserRole

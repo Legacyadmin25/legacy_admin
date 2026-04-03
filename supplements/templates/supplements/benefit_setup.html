@@ -3,129 +3,196 @@
 
 {% block content %}
 <div class="w-full px-6 py-8">
-
-  <!-- FORM -->
+  <!-- SUPPLEMENTARY BENEFITS SETUP FORM -->
   <div class="bg-white p-6 rounded-lg shadow space-y-6">
-    <h2 class="text-2xl font-bold border-b pb-2">Supplementary Benefits Setup</h2>
+    <h2 class="text-2xl font-bold border-b pb-2">
+      {% if form.instance.pk %}
+        Editing: {{ form.instance.product_name }}
+      {% else %}
+        New Supplementary Benefit
+      {% endif %}
+    </h2>
 
-    <form method="post">
+    <form method="post" class="space-y-6">
       {% csrf_token %}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <!-- LEFT -->
+        <!-- LEFT COLUMN -->
         <div class="space-y-4">
           <div>
-            <label class="font-semibold">Product Name</label>
+            <label class="block font-semibold mb-1">Product Name</label>
             {% render_field form.product_name class="w-full px-4 py-2 border rounded" %}
+            {{ form.product_name.errors }}
           </div>
           <div>
-            <label class="font-semibold">Description</label>
+            <label class="block font-semibold mb-1">Description</label>
             {% render_field form.description class="w-full px-4 py-2 border rounded resize-none" rows="3" %}
+            {{ form.description.errors }}
           </div>
           <div>
-            <label class="font-semibold">Premium</label>
+            <label class="block font-semibold mb-1">Premium</label>
             {% render_field form.premium class="w-full px-4 py-2 border rounded" %}
+            {{ form.premium.errors }}
           </div>
         </div>
 
-        <!-- RIGHT -->
+        <!-- RIGHT COLUMN -->
         <div class="space-y-4">
           <div>
-            <label class="font-semibold">Underwriter Premium</label>
+            <label class="block font-semibold mb-1">Underwriter Premium</label>
             {% render_field form.underwriter_premium class="w-full px-4 py-2 border rounded" %}
+            {{ form.underwriter_premium.errors }}
           </div>
           <div>
-            <label class="font-semibold">Cover</label>
+            <label class="block font-semibold mb-1">Cover</label>
             {% render_field form.cover class="w-full px-4 py-2 border rounded" %}
+            {{ form.cover.errors }}
           </div>
           <div>
-            <label class="font-semibold">Select Scheme</label>
+            <label class="block font-semibold mb-1">Scheme</label>
             {% render_field form.scheme class="w-full px-4 py-2 border rounded" %}
+            {{ form.scheme.errors }}
           </div>
-          <div class="flex gap-4">
-            <label>{% render_field form.is_ongoing %} Is Product Ongoing</label>
-            <label>{% render_field form.is_laybye %} Is Product Laybye</label>
+          <div class="flex gap-6 pt-2">
+            <label class="flex items-center space-x-2">
+              {% render_field form.is_ongoing class="rounded border-gray-300 text-green-600" %}
+              <span class="text-gray-700">Is Product Ongoing</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              {% render_field form.is_laybye class="rounded border-gray-300 text-green-600" %}
+              <span class="text-gray-700">Is Product Laybye</span>
+            </label>
           </div>
         </div>
       </div>
 
-      <div class="mt-6 flex gap-4">
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">Save</button>
-        <a href="" class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded">Cancel</a>
+      <div class="flex gap-4 pt-4">
+        <button type="submit" 
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
+          {% if form.instance.pk %}Update{% else %}Save{% endif %} Benefit
+        </button>
+        <a href="{% url 'supplements:setup' %}" 
+           class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded">
+          Cancel
+        </a>
       </div>
     </form>
   </div>
 
-  <!-- FILTERS + SEARCH -->
-  <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
-    <form method="get" class="flex flex-wrap gap-4 w-full lg:w-auto">
-      <select name="scheme" onchange="this.form.submit()" class="border px-4 py-2 rounded w-full lg:w-64">
-        <option value="all" {% if selected_scheme == "all" %}selected{% endif %}>All Schemes</option>
-        {% for s in schemes %}
-          <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_scheme %}selected{% endif %}>
-            {{ s.name }}
-          </option>
-        {% endfor %}
-      </select>
+  <!-- SUPPLEMENTARY BENEFITS LIST -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-6 mt-8">
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-bold border-b pb-2">Supplementary Benefits List</h2>
+      
+      <!-- SEARCH AND FILTER -->
+      <form method="get" class="flex gap-4 items-center">
+        <select name="scheme" onchange="this.form.submit()" 
+                class="border px-4 py-2 rounded w-48">
+          <option value="all" {% if selected_scheme == "all" %}selected{% endif %}>All Schemes</option>
+          {% for s in schemes %}
+            <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_scheme %}selected{% endif %}>
+              {{ s.name }}
+            </option>
+          {% endfor %}
+        </select>
+        
+        <input type="text" 
+               name="q" 
+               placeholder="Search benefits..." 
+               value="{{ search_query }}"
+               class="border px-4 py-2 rounded w-64">
+               
+        <button type="submit" 
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          Search
+        </button>
+      </form>
+    </div>
 
-      <input type="text" name="q" placeholder="Search Supplementary Benefits..." value="{{ search_query }}"
-             class="border px-4 py-2 rounded w-full lg:w-64">
+    <!-- BENEFITS TABLE -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm text-left border border-gray-300 rounded overflow-hidden">
+        <thead class="bg-gray-100 text-gray-700">
+          <tr>
+            <th class="p-3 border">Product Name</th>
+            <th class="p-3 border">Premium</th>
+            <th class="p-3 border">Description</th>
+            <th class="p-3 border">Scheme</th>
+            <th class="p-3 border">Modified</th>
+            <th class="p-3 border">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for benefit in page_obj %}
+          <tr class="hover:bg-gray-50">
+            <td class="p-3 border">{{ benefit.product_name }}</td>
+            <td class="p-3 border">R{{ benefit.premium|floatformat:2 }}</td>
+            <td class="p-3 border">{{ benefit.description|truncatechars:50 }}</td>
+            <td class="p-3 border">{{ benefit.scheme.name }}</td>
+            <td class="p-3 border text-sm">
+              <div class="text-gray-600">{{ benefit.modified_date|date:"d M Y" }}</div>
+              <div class="text-xs text-gray-500">by {{ benefit.modified_user|default:"System" }}</div>
+            </td>
+            <td class="p-3 border">
+              <div class="flex space-x-2">
+                <a href="{% url 'supplements:edit' benefit.pk %}" 
+                   class="text-blue-600 hover:text-blue-800 hover:underline"
+                   title="Edit">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                </a>
+                <a href="{% url 'supplements:delete' benefit.pk %}"
+                   onclick="return confirm('Are you sure you want to delete {{ benefit.product_name }}?');"
+                   class="text-red-600 hover:text-red-800"
+                   title="Delete">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="p-4 text-center text-gray-500">
+              No supplementary benefits found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">Search</button>
-    </form>
-  </div>
+    <!-- PAGINATION -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="flex items-center justify-between border-t border-gray-200 pt-4">
+      <div class="text-sm text-gray-700">
+        Showing <span class="font-medium">{{ page_obj.start_index }}</span> to 
+        <span class="font-medium">{{ page_obj.end_index }}</span> of 
+        <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+      </div>
+      
+      <div class="flex space-x-1">
+        {% if page_obj.has_previous %}
+          <a href="?page=1{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+             class="px-3 py-1 border rounded hover:bg-gray-100">First</a>
+          <a href="?page={{ page_obj.previous_page_number }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+             class="px-3 py-1 border rounded hover:bg-gray-100">Previous</a>
+        {% endif %}
 
-  <!-- LIST TABLE -->
-  <table class="min-w-full text-sm text-left border">
-    <thead class="bg-gray-100 text-gray-700">
-      <tr>
-        <th class="p-2 border">Product Name</th>
-        <th class="p-2 border">Product Cost</th>
-        <th class="p-2 border">Description</th>
-        <th class="p-2 border">Modified User</th>
-        <th class="p-2 border">Modified Date</th>
-        <th class="p-2 border">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for b in page_obj %}
-      <tr class="hover:bg-gray-50">
-        <td class="p-2 border">{{ b.product_name }}</td>
-        <td class="p-2 border">{{ b.premium }}</td>
-        <td class="p-2 border">{{ b.description }}</td>
-        <td class="p-2 border">{{ b.modified_user }}</td>
-        <td class="p-2 border">{{ b.modified_date }}</td>
-        <td class="p-2 border text-blue-600">
-          <a href="{% url 'supplements:edit' b.pk %}" class="text-green-600 hover:underline">Edit</a> |
-          <a href="{% url 'supplements:delete' b.pk %}"
-             onclick="return confirm('Are you sure you want to delete {{ b.product_name }}?');"
-             class="text-red-600 hover:underline">Delete</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6" class="text-center text-gray-500 p-4">No data available in table</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        <span class="px-3 py-1">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
 
-  <!-- PAGINATION -->
-  <div class="mt-6 flex justify-center gap-2">
-    {% if page_obj.has_previous %}
-      <a href="?page=1{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-         class="px-3 py-1 border rounded">First</a>
-      <a href="?page={{ page_obj.previous_page_number }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-         class="px-3 py-1 border rounded">Previous</a>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+             class="px-3 py-1 border rounded hover:bg-gray-100">Next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+             class="px-3 py-1 border rounded hover:bg-gray-100">Last</a>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
-
-    <span class="px-4 py-1">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-         class="px-3 py-1 border rounded">Next</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_scheme %}&scheme={{ selected_scheme }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-         class="px-3 py-1 border rounded">Last</a>
-    {% endif %}
   </div>
-
 </div>
 {% endblock %}

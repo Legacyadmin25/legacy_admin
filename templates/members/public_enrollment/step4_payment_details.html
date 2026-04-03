@@ -1,0 +1,111 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Payment Details - Policy Application{% endblock %}
+{% block header_title %}Bank Details{% endblock %}
+{% block header_subtitle %}Set up your debit order{% endblock %}
+{% block current_step %}4{% endblock %}
+{% block progress_percent %}66%{% endblock %}
+{% block progress_label %}Payment Setup{% endblock %}
+
+{% block form_content %}
+    <div class="alert alert-info">
+        <strong>Secure Payment:</strong> Your bank details are encrypted and secure. We only use them to process your monthly premium.
+    </div>
+
+    <div class="form-section">
+        <h4>Bank Account Information</h4>
+
+        <!-- Bank Name -->
+        <div class="form-group">
+            <label for="{{ form.bank_name.id_for_label }}">
+                Bank Name <span class="required">*</span>
+            </label>
+            {{ form.bank_name }}
+            {% if form.bank_name.errors %}
+                <div class="invalid-feedback d-block">{{ form.bank_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Account Holder Name -->
+        <div class="form-group">
+            <label for="{{ form.account_holder_name.id_for_label }}">
+                Account Holder Name <span class="required">*</span>
+            </label>
+            {{ form.account_holder_name }}
+            <div class="help-text">Must match the name on your bank account</div>
+            {% if form.account_holder_name.errors %}
+                <div class="invalid-feedback d-block">{{ form.account_holder_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Account Type -->
+        <div class="form-group">
+            <label for="{{ form.account_type.id_for_label }}">
+                Account Type <span class="required">*</span>
+            </label>
+            {{ form.account_type }}
+            {% if form.account_type.errors %}
+                <div class="invalid-feedback d-block">{{ form.account_type.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Branch Code -->
+        <div class="form-group">
+            <label for="{{ form.branch_code.id_for_label }}">
+                Branch Code <span class="required">*</span>
+            </label>
+            {{ form.branch_code }}
+            <div class="help-text">6-digit number from your bank statement</div>
+            {% if form.branch_code.errors %}
+                <div class="invalid-feedback d-block">{{ form.branch_code.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Account Number -->
+        <div class="form-group">
+            <label for="{{ form.account_number.id_for_label }}">
+                Account Number <span class="required">*</span>
+            </label>
+            {{ form.account_number }}
+            <div class="help-text">Without spaces or dashes</div>
+            {% if form.account_number.errors %}
+                <div class="invalid-feedback d-block">{{ form.account_number.errors.0 }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="form-section">
+        <h4>Debit Order Authorization</h4>
+
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_authorize_debit_order" 
+                name="authorize_debit_order" required>
+            <label class="form-check-label" for="id_authorize_debit_order">
+                I authorize this bank account to be debited monthly for the policy premium. 
+                I understand that each debit will be processed on the agreed date each month.
+            </label>
+        </div>
+
+        {% if form.authorize_debit_order.errors %}
+            <div class="invalid-feedback d-block">{{ form.authorize_debit_order.errors.0 }}</div>
+        {% endif %}
+
+        <div class="alert alert-warning" style="margin-top: 15px;">
+            <small>
+                <strong>Important:</strong> By providing your bank details and authorizing the debit order, 
+                you're giving our company permission to debit your account. You can cancel anytime by contacting our support team.
+            </small>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>Next Step:</strong> We may ask some additional questions based on your plan selection.
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-primary">Continue</button>
+{% endblock %}

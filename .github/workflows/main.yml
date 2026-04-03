@@ -1,0 +1,230 @@
+name: Legacy Admin Main Workflow
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements.dev.txt
+      
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --max-complexity=10 --max-line-length=100 --show-source --statistics
+      
+      - name: Check formatting with Black
+        run: |
+          black --check --line-length 100 .
+      
+      - name: Run tests
+        env:
+          DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/test_db'
+          REDIS_URL: 'redis://localhost:6379/0'
+          DEBUG: 'True'
+          SECRET_KEY: 'test-secret-key'
+        run: |
+          pytest --cov=. --cov-report=xml
+      
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
+          cache-to: type=inline
+      
+      - name: Create GitHub deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: ${{ github.token }}
+          environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+      
+      - name: Notify build completion
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "✅ Build completed for Legacy Admin\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nArtifact: ghcr.io/${{ github.repository }}:${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || '' }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    # Note: Create this environment in GitHub repository settings
+    # environment: staging
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN || github.token }}
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.CLUSTER_NAME || 'legacyadmin-cluster' }}
+      
+      - name: Update deployment manifests
+        run: |
+          # Set the image tag in the deployment manifest
+          sed -i "s|image: ghcr.io/.*-web|image: ghcr.io/${{ github.repository }}:${{ github.sha }}-web|g" kubernetes/web-deployment.yaml
+          sed -i "s|image: ghcr.io/.*-celery|image: ghcr.io/${{ github.repository }}:${{ github.sha }}-celery|g" kubernetes/celery-deployment.yaml
+      
+      - name: Deploy to Kubernetes
+        run: |
+          # Apply the Kubernetes manifests
+          kubectl apply -f kubernetes/web-deployment.yaml
+          kubectl apply -f kubernetes/celery-deployment.yaml
+          kubectl apply -f kubernetes/web-service.yaml
+          kubectl apply -f kubernetes/ingress.yaml
+      
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/legacyadmin-web
+          kubectl rollout status deployment/legacyadmin-celery
+      
+      - name: Run database migrations
+        run: |
+          kubectl exec -it deployment/legacyadmin-web -- python manage.py migrate
+      
+      - name: Create notification for successful deployment
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "✅ Successfully deployed Legacy Admin to staging environment\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || '' }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    # Note: Create this environment in GitHub repository settings
+    # environment: production
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN || github.token }}
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.CLUSTER_NAME || 'legacyadmin-cluster' }}
+      
+      - name: Update deployment manifests
+        run: |
+          # Set the image tag in the deployment manifest
+          sed -i "s|image: ghcr.io/.*-web|image: ghcr.io/${{ github.repository }}:${{ github.sha }}-web|g" kubernetes/web-deployment.yaml
+          sed -i "s|image: ghcr.io/.*-celery|image: ghcr.io/${{ github.repository }}:${{ github.sha }}-celery|g" kubernetes/celery-deployment.yaml
+      
+      - name: Deploy to Kubernetes
+        run: |
+          # Apply the Kubernetes manifests
+          kubectl apply -f kubernetes/web-deployment.yaml
+          kubectl apply -f kubernetes/celery-deployment.yaml
+          kubectl apply -f kubernetes/web-service.yaml
+          kubectl apply -f kubernetes/ingress.yaml
+      
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/legacyadmin-web
+          kubectl rollout status deployment/legacyadmin-celery
+      
+      - name: Run database migrations
+        run: |
+          kubectl exec -it deployment/legacyadmin-web -- python manage.py migrate
+      
+      - name: Create notification for successful deployment
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "🚀 Successfully deployed Legacy Admin to PRODUCTION environment\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || '' }}

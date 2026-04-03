@@ -1,0 +1,512 @@
+{% extends base_template|default:'base.html' %}
+{% load widget_tweaks %}
+{% load user_groups %}
+
+{% block extra_js %}
+<script>
+// Utility functions for ID number validation
+function luhnCheck(idNumber) {
+    const digits = idNumber.split('').map(Number).reverse();
+    let sum = 0;
+    
+    for (let i = 0; i < digits.length; i++) {
+        let digit = digits[i];
+        
+        if (i % 2 === 1) {
+            digit *= 2;
+            if (digit > 9) {
+                digit -= 9;
+            }
+        }
+        
+        sum += digit;
+    }
+    
+    return sum % 10 === 0;
+}
+
+function validateSAID(idNumber) {
+    // Basic format and Luhn check
+    if (!/^\d{13}$/.test(idNumber) || !luhnCheck(idNumber)) {
+        return { valid: false, message: 'Invalid ID number. Please check the number.' };
+    }
+    
+    // Extract date parts
+    const yy = parseInt(idNumber.substring(0, 2), 10);
+    const mm = parseInt(idNumber.substring(2, 4), 10);
+    const dd = parseInt(idNumber.substring(4, 6), 10);
+    
+    // Determine century
+    const currentYear = new Date().getFullYear();
+    const currentShortYear = currentYear % 100;
+    const century = (yy <= currentShortYear) ? 2000 : 1900;
+    const fullYear = century + yy;
+    
+    // Validate date
+    try {
+        const date = new Date(fullYear, mm - 1, dd);
+        if (date.getFullYear() !== fullYear || 
+            date.getMonth() + 1 !== mm || 
+            date.getDate() !== dd) {
+            return { valid: false, message: 'Invalid date of birth in ID number.' };
+        }
+    } catch (error) {
+        return { valid: false, message: 'Invalid date of birth in ID number.' };
+    }
+    
+    // Determine gender
+    const genderNum = parseInt(idNumber.substring(6, 10), 10);
+    const gender = genderNum < 5000 ? 'F' : 'M';
+    
+    // Format date
+    const formattedDate = `${fullYear}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    
+    return {
+        valid: true,
+        message: 'Valid South African ID number.',
+        dateOfBirth: formattedDate,
+        gender: gender,
+        genderFull: gender === 'M' ? 'Male' : 'Female'
+    };
+}
+
+// Show warning popup
+function showWarningPopup(message) {
+    let popup = document.getElementById('validation-popup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'validation-popup';
+        popup.style.position = 'fixed';
+        popup.style.top = '20px';
+        popup.style.left = '50%';
+        popup.style.transform = 'translateX(-50%)';
+        popup.style.backgroundColor = '#f8d7da';
+        popup.style.color = '#721c24';
+        popup.style.padding = '15px 25px';
+        popup.style.borderRadius = '5px';
+        popup.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        popup.style.zIndex = '1000';
+        popup.style.fontWeight = 'bold';
+        popup.style.display = 'flex';
+        popup.style.alignItems = 'center';
+        popup.style.gap = '10px';
+        popup.style.fontSize = '16px';
+        popup.style.border = '1px solid #f5c6cb';
+        document.body.appendChild(popup);
+    }
+    
+    popup.innerHTML = `<span style="font-size: 24px;">⚠️</span> ${message}`;
+    popup.style.display = 'flex';
+    
+    // Hide after 5 seconds
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get form elements
+    const isForeignToggle = document.getElementById('id_is_foreign');
+    const idNumberField = document.getElementById('idNumberField');
+    const passportField = document.getElementById('passportField');
+    const countryField = document.getElementById('countryField');
+    const idInput = document.getElementById('id_id_number');
+    const passportInput = document.getElementById('id_passport_number');
+    const dobField = document.getElementById('id_date_of_birth');
+    const genderSelect = document.getElementById('id_gender');
+    const errorDiv = document.getElementById('id-error-message');
+    const mainForm = document.getElementById('mainForm');
+    
+    // Toggle between SA citizen and foreigner fields
+    function toggleFields() {
+        if (!isForeignToggle || !idNumberField || !passportField) return;
+        
+        const isForeigner = isForeignToggle.checked;
+        
+        // Show/hide appropriate fields
+        if (isForeigner) {
+            // Show passport field, hide SA ID field
+            idNumberField.style.display = 'none';
+            passportField.style.display = 'block';
+            if (countryField) countryField.style.display = 'block';
+            
+            // Make passport required, ID not required
+            if (passportInput) passportInput.setAttribute('required', 'required');
+            if (idInput) idInput.removeAttribute('required');
+            
+            // Clear ID field
+            if (idInput) idInput.value = '';
+            if (errorDiv) errorDiv.style.display = 'none';
+        } else {
+            // Show SA ID field, hide passport field
+            idNumberField.style.display = 'block';
+            passportField.style.display = 'none';
+            if (countryField) countryField.style.display = 'none';
+            
+            // Make ID required, passport not required
+            if (idInput) idInput.setAttribute('required', 'required');
+            if (passportInput) passportInput.removeAttribute('required');
+            
+            // Clear passport field
+            if (passportInput) passportInput.value = '';
+        }
+    }
+    
+    // Handle ID number input validation
+    function handleIDInput() {
+        if (!idInput || !errorDiv) return;
+        
+        const idNumber = idInput.value.trim();
+        
+        // Reset validation state
+        errorDiv.style.display = 'none';
+        idInput.classList.remove('border-red-500', 'border-green-500');
+        
+        // Skip validation if empty
+        if (!idNumber) return;
+        
+        // Immediate feedback for non-numeric input
+        if (!/^\d*$/.test(idNumber)) {
+            errorDiv.textContent = 'ID number must contain only digits';
+            errorDiv.style.display = 'block';
+            idInput.classList.add('border-red-500');
+            return;
+        }
+        
+        // Show progress if not yet 13 digits
+        if (idNumber.length < 13) {
+            errorDiv.textContent = `ID number must be 13 digits (${idNumber.length}/13)`;
+            errorDiv.style.display = 'block';
+            idInput.classList.add('border-red-500');
+            return;
+        }
+        
+        // Full validation for 13 digits
+        if (idNumber.length === 13) {
+            const result = validateSAID(idNumber);
+            
+            if (result.valid) {
+                // Valid ID number
+                errorDiv.textContent = '✓ ' + result.message;
+                errorDiv.style.display = 'block';
+                errorDiv.style.color = '#10b981'; // Green color
+                idInput.classList.add('border-green-500');
+                
+                // Update DOB and gender from ID
+                if (dobField) dobField.value = result.dateOfBirth;
+                if (genderSelect) genderSelect.value = result.genderFull;
+            } else {
+                // Invalid ID number
+                errorDiv.textContent = result.message;
+                errorDiv.style.display = 'block';
+                errorDiv.style.color = '#ef4444'; // Red color
+                idInput.classList.add('border-red-500');
+            }
+        }
+    }
+    
+    // Form validation function
+    function validateForm(event) {
+        if (!isForeignToggle) return true;
+        
+        const isForeigner = isForeignToggle.checked;
+        
+        // Validate based on citizenship
+        if (!isForeigner) {
+            // South African citizen - validate ID
+            if (idInput && idInput.value.trim()) {
+                const result = validateSAID(idInput.value.trim());
+                if (!result.valid) {
+                    showWarningPopup('Please enter a valid South African ID number');
+                    idInput.focus();
+                    event.preventDefault();
+                    return false;
+                }
+            }
+        } else {
+            // Foreigner - validate passport
+            if (passportInput && !passportInput.value.trim()) {
+                showWarningPopup('Please enter your passport number');
+                passportInput.focus();
+                event.preventDefault();
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    // Set up event listeners
+    if (isForeignToggle) {
+        isForeignToggle.addEventListener('change', toggleFields);
+        toggleFields(); // Initialize fields based on current state
+    }
+    
+    if (idInput) {
+        idInput.addEventListener('input', handleIDInput);
+    }
+    
+    if (mainForm) {
+        mainForm.addEventListener('submit', validateForm);
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Main content -->
+  <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+    <div class="w-full px-6 py-8">
+      <!-- Page header -->
+      <!-- Progress bar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-2xl font-bold text-gray-900">Step 1: Personal & Address Information</h1>
+          <span class="text-sm text-gray-600">Step 1 of 5</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: 20%"></div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow overflow-hidden w-full">
+        <form id="mainForm" method="post" class="p-6">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                {% for error in form.non_field_errors %}
+                <p class="text-sm text-red-700">{{ error }}</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Non-South African Toggle -->
+          <div class="mb-6 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="id_is_foreign" name="is_foreign" class="sr-only peer" {% if form.is_foreign.value %}checked{% endif %}>
+              <div class="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <span class="ml-3 text-sm font-medium text-gray-900">I am not a South African citizen</span>
+            </label>
+          </div>
+          
+          <!-- Personal Information -->
+          <div class="mb-10">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Personal Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Title Field -->
+              <div class="form-group">
+                <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <select name="title" id="{{ form.title.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <option value="">Select a title</option>
+                  <option value="Mr" {% if form.title.value == 'Mr' %}selected{% endif %}>Mr</option>
+                  <option value="Mrs" {% if form.title.value == 'Mrs' %}selected{% endif %}>Mrs</option>
+                  <option value="Ms" {% if form.title.value == 'Ms' %}selected{% endif %}>Ms</option>
+                  <option value="Dr" {% if form.title.value == 'Dr' %}selected{% endif %}>Dr</option>
+                  <option value="Prof" {% if form.title.value == 'Prof' %}selected{% endif %}>Prof</option>
+                </select>
+                {% if form.title.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- South African ID Number (shown when is_foreign is false) -->
+              <div class="form-group" id="idNumberField">
+                <label for="id_id_number" class="block text-sm font-medium text-gray-700 mb-1">South African ID Number <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input type="text" name="id_number" id="id_id_number" 
+                         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.id_number.errors %}border-red-500{% endif %}" 
+                         value="{{ form.id_number.value|default:'' }}" 
+                         maxlength="13" 
+                         pattern="[0-9]{13}" 
+                         placeholder="Enter 13-digit SA ID number"
+                         required>
+                </div>
+                <div id="id-error-message" class="mt-1 text-sm text-red-600" style="display: none;"></div>
+                {% if form.id_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.id_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Passport Number (shown when is_foreign is true) -->
+              <div class="form-group" id="passportField" style="display: none;">
+                <label for="id_passport_number" class="block text-sm font-medium text-gray-700 mb-1">Passport Number <span class="text-red-500">*</span></label>
+                <input type="text" name="passport_number" id="id_passport_number" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.passport_number.errors %}border-red-500{% endif %}" 
+                       value="{{ form.passport_number.value|default:'' }}" 
+                       placeholder="Enter passport number">
+                {% if form.passport_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.passport_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Scheme Selection (role-aware) -->
+              {% if user|has_group:"Agent" %}
+              <div class="form-group">
+                <label for="id_scheme" class="block text-sm font-medium text-gray-700 mb-1">Scheme</label>
+                <input type="text" name="scheme" id="id_scheme" value="{{ form.scheme.value|default_if_none:'' }}" readonly class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <p class="text-xs text-gray-500">Agents cannot change scheme.</p>
+              </div>
+              {% elif user|has_group:"Scheme Manager,Admin" %}
+              <div class="form-group">
+                <label for="id_scheme" class="block text-sm font-medium text-gray-700 mb-1">Scheme</label>
+                {{ form.scheme }}
+                <p class="text-xs text-gray-500">Select scheme for this policy.</p>
+              </div>
+              {% endif %}
+              
+              <!-- First Name -->
+              <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" name="first_name" id="{{ form.first_name.id_for_label }}" value="{{ form.first_name.value|default:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.first_name.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Last Name -->
+              <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" name="last_name" id="{{ form.last_name.id_for_label }}" value="{{ form.last_name.value|default:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.last_name.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Date of Birth (auto-filled from ID for SA citizens) -->
+              <div class="form-group">
+                <label for="id_date_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
+                <input type="date" name="date_of_birth" id="id_date_of_birth" 
+                       class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.date_of_birth.errors %}border-red-500{% endif %}" 
+                       value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" 
+                       min="{{ min_date }}" 
+                       max="{{ max_date }}" 
+                       required>
+                {% if form.date_of_birth.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Gender (auto-filled from ID for SA citizens) -->
+              <div class="form-group">
+                <label for="id_gender" class="block text-sm font-medium text-gray-700 mb-1">Gender <span class="text-red-500">*</span></label>
+                <select name="gender" id="id_gender" 
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md {% if form.gender.errors %}border-red-500{% endif %}" 
+                        required>
+                  <option value="">Select gender</option>
+                  <option value="Male" {% if form.gender.value == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if form.gender.value == 'Female' %}selected{% endif %}>Female</option>
+                </select>
+                {% if form.gender.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.gender.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Cell Number -->
+              <div class="form-group">
+                <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Cell Number</label>
+                <input type="tel" name="phone_number" id="{{ form.phone_number.id_for_label }}" value="{{ form.phone_number.value|default_if_none:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.phone_number.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Email Address -->
+              <div class="form-group">
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" name="email" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default_if_none:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                {% if form.email.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Country Field (for non-SA Citizens) -->
+              <div id="countryField" class="form-group" style="display: none;">
+                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <select name="country" id="{{ form.country.id_for_label }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <option value="">Select a country</option>
+                  <option value="BW" {% if form.country.value == 'BW' %}selected{% endif %}>Botswana</option>
+                  <option value="LS" {% if form.country.value == 'LS' %}selected{% endif %}>Lesotho</option>
+                  <option value="MZ" {% if form.country.value == 'MZ' %}selected{% endif %}>Mozambique</option>
+                  <option value="NA" {% if form.country.value == 'NA' %}selected{% endif %}>Namibia</option>
+                  <option value="SZ" {% if form.country.value == 'SZ' %}selected{% endif %}>Eswatini</option>
+                  <option value="ZW" {% if form.country.value == 'ZW' %}selected{% endif %}>Zimbabwe</option>
+                  <option value="other" {% if form.country.value == 'other' %}selected{% endif %}>Other</option>
+                </select>
+                {% if form.country.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.country.errors.0 }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Address Information -->
+          <div class="mb-10">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-2 mb-6">Address Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Street Address -->
+              <div class="form-group md:col-span-2">
+                <label for="{{ form.street_address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                <input type="text" name="street_address" id="{{ form.street_address.id_for_label }}" value="{{ form.street_address.value|default:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.street_address.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.street_address.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- City -->
+              <div class="form-group">
+                <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input type="text" name="city" id="{{ form.city.id_for_label }}" value="{{ form.city.value|default:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.city.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Postal Code -->
+              <div class="form-group">
+                <label for="{{ form.postal_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                <input type="text" name="postal_code" id="{{ form.postal_code.id_for_label }}" value="{{ form.postal_code.value|default:'' }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                {% if form.postal_code.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.postal_code.errors.0 }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between border-t border-gray-200 pt-6">
+            <button type="button" onclick="window.history.back()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Back
+            </button>
+            <div class="flex space-x-3">
+              <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Save and Continue
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Step-specific styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}

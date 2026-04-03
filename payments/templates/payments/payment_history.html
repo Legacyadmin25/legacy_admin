@@ -52,7 +52,7 @@
         </nav>
       </div>
       
-      {% if user.is_superuser or user.groups.filter(name="Branch Owner").exists or user.groups.filter(name="Scheme Admin").exists %}
+      {% if user.is_superuser or user.groups.all|group_name:"Branch Owner" or user.groups.all|group_name:"Scheme Admin" %}
       <!-- AI Summary (Admin only) -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 class="flex items-center text-lg font-medium text-gray-900 mb-4">
@@ -77,7 +77,7 @@
       
       <!-- Role-based restriction notice -->
       {% if not user.is_superuser %}
-        {% if user.groups.filter(name="Branch Owner").exists %}
+        {% if user.groups.all|group_name:"Branch Owner" %}
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
             <div class="flex">
               <div class="flex-shrink-0">
@@ -90,7 +90,7 @@
               </div>
             </div>
           </div>
-        {% elif user.groups.filter(name="Scheme Admin").exists %}
+        {% elif user.groups.all|group_name:"Scheme Admin" %}
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
             <div class="flex">
               <div class="flex-shrink-0">

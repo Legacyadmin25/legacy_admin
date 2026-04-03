@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"DIY Application" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    
+    .step-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: #e5e7eb;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .step.active .step-number {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background-color: #10b981;
+        color: white;
+    }
+    
+    .step-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .step.active .step-label {
+        color: #3b82f6;
+        font-weight: 600;
+    }
+    
+    .step.completed .step-label {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    .step-line {
+        position: absolute;
+        top: 15px;
+        height: 2px;
+        background-color: #e5e7eb;
+        width: 100%;
+        left: -50%;
+        z-index: 1;
+    }
+    
+    .step:first-child .step-line {
+        display: none;
+    }
+    
+    .step.completed .step-line, 
+    .step.active .step-line {
+        background-color: #10b981;
+    }
+    
+    .autosave-status {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        z-index: 100;
+        transition: opacity 0.5s ease;
+    }
+    
+    .autosave-saving {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .autosave-saved {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .autosave-error {
+        background-color: #fee2e2;
+        color: #b91c1c;
+    }
+    
+    .autosave-fade {
+        opacity: 0.5;
+    }
+    
+    .save-for-later-btn {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 100;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-800">{{ page_title|default:"DIY Application" }}</h1>
+            {% if agent %}
+            <div class="text-sm text-gray-600">
+                Agent: {{ agent.name }}
+                {% if scheme %}
+                | Scheme: {{ scheme.name }}
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Step Indicators -->
+        <div class="step-indicator">
+            {% for step_num in steps %}
+            <div class="step {% if step_num < current_step %}completed{% elif step_num == current_step %}active{% endif %}">
+                <div class="step-line"></div>
+                <div class="step-number">{{ step_num }}</div>
+                <div class="step-label">{{ step_labels|get_item:step_num|default:"Step "|add:step_num|stringformat:"s" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+        {% block step_content %}
+        <!-- Step content will be inserted here by child templates -->
+        {% endblock %}
+    </div>
+    
+    <div class="flex justify-between mt-6">
+        {% if prev_step_url %}
+        <a href="{{ prev_step_url }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+            <i class="fas fa-arrow-left mr-2"></i> Previous
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+        
+        {% block form_buttons %}
+        <button type="submit" form="application-form" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            {% if is_final_step %}Submit Application{% else %}Next <i class="fas fa-arrow-right ml-2"></i>{% endif %}
+        </button>
+        {% endblock %}
+    </div>
+    
+    <!-- Auto-save status indicator -->
+    <div class="autosave-status" style="display: none;"></div>
+    
+    <!-- Save for later button -->
+    <button type="button" class="save-for-later-btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded shadow">
+        <i class="far fa-clock mr-2"></i> Save for later
+    </button>
+    
+    <!-- Include auto-save modal component -->
+    {% include "members/diy/components/autosave_modal.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Alpine.js for reactive UI components -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<!-- Include auto-save script -->
+<script src="{% static 'members/js/autosave.js' %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save
+        const autoSaveOptions = {
+            formSelector: '#application-form',
+            saveEndpoint: '{% url "members:diy_autosave" %}',
+            debounceDelay: 1000,
+            autoSaveInterval: 10000,
+            showSaveStatus: true,
+            saveStatusSelector: '.autosave-status'
+        };
+        
+        window.autoSave = new AutoSave(autoSaveOptions);
+        
+        // Show auto-save status indicator
+        document.querySelector('.autosave-status').style.display = 'block';
+        
+        // Save for later button functionality
+        const saveForLaterBtn = document.querySelector('.save-for-later-btn');
+        saveForLaterBtn.addEventListener('click', function() {
+            // Force a save of the current form data
+            if (window.autoSave) {
+                window.autoSave.saveFormData();
+                
+                // Show a confirmation message
+                alert('Your progress has been saved. You can resume this application later from your dashboard.');
+                
+                // Redirect to dashboard or home page
+                setTimeout(() => {
+                    window.location.href = '{% url "members:incomplete_applications" %}';
+                }, 1000);
+            }
+        });
+    });
+</script>
+
+{% block step_js %}
+<!-- Step-specific JavaScript will be inserted here by child templates -->
+{% endblock %}
+{% endblock %}

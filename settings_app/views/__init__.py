@@ -30,6 +30,8 @@ from .schemes import (
     delete_scheme_document,
 )
 
+from . import test_scheme
+
 from .agents import (
     AgentListView,
     agent_setup,

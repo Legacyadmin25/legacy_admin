@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Agents{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Agents</h1>
+        <a href="{% url 'settings:agent_create' %}" 
+           class="inline-flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
+            + Add New Agent
+        </a>
+    </div>
+
+    <!-- Search Form -->
+    <form method="get" class="mt-4 flex items-center space-x-2">
+        <input type="text" 
+               name="q" 
+               placeholder="Search agents..."
+               value="{{ request.GET.q }}"
+               class="w-full max-w-sm px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <button type="submit" 
+                class="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded">
+            Search
+        </button>
+    </form>
+
+    <!-- Agent Cards -->
+    <div class="mt-8">
+        {% if agents %}
+            <ul class="space-y-4">
+                {% for agent in agents %}
+                <li class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">{{ agent.full_name }} {{ agent.surname }}</h3>
+                            <div class="mt-2 space-y-1">
+                                <p class="text-sm text-gray-700">
+                                    <span class="font-medium">Contact:</span> {{ agent.contact_number|default:"N/A" }}
+                                </p>
+                                <p class="text-sm text-gray-700">
+                                    <span class="font-medium">Email:</span> {{ agent.email|default:"N/A" }}
+                                </p>
+                                <p class="text-sm text-gray-700">
+                                    <span class="font-medium">Scheme:</span> {{ agent.scheme.name|default:"N/A" }}
+                                </p>
+                                {% if agent.diy_token %}
+                                <div class="mt-2 flex items-center space-x-2">
+                                    <span class="text-sm font-medium">DIY Link:</span>
+                                    <div class="flex-1 flex items-center bg-gray-100 rounded px-3 py-1">
+                                        <span id="diy-link-{{ agent.id }}" class="text-sm text-blue-600 overflow-hidden text-ellipsis">
+                                            {{ request.scheme }}://{{ request.get_host }}{% url 'members:agent_diy_register' agent.diy_token %}
+                                        </span>
+                                        <button onclick="copyToClipboard('diy-link-{{ agent.id }}')" 
+                                                class="ml-2 text-gray-500 hover:text-gray-700">
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{% url 'settings:agent_edit' agent.id %}" 
+                               class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                                Edit
+                            </a>
+                            <form method="post" action="{% url 'settings:agent_delete' agent.id %}" class="inline-block">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                                        onclick="return confirm('Are you sure you want to delete this agent?')">
+                                    Delete
+                                </button>
+                            </form>
+                            {% if agent.diy_token %}
+                            <a href="{% url 'settings:agent_regenerate_token' agent.id %}" 
+                               class="inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+                               onclick="return confirm('Are you sure you want to regenerate the DIY token? The old link will stop working.')">
+                                Regenerate Token
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Pagination -->
+            <div class="mt-6 flex justify-between items-center text-sm text-gray-600">
+                <div>
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} agents
+                </div>
+                <div class="space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}"
+                           class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded">
+                            Previous
+                        </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}"
+                           class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <p class="text-gray-500">No agents found. <a href="{% url 'settings:agent_create' %}" class="text-indigo-600 hover:underline">Add one now</a>.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Show a temporary tooltip or notification
+        const originalText = element.innerText;
+        element.innerText = 'Copied!';
+        element.style.color = '#10B981'; // Green color for success
+        
+        setTimeout(() => {
+            element.innerText = originalText;
+            element.style.color = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+{% endblock %}
+
+{% endblock %}

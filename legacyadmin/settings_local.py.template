@@ -1,0 +1,29 @@
+"""
+Local settings for development environment.
+Copy this file to settings_local.py and customize it for your local environment.
+This file should never be committed to version control.
+"""
+
+# Override any settings from settings_dev.py here
+# For example:
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'legacyadmin_local',
+#         'USER': 'your_local_db_user',
+#         'PASSWORD': 'your_local_db_password',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+# OPENAI_API_KEY = 'your-local-openai-key'
+
+# AWS_ACCESS_KEY_ID = 'your-local-aws-access-key'
+# AWS_SECRET_ACCESS_KEY = 'your-local-aws-secret-key'
+# AWS_STORAGE_BUCKET_NAME = 'your-local-aws-bucket'
+
+# TWILIO_ACCOUNT_SID = 'your-local-twilio-sid'
+# TWILIO_AUTH_TOKEN = 'your-local-twilio-token'
+# TWILIO_PHONE_NUMBER = 'your-local-twilio-phone'

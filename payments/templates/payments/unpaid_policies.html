@@ -80,7 +80,7 @@
       
       <!-- Role-based restriction notice -->
       {% if not user.is_superuser %}
-        {% if user.groups.filter(name="Branch Owner").exists %}
+        {% if user.groups.all|group_name:"Branch Owner" %}
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
             <div class="flex">
               <div class="flex-shrink-0">
@@ -93,7 +93,7 @@
               </div>
             </div>
           </div>
-        {% elif user.groups.filter(name="Scheme Admin").exists %}
+        {% elif user.groups.all|group_name:"Scheme Admin" %}
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
             <div class="flex">
               <div class="flex-shrink-0">

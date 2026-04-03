@@ -4,123 +4,297 @@
 {% block content %}
 <div class="w-full px-6 py-8">
 
-  <!-- Underwriter Setup Form Card -->
-  <div class="bg-white p-6 rounded-lg shadow space-y-6">
-    <h1 class="text-2xl font-bold border-b pb-2">
-      {% if form.instance.pk %}
-        Editing Underwriter: {{ form.instance.name }}
-      {% else %}
-        Underwriter Setup
-      {% endif %}
-    </h1>
-
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- LEFT -->
-        <div class="space-y-6">
-          <div>
-            <label for="id_name" class="block font-semibold mb-1">Name</label>
-            {% render_field form.name class="w-full px-4 py-2 border rounded focus:ring" %}
+  <!-- Main content: Underwriter List -->
+  <div class="bg-white p-6 rounded-lg shadow space-y-4">
+    <div class="flex justify-between items-center border-b pb-2">
+      <h2 class="text-2xl font-bold">Underwriter Setup</h2>
+      <button 
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
+        hx-get="{% url 'settings:underwriter_add' %}"
+        hx-target="#underwriter-modal-content"
+        hx-trigger="click"
+        hx-indicator=".htmx-indicator"
+        data-micromodal-trigger="underwriter-modal">
+        <i class="fas fa-plus mr-2"></i> New Underwriter
+      </button>
+    </div>
+    
+    <!-- HTMX loading indicator -->
+    <div class="htmx-indicator fixed top-0 left-0 w-full h-1 z-50 overflow-hidden opacity-0 transition-opacity duration-300 ease-in-out">
+      <div class="h-full bg-blue-600 animate-progress-bar"></div>
+    </div>
+    
+    <!-- Underwriter Modal -->
+    <div class="modal micromodal-slide" id="underwriter-modal" aria-hidden="true">
+      <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container bg-white rounded-lg shadow-lg max-w-3xl mx-auto" 
+             role="dialog" 
+             aria-modal="true" 
+             aria-labelledby="underwriter-modal-title"
+             aria-describedby="underwriter-modal-description">
+          <header class="modal__header p-4 border-b">
+            <h2 id="underwriter-modal-title" class="modal__title text-xl font-semibold">
+              <span id="modal-title-text">Underwriter</span>
+            </h2>
+            <button class="modal__close text-gray-500 hover:text-gray-700" 
+                    aria-label="Close modal" 
+                    data-micromodal-close>
+              <i class="fas fa-times"></i>
+            </button>
+          </header>
+          
+          <div id="underwriter-modal-description" class="sr-only">
+            Form to add or edit underwriter details. Press escape to close this dialog or tab to navigate through form fields.
           </div>
-          <div>
-            <label for="id_fsp_number" class="block font-semibold mb-1">FSP Number</label>
-            {% render_field form.fsp_number class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_contact_person" class="block font-semibold mb-1">Contact Person</label>
-            {% render_field form.contact_person class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_contact_number" class="block font-semibold mb-1">Contact Number</label>
-            {% render_field form.contact_number class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_email" class="block font-semibold mb-1">Email</label>
-            {% render_field form.email class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_address1" class="block font-semibold mb-1">Address Line 1</label>
-            {% render_field form.address1 class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_address2" class="block font-semibold mb-1">Address Line 2</label>
-            {% render_field form.address2 class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_address3" class="block font-semibold mb-1">Address Line 3</label>
-            {% render_field form.address3 class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-          <div>
-            <label for="id_postal_code" class="block font-semibold mb-1">Postal Code</label>
-            {% render_field form.postal_code class="w-full px-4 py-2 border rounded focus:ring" %}
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="space-y-6">
-          <div>
-            <label for="id_disclaimer" class="block font-semibold mb-1">Disclaimer</label>
-            {% render_field form.disclaimer class="w-full px-4 py-2 border rounded h-48 focus:ring" %}
-          </div>
-
-          <div>
-            <label class="block font-semibold mb-1">Logo</label>
-            {% if form.instance.logo %}
-              <img id="logo-preview" src="{{ form.instance.logo.url }}" alt="Current logo" class="h-24 mb-2 rounded border" />
-              <button type="submit" name="remove_logo" value="true" class="inline-block bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mb-2">
-                Remove Logo
-              </button>
-            {% endif %}
-            {% render_field form.logo class="w-full px-4 py-2 border rounded focus:ring" id="logo-input" %}
-            <img id="logo-preview-dynamic" src="#" alt="Logo Preview" class="h-24 mt-2 hidden rounded border" />
-          </div>
+          
+          <main class="modal__content p-4" id="underwriter-modal-content">
+            <!-- This content will be replaced by HTMX -->
+            <div class="flex justify-center items-center p-8">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          </main>
         </div>
       </div>
-
-      <div class="flex justify-end space-x-4 pt-6">
-        <a href="{% url 'settings:underwriter' %}" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</a>
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save</button>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal micromodal-slide" id="delete-modal" aria-hidden="true">
+      <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container bg-white rounded-lg shadow-lg max-w-lg mx-auto" 
+             role="alertdialog" 
+             aria-modal="true" 
+             aria-labelledby="delete-modal-title"
+             aria-describedby="delete-modal-description">
+          <header class="modal__header p-4 border-b">
+            <h2 id="delete-modal-title" class="modal__title text-xl font-semibold text-red-600">
+              Confirm Delete
+            </h2>
+            <button class="modal__close text-gray-500 hover:text-gray-700" 
+                    aria-label="Cancel deletion" 
+                    data-micromodal-close>
+              <i class="fas fa-times"></i>
+            </button>
+          </header>
+          
+          <div id="delete-modal-description" class="sr-only">
+            Confirmation dialog for deleting an underwriter. This action cannot be undone. Press escape to cancel or tab to navigate options.
+          </div>
+          
+          <main class="modal__content" id="delete-modal-content">
+            <!-- This content will be replaced by HTMX -->
+            <div class="flex justify-center items-center p-8">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          </main>
+        </div>
       </div>
-    </form>
-  </div>
+    </div>
 
   <!-- Underwriter List -->
   <div class="bg-white p-6 rounded-lg shadow space-y-4 mt-10">
-    <h2 class="text-xl font-semibold border-b pb-2">Existing Underwriters</h2>
-    <table class="min-w-full divide-y divide-gray-200 text-sm">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left">Name</th>
-          <th class="px-4 py-2 text-left">FSP Number</th>
-          <th class="px-4 py-2 text-left">Email</th>
-          <th class="px-4 py-2 text-left">Contact Person</th>
-          <th class="px-4 py-2 text-left">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-100">
-        {% for underwriter in underwriters %}
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2">{{ underwriter.name }}</td>
-          <td class="px-4 py-2">{{ underwriter.fsp_number }}</td>
-          <td class="px-4 py-2">{{ underwriter.email }}</td>
-          <td class="px-4 py-2">{{ underwriter.contact_person }}</td>
-          <td class="px-4 py-2 space-x-2">
-            <a href="{% url 'settings:underwriter_edit' underwriter.pk %}" class="text-blue-600 hover:underline">Edit</a>
-            <a href="{% url 'settings:underwriter_delete' underwriter.pk %}" class="text-red-600 hover:underline" onclick="return confirm('Are you sure you want to delete this underwriter?');">Delete</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500 italic">No underwriters found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="flex justify-between items-center border-b pb-2">
+      <h2 class="text-xl font-semibold">Existing Underwriters</h2>
+      
+      <!-- Import/Export and Search Controls -->
+      <div class="flex items-center space-x-3">
+        <!-- Import/Export Dropdown -->
+        <div class="relative" x-data="{ open: false }">
+          <button 
+            @click="open = !open" 
+            @click.away="open = false"
+            class="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 flex items-center text-sm">
+            <i class="fas fa-file-import mr-2"></i> Import / Export
+            <i class="fas fa-chevron-down ml-2"></i>
+          </button>
+          <div 
+            x-show="open"
+            x-transition:enter="transition ease-out duration-100"
+            x-transition:enter-start="transform opacity-0 scale-95"
+            x-transition:enter-end="transform opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-75"
+            x-transition:leave-start="transform opacity-100 scale-100"
+            x-transition:leave-end="transform opacity-0 scale-95"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+            <div class="py-1">
+              <a href="{% url 'admin:settings_app_underwriter_import' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-upload mr-2"></i> Import Underwriters
+              </a>
+              <a href="{% url 'admin:settings_app_underwriter_export' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-download mr-2"></i> Export All
+              </a>
+              <a href="{% url 'settings:underwriter_template' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-file-excel mr-2"></i> Download Template
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Search Box -->
+        <div class="relative w-64">
+          <input 
+            type="text" 
+            name="q" 
+            placeholder="Search underwriters..." 
+            value="{{ search_query }}"
+            class="w-full px-3 py-2 border rounded-md pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            hx-get="{% url 'settings:underwriter' %}"
+            hx-trigger="keyup changed delay:500ms, search"
+            hx-target="#underwriter-table-container"
+            hx-indicator=".htmx-indicator">
+          <div class="absolute right-3 top-2.5 text-gray-400">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="underwriter-table-container">
+      <table id="underwriter-table" class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-4 py-2 text-left">
+              <div class="flex items-center cursor-pointer"
+                   hx-get="{% url 'settings:underwriter' %}?sort=name&dir={% if current_sort == 'name' and current_sort_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   hx-target="#underwriter-table-container"
+                   hx-indicator=".htmx-indicator">
+                Name
+                {% if current_sort == 'name' %}
+                  <i class="fas fa-sort-{{ current_sort_dir }} ml-1"></i>
+                {% else %}
+                  <i class="fas fa-sort text-gray-300 ml-1"></i>
+                {% endif %}
+              </div>
+            </th>
+            <th class="px-4 py-2 text-left">
+              <div class="flex items-center cursor-pointer"
+                   hx-get="{% url 'settings:underwriter' %}?sort=fsp_number&dir={% if current_sort == 'fsp_number' and current_sort_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   hx-target="#underwriter-table-container"
+                   hx-indicator=".htmx-indicator">
+                FSP Number
+                {% if current_sort == 'fsp_number' %}
+                  <i class="fas fa-sort-{{ current_sort_dir }} ml-1"></i>
+                {% else %}
+                  <i class="fas fa-sort text-gray-300 ml-1"></i>
+                {% endif %}
+              </div>
+            </th>
+            <th class="px-4 py-2 text-left">
+              <div class="flex items-center cursor-pointer"
+                   hx-get="{% url 'settings:underwriter' %}?sort=email&dir={% if current_sort == 'email' and current_sort_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   hx-target="#underwriter-table-container"
+                   hx-indicator=".htmx-indicator">
+                Email
+                {% if current_sort == 'email' %}
+                  <i class="fas fa-sort-{{ current_sort_dir }} ml-1"></i>
+                {% else %}
+                  <i class="fas fa-sort text-gray-300 ml-1"></i>
+                {% endif %}
+              </div>
+            </th>
+            <th class="px-4 py-2 text-left">
+              <div class="flex items-center cursor-pointer"
+                   hx-get="{% url 'settings:underwriter' %}?sort=contact_person&dir={% if current_sort == 'contact_person' and current_sort_dir == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   hx-target="#underwriter-table-container"
+                   hx-indicator=".htmx-indicator">
+                Contact Person
+                {% if current_sort == 'contact_person' %}
+                  <i class="fas fa-sort-{{ current_sort_dir }} ml-1"></i>
+                {% else %}
+                  <i class="fas fa-sort text-gray-300 ml-1"></i>
+                {% endif %}
+              </div>
+            </th>
+            <th class="px-4 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+          {% for underwriter in underwriters %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2">{{ underwriter.name }}</td>
+            <td class="px-4 py-2">{{ underwriter.fsp_number }}</td>
+            <td class="px-4 py-2">{{ underwriter.email }}</td>
+            <td class="px-4 py-2">{{ underwriter.contact_person }}</td>
+            <td class="px-4 py-2 space-x-2">
+              <button 
+                class="text-blue-600 hover:underline bg-transparent border-0 cursor-pointer"
+                hx-get="{% url 'settings:underwriter_edit' underwriter.pk %}"
+                hx-target="#underwriter-modal-content"
+                hx-trigger="click"
+                data-micromodal-trigger="underwriter-modal">
+                Edit
+              </button>
+              <button 
+                class="text-red-600 hover:underline bg-transparent border-0 cursor-pointer"
+                hx-get="{% url 'settings:underwriter_delete' underwriter.pk %}"
+                hx-target="#delete-modal-content"
+                hx-trigger="click"
+                data-micromodal-trigger="delete-modal">
+                Delete
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500 italic">No underwriters found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <!-- Pagination -->
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="flex justify-center mt-6">
+        <nav class="inline-flex rounded-md shadow">
+          {% if page_obj.has_previous %}
+          <a href="#" 
+             class="px-3 py-2 bg-white border border-gray-300 rounded-l-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+             hx-get="{% url 'settings:underwriter' %}?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}&dir={{ current_sort_dir }}{% endif %}"
+             hx-target="#underwriter-table-container"
+             hx-indicator=".htmx-indicator">
+            Previous
+          </a>
+          {% endif %}
+          
+          {% for i in page_obj.paginator.page_range %}
+          <a href="#" 
+             class="px-3 py-2 border border-gray-300 bg-{% if page_obj.number == i %}blue-500 text-white{% else %}white text-gray-700 hover:bg-gray-50{% endif %} text-sm font-medium"
+             hx-get="{% url 'settings:underwriter' %}?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}&dir={{ current_sort_dir }}{% endif %}"
+             hx-target="#underwriter-table-container"
+             hx-indicator=".htmx-indicator">
+            {{ i }}
+          </a>
+          {% endfor %}
+          
+          {% if page_obj.has_next %}
+          <a href="#" 
+             class="px-3 py-2 bg-white border border-gray-300 rounded-r-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+             hx-get="{% url 'settings:underwriter' %}?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}&dir={{ current_sort_dir }}{% endif %}"
+             hx-target="#underwriter-table-container"
+             hx-indicator=".htmx-indicator">
+            Next
+          </a>
+          {% endif %}
+        </nav>
+      </div>
+      {% endif %}
+    </div>
   </div>
 
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Initialize MicroModal
+    MicroModal.init({
+      onShow: modal => console.log(`${modal.id} is shown`),
+      onClose: modal => console.log(`${modal.id} is hidden`),
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableFocus: false,
+      disableScroll: true,
+      awaitOpenAnimation: false,
+      awaitCloseAnimation: false
+    });
+    
+    // Logo preview handling
     const logoInput = document.getElementById('logo-input');
     const preview = document.getElementById('logo-preview-dynamic');
 
@@ -136,6 +310,117 @@
         }
       });
     }
+    
+    // Initialize Notyf globally
+    const notyf = new Notyf({
+      duration: 3000,
+      position: { x: 'right', y: 'top' },
+      dismissible: true,
+      types: [
+        {
+          type: 'warning',
+          background: 'orange',
+          icon: {
+            className: 'fas fa-exclamation-triangle',
+            tagName: 'i'
+          }
+        }
+      ]
+    });
+    
+    // Helper function for showing notifications
+    function showNotification(type, message) {
+      if (type === 'success') {
+        notyf.success(message);
+      } else if (type === 'error') {
+        notyf.error(message);
+      } else if (type === 'warning') {
+        notyf.open({
+          type: 'warning',
+          message: message
+        });
+      }
+    }
+    
+    // Listen for HTMX events
+    document.body.addEventListener('underwriterSaved', function(event) {
+      let message = 'Underwriter saved successfully';
+      let type = 'success';
+      
+      // Check if we have detail from the event
+      if (event.detail && event.detail.message) {
+        message = event.detail.message;
+        type = event.detail.type || 'success';
+      }
+      
+      // Show notification
+      showNotification(type, message);
+      
+      // Refresh the page to show updated data
+      setTimeout(() => { 
+        htmx.ajax('GET', window.location.href, '#underwriter-table-container');
+      }, 300);
+    });
+    
+    document.body.addEventListener('underwriterDeleted', function(event) {
+      let message = 'Underwriter deleted successfully';
+      let type = 'success';
+      
+      // Check if we have detail from the event
+      if (event.detail && event.detail.message) {
+        message = event.detail.message;
+        type = event.detail.type || 'success';
+      }
+      
+      // Show notification
+      showNotification(type, message);
+      
+      // Refresh the page to show updated data
+      setTimeout(() => { 
+        htmx.ajax('GET', window.location.href, '#underwriter-table-container');
+      }, 300);
+    });
+    
+    // Listen for HTMX response errors
+    document.addEventListener('htmx:responseError', function(event) {
+      let errorMessage = 'An error occurred';
+      let errorType = 'error';
+      let errorTitle = '';
+      
+      try {
+        // Try to parse response as JSON first
+        const response = JSON.parse(event.detail.xhr.responseText);
+        
+        // Extract the message, type, and title from response
+        errorMessage = response.message || errorMessage;
+        errorType = response.type || (event.detail.xhr.status === 409 ? 'warning' : 'error');
+        errorTitle = response.title || '';
+        
+        // Show notification with the parsed data
+        if (errorTitle) {
+          notyf.open({
+            type: errorType,
+            message: `<strong>${errorTitle}</strong><br>${errorMessage}`
+          });
+        } else {
+          showNotification(errorType, errorMessage);
+        }
+        
+        return;
+      } catch (e) {
+        // If JSON parsing fails, fall back to status code handling
+        if (event.detail.xhr.status === 422) {
+          errorMessage = 'Please check the form for errors';
+        } else if (event.detail.xhr.status === 409) {
+          errorMessage = 'Cannot delete: This underwriter is in use';
+          errorType = 'warning';
+        } else if (event.detail.xhr.status >= 500) {
+          errorMessage = 'Server error occurred';
+        }
+        
+        showNotification(errorType, errorMessage);
+      }
+    });
   });
 </script>
 {% endblock %}

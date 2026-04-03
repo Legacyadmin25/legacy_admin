@@ -1,0 +1,296 @@
+{% extends "members/diy/base_application_autosave.html" %}
+{% load static %}
+
+{% block title %}Beneficiaries - DIY Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+    beneficiaries: [],
+    newBeneficiary: {
+        full_name: '',
+        id_number: '',
+        relationship: '',
+        percentage: '',
+        phone_number: '',
+        email: ''
+    },
+    totalPercentage: 0,
+    errors: {},
+    
+    addBeneficiary() {
+        // Validate form
+        this.errors = {};
+        let isValid = true;
+        
+        if (!this.newBeneficiary.full_name) {
+            this.errors.full_name = 'Full name is required';
+            isValid = false;
+        }
+        
+        if (!this.newBeneficiary.relationship) {
+            this.errors.relationship = 'Relationship is required';
+            isValid = false;
+        }
+        
+        if (!this.newBeneficiary.percentage) {
+            this.errors.percentage = 'Percentage is required';
+            isValid = false;
+        } else if (isNaN(this.newBeneficiary.percentage) || this.newBeneficiary.percentage <= 0 || this.newBeneficiary.percentage > 100) {
+            this.errors.percentage = 'Percentage must be between 0.01 and 100';
+            isValid = false;
+        } else if (this.totalPercentage + parseFloat(this.newBeneficiary.percentage) > 100) {
+            this.errors.percentage = 'Total percentage cannot exceed 100%';
+            isValid = false;
+        }
+        
+        if (!isValid) return;
+        
+        // Add beneficiary
+        this.beneficiaries.push({...this.newBeneficiary});
+        
+        // Update total percentage
+        this.totalPercentage = this.calculateTotalPercentage();
+        
+        // Clear form
+        this.newBeneficiary = {
+            full_name: '',
+            id_number: '',
+            relationship: '',
+            percentage: '',
+            phone_number: '',
+            email: ''
+        };
+        
+        // Update hidden form field
+        this.updateFormData();
+    },
+    
+    removeBeneficiary(index) {
+        this.beneficiaries.splice(index, 1);
+        this.totalPercentage = this.calculateTotalPercentage();
+        this.updateFormData();
+    },
+    
+    calculateTotalPercentage() {
+        return this.beneficiaries.reduce((total, b) => total + parseFloat(b.percentage), 0);
+    },
+    
+    updateFormData() {
+        document.getElementById('id_beneficiaries_data').value = JSON.stringify(this.beneficiaries);
+        
+        // Trigger auto-save
+        if (window.autoSave) {
+            window.autoSave.saveFormData();
+        }
+    },
+    
+    init() {
+        // Load existing beneficiaries data if available
+        const savedData = document.getElementById('id_beneficiaries_data').value;
+        if (savedData) {
+            try {
+                this.beneficiaries = JSON.parse(savedData);
+                this.totalPercentage = this.calculateTotalPercentage();
+            } catch (e) {
+                console.error('Error parsing beneficiaries data:', e);
+            }
+        }
+    }
+}">
+    <h2 class="text-xl font-semibold mb-6">Beneficiaries</h2>
+    
+    <form id="application-form" method="post" class="space-y-6" data-step="3">
+        {% csrf_token %}
+        
+        <!-- Hidden field to store beneficiaries data -->
+        <input type="hidden" name="beneficiaries_data" id="id_beneficiaries_data" value="{{ form.beneficiaries_data.value|default:'[]' }}">
+        
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-700">
+                        Please add at least one beneficiary. The total percentage allocation must equal 100%.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Beneficiaries List -->
+        <div class="mb-6">
+            <h3 class="text-lg font-medium text-gray-700 mb-3">Added Beneficiaries</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" x-show="beneficiaries.length > 0">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="(beneficiary, index) in beneficiaries" :key="index">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900" x-text="beneficiary.full_name"></div>
+                                    <div class="text-sm text-gray-500" x-text="beneficiary.id_number ? 'ID: ' + beneficiary.id_number : ''"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900" x-text="beneficiary.relationship"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900" x-text="beneficiary.percentage + '%'"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900" x-text="beneficiary.phone_number"></div>
+                                    <div class="text-sm text-gray-500" x-text="beneficiary.email"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button type="button" @click="removeBeneficiary(index)" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash-alt"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="px-6 py-4 text-right font-medium">Total Allocation:</td>
+                            <td class="px-6 py-4 font-medium" :class="totalPercentage === 100 ? 'text-green-600' : 'text-red-600'">
+                                <span x-text="totalPercentage + '%'"></span>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div x-show="beneficiaries.length === 0" class="text-center py-4 text-gray-500">
+                    No beneficiaries added yet.
+                </div>
+            </div>
+            
+            <div x-show="totalPercentage < 100" class="mt-2 text-sm text-red-600">
+                <span x-show="totalPercentage < 100">You need to allocate <span x-text="(100 - totalPercentage) + '%'"></span> more.</span>
+            </div>
+            
+            <div x-show="totalPercentage > 100" class="mt-2 text-sm text-red-600">
+                <span>Total allocation exceeds 100%. Please adjust the percentages.</span>
+            </div>
+        </div>
+        
+        <!-- Add Beneficiary Form -->
+        <div class="bg-gray-50 p-6 rounded-lg">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Add a Beneficiary</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="form-group">
+                    <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                    <input type="text" id="full_name" x-model="newBeneficiary.full_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p class="text-red-500 text-xs mt-1" x-show="errors.full_name" x-text="errors.full_name"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_number" class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                    <input type="text" id="id_number" x-model="newBeneficiary.id_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p class="text-gray-500 text-xs mt-1">Optional</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="relationship" class="block text-sm font-medium text-gray-700 mb-1">Relationship *</label>
+                    <select id="relationship" x-model="newBeneficiary.relationship" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Select Relationship</option>
+                        <option value="spouse">Spouse</option>
+                        <option value="child">Child</option>
+                        <option value="parent">Parent</option>
+                        <option value="sibling">Sibling</option>
+                        <option value="other_relative">Other Relative</option>
+                        <option value="friend">Friend</option>
+                    </select>
+                    <p class="text-red-500 text-xs mt-1" x-show="errors.relationship" x-text="errors.relationship"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="percentage" class="block text-sm font-medium text-gray-700 mb-1">Percentage *</label>
+                    <input type="number" id="percentage" x-model="newBeneficiary.percentage" min="0.01" max="100" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p class="text-red-500 text-xs mt-1" x-show="errors.percentage" x-text="errors.percentage"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone_number" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input type="tel" id="phone_number" x-model="newBeneficiary.phone_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p class="text-gray-500 text-xs mt-1">Optional</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="email" x-model="newBeneficiary.email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <p class="text-gray-500 text-xs mt-1">Optional</p>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <button type="button" @click="addBeneficiary" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-plus mr-2"></i> Add Beneficiary
+                </button>
+            </div>
+        </div>
+        
+        <!-- Form validation -->
+        <div class="mt-4">
+            <p class="text-red-500 text-sm" x-show="totalPercentage !== 100 && beneficiaries.length > 0">
+                The total percentage allocation must equal 100% before proceeding.
+            </p>
+            <p class="text-red-500 text-sm" x-show="beneficiaries.length === 0">
+                Please add at least one beneficiary.
+            </p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block form_buttons %}
+<button type="submit" form="application-form" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+        x-data
+        x-bind:disabled="$store.beneficiaryForm.totalPercentage !== 100 || $store.beneficiaryForm.beneficiaries.length === 0">
+    Next <i class="fas fa-arrow-right ml-2"></i>
+</button>
+{% endblock %}
+
+{% block step_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save with step number
+        if (window.autoSave) {
+            window.autoSave.setStepNumber(3);
+        }
+        
+        // Create Alpine store for form validation
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('beneficiaryForm', {
+                totalPercentage: 0,
+                beneficiaries: [],
+                
+                init() {
+                    // Watch for changes to the beneficiaries array
+                    Alpine.effect(() => {
+                        const beneficiariesData = document.getElementById('id_beneficiaries_data').value;
+                        if (beneficiariesData) {
+                            try {
+                                this.beneficiaries = JSON.parse(beneficiariesData);
+                                this.totalPercentage = this.beneficiaries.reduce((total, b) => total + parseFloat(b.percentage), 0);
+                            } catch (e) {
+                                console.error('Error parsing beneficiaries data:', e);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

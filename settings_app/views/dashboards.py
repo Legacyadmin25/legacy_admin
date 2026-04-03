@@ -10,7 +10,7 @@ from django.http import HttpResponseRedirect
 import uuid
 from datetime import timedelta
 
-from settings_app.models import Branch, Agent, UserRole
+from settings_app.models import Branch, Agent
 from settings_app.mixins import BranchAccessMixin, SchemeAccessMixin, AgentAccessMixin
 from schemes.models import Scheme, Plan
 from members.models import Member, Policy

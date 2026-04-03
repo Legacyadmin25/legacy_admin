@@ -1,50 +1,506 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
 
+{% block title %}{% if is_edit_page %}{% if edit_mode %}Edit{% else %}Add New{% endif %} Agent{% else %}Agent Management{% endif %}{% endblock %}
+
 {% block content %}
-<div class="w-full px-6 py-8">
-
-  <!-- Heading -->
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold">
-      {% if edit_mode %} Edit Agent {% else %} Add New Agent {% endif %}
-    </h1>
-    <a href="{% url 'settings:agent' %}" class="text-sm text-blue-600 hover:underline">← Back to Agent List</a>
-  </div>
-
-  <!-- Form Card -->
-  <div class="bg-white p-6 rounded-lg shadow space-y-6">
-    <form method="post" novalidate>
-      {% csrf_token %}
-      {% if form.errors %}
-        <div class="bg-red-100 text-red-700 p-4 rounded">
-          <strong>There were errors in your submission:</strong>
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="{% if message.tags %}{{ message.tags }}{% endif %} p-4 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                    {% else %}
+                    <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}text-red-800{% else %}text-green-800{% endif %}">
+                        {{ message }}
+                    </p>
+                </div>
+            </div>
         </div>
-      {% endif %}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {% for field in form.visible_fields %}
-          <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-              {{ field.label }}
-            </label>
-            {% render_field field class="w-full px-4 py-2 border rounded" %}
-            {% if field.errors %}
-              <p class="text-sm text-red-600 mt-1">{{ field.errors|striptags }}</p>
-            {% endif %}
-          </div>
         {% endfor %}
-      </div>
-      <div class="pt-6">
-        <button type="submit"
-                class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-semibold">
-          {% if edit_mode %} Update Agent {% else %} Create Agent {% endif %}
-        </button>
-      </div>
-    </form>
-  </div>
+    </div>
+    {% endif %}
+    
+    {% if is_edit_page %}
+    <!-- Edit/Create Agent Form -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if edit_mode %}Edit Agent{% else %}Add New Agent{% endif %}
+        </h1>
+        <a href="{% url 'settings:agent' %}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            ← Back to Agent List
+        </a>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-red-700">
+                                            Please correct the errors below.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
 
-  <!-- Agent List with Bulk Actions -->
-  <div class="bg-white p-6 rounded-lg shadow space-y-4 mt-10">
+                        <div class="space-y-6">
+                            <!-- Personal Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
+                                <div class="space-y-4">
+                                    <!-- First Row: Full Name & Surname -->
+                                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <!-- Full Name -->
+                                        <div>
+                                            <label for="{{ form.full_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                Full Name <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.full_name|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.full_name.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.full_name.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.full_name.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.full_name.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Surname -->
+                                        <div>
+                                            <label for="{{ form.surname.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                Surname <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.surname|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.surname.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.surname.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.surname.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.surname.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                    
+                                    <!-- Contact Information -->
+                                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <!-- Contact Number -->
+                                        <div>
+                                            <label for="{{ form.contact_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                Contact Number <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.contact_number|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.contact_number.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.contact_number.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.contact_number.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.contact_number.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Email -->
+                                        <div>
+                                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                Email <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.email|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.email.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.email.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.email.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.email.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                    
+                                    <!-- ID and Passport Information -->
+                                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <!-- ID Number -->
+                                        <div>
+                                            <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                ID Number <span class="text-xs text-gray-500">(Optional)</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.id_number|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.id_number.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.id_number.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.id_number.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.id_number.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Passport Number -->
+                                        <div>
+                                            <label for="{{ form.passport_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                                Passport Number <span class="text-xs text-gray-500">(Optional)</span>
+                                            </label>
+                                            <div class="mt-1">
+                                                {{ form.passport_number|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                            </div>
+                                            {% if form.passport_number.help_text %}
+                                                <p class="mt-1 text-xs text-gray-500">{{ form.passport_number.help_text }}</p>
+                                            {% endif %}
+                                            {% if form.passport_number.errors %}
+                                                <p class="mt-1 text-xs text-red-600">{{ form.passport_number.errors|striptags }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Address Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Address</h3>
+                                <div class="space-y-4">
+                                    <!-- Address Line 1 -->
+                                    <div>
+                                        <label for="{{ form.address1.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                            Address Line 1 <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="mt-1">
+                                            {{ form.address1|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                        </div>
+                                        {% if form.address1.help_text %}
+                                            <p class="mt-1 text-xs text-gray-500">{{ form.address1.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.address1.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.address1.errors|striptags }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                     <!-- Address Line 2 -->
+                                    <div>
+                                        <label for="{{ form.address2.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                            Address Line 2 <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="mt-1">
+                                            {{ form.address2|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                        </div>
+                                        {% if form.address2.help_text %}
+                                            <p class="mt-1 text-xs text-gray-500">{{ form.address2.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.address2.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.address2.errors|striptags }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Address Line 3 (City/Town) -->
+                                    <div>
+                                        <label for="{{ form.address3.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                            City/Town <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="mt-1">
+                                            {{ form.address3|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                        </div>
+                                        {% if form.address3.help_text %}
+                                            <p class="mt-1 text-xs text-gray-500">{{ form.address3.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.address3.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.address3.errors|striptags }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Postal Code -->
+                                    <div>
+                                        <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                            Postal Code <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="mt-1">
+                                            {{ form.code|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                                        </div>
+                                        {% if form.code.help_text %}
+                                            <p class="mt-1 text-xs text-gray-500">{{ form.code.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.code.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.code.errors|striptags }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <!-- Scheme Information -->
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <!-- Scheme -->
+                                <div>
+                                    <label for="{{ form.scheme.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                        Scheme <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="mt-1">
+                                        {% render_field form.scheme class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" %}
+                                    </div>
+                                    {% if form.scheme.help_text %}
+                                        <p class="mt-1 text-xs text-gray-500">{{ form.scheme.help_text }}</p>
+                                    {% endif %}
+                                    {% if form.scheme.errors %}
+                                        <p class="mt-1 text-xs text-red-600">{{ form.scheme.errors|striptags }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                    
+                    <!-- DIY Token and Links - Only show on edit pages -->
+                    {% if edit_mode %}
+                    <div class="space-y-4 mt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">DIY Signup Links</h3>
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <p class="text-sm text-gray-600 mb-2">Agents can use these links to sign up clients directly:</p>
+                            
+                            {% if form.instance.diy_token %}
+                            <div class="flex items-center space-x-2 mb-3">
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Active</span>
+                                <span class="text-xs text-gray-500">Created: {{ form.instance.diy_token_created|date:"M d, Y" }}</span>
+                            </div>
+                            
+                            <div class="relative">
+                                <input type="text" id="diy-link" value="{{ form.instance.get_full_diy_link }}" readonly 
+                                       class="block w-full pr-10 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                                <button type="button" onclick="copyToClipboard('diy-link')" 
+                                        class="absolute inset-y-0 right-0 px-3 py-1.5 text-sm text-indigo-600 hover:text-indigo-800">
+                                    Copy
+                                </button>
+                            </div>
+                            
+                            <div class="mt-3 flex justify-end">
+                                <a href="{% url 'settings:agent_regenerate_token' form.instance.id %}" 
+                                   class="text-sm text-red-600 hover:text-red-800">Regenerate Token</a>
+                            </div>
+                            {% else %}
+                            <p class="text-sm text-gray-500">No active DIY token. Save the agent to generate one.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Commission Fields -->
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <!-- Commission Percentage -->
+                        <div>
+                            <label for="{{ form.commission_percentage.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.commission_percentage.label }}
+                            </label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                {% render_field form.commission_percentage class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md" %}
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                            </div>
+                            {% if form.commission_percentage.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.commission_percentage.help_text }}</p>
+                            {% endif %}
+                            {% if form.commission_percentage.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.commission_percentage.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Commission Rand Value -->
+                        <div>
+                            <label for="{{ form.commission_rand_value.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.commission_rand_value.label }}
+                            </label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R</span>
+                                </div>
+                                {% render_field form.commission_rand_value class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" %}
+                            </div>
+                            {% if form.commission_rand_value.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.commission_rand_value.help_text }}</p>
+                            {% endif %}
+                            {% if form.commission_rand_value.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.commission_rand_value.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                            <!-- Additional Information -->
+                            <div class="mt-8">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
+                                <div class="space-y-4">
+                                    <!-- Notes -->
+                                    <div>
+                                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                            Notes
+                                        </label>
+                                        <div class="mt-1">
+                                            {{ form.notes|add_class:"shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-300 rounded-md"|attr:"rows:3" }}
+                                        </div>
+                                        {% if form.notes.help_text %}
+                                            <p class="mt-1 text-xs text-gray-500">{{ form.notes.help_text }}</p>
+                                        {% endif %}
+                                        {% if form.notes.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.notes.errors|striptags }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="pt-8">
+                                <div class="flex justify-end space-x-3">
+                                    <a href="{% url 'settings:agent' %}" 
+                                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        Cancel
+                                    </a>
+                                    <button type="submit" 
+                                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        {% if edit_mode %}
+                                            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                            Update Agent
+                                        {% else %}
+                                            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                            </svg>
+                                            Create Agent
+                                        {% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+    {% else %}
+    <!-- Agent List View -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">Agent Management</h1>
+        {% if can_add_agent %}
+        <a href="{% url 'settings:agent_create' %}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add New Agent
+        </a>
+        {% endif %}
+    </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if not is_edit_page %}
+    <div class="bg-white p-6 rounded-lg shadow mt-6">
+            <div class="sm:flex sm:items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Existing Agents</h2>
+                    <p class="mt-1 text-sm text-gray-600">
+                        Agents in your scheme(s) are listed below
+                    </p>
+                </div>
+                <div class="flex space-x-3 mt-4 sm:mt-0">
+                    <a href="{% url 'settings:agent_export_csv' %}"
+                       class="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Export to CSV
+                    </a>
+                    <a href="{% url 'settings:agent' %}" 
+                       class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        View All
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Agent List Table -->
+            <div class="overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheme</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for agent in agents|slice:":5" %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                        <span class="text-indigo-600 font-medium">{{ agent.full_name|first|upper }}</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ agent.full_name }}</div>
+                                        <div class="text-sm text-gray-500">{{ agent.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ agent.contact_number }}</div>
+                                <div class="text-sm text-gray-500">{{ agent.id_number|default:'-' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    {{ agent.scheme.name|default:'-' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{% url 'settings:agent_edit' agent.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'settings:agent_delete' agent.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No agents found. Add your first agent using the form.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if agents|length > 5 %}
+                <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="text-sm text-gray-500">
+                        Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">{{ agents|length }}</span> agents
+                    </div>
+                    <a href="{% url 'settings:agent' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                        View all agents<span aria-hidden="true"> &rarr;</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        </div>
+    {% endif %}
+
+    {% if not is_edit_page %}
+    <!-- Agent List with Bulk Actions -->
+    <div class="mt-6">
+  <div class="bg-white p-6 rounded-lg shadow space-y-4">
     <form method="post" action="{% url 'settings:bulk_agent_actions' %}">
       {% csrf_token %}
 
@@ -151,6 +607,8 @@
       </table>
     </form>
   </div>
+</div>
+    {% endif %}
 </div>
 {% endblock %}
 

@@ -5,6 +5,7 @@ from .views import (
     scheme_dashboard,
     export_dashboard_pdf,
     export_dashboard_excel,
+    admin_dashboard,
 )
 
 app_name = 'dashboard'  # Namespace for the app, ensuring URL names are prefixed with 'dashboard:'
@@ -12,6 +13,9 @@ app_name = 'dashboard'  # Namespace for the app, ensuring URL names are prefixed
 urlpatterns = [
     # GET  /dashboard/               → main dashboard view
     path('', index, name='index'),  # This is the URL for the main dashboard page.
+    
+    # GET  /dashboard/admin/         → enhanced admin dashboard with visualizations
+    path('admin/', admin_dashboard, name='admin_dashboard'),
 
     # GET  /dashboard/branch/        → branch-specific dashboard
     path('branch/', branch_dashboard, name='branch_dashboard'),  # This handles the URL for the branch dashboard.

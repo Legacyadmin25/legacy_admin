@@ -1,0 +1,137 @@
+{% extends "members/diy/base_application_autosave.html" %}
+{% load static %}
+
+{% block title %}Personal Details - DIY Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+    isSouthAfrican: true,
+    validateIdNumber: function() {
+        const idNumber = document.getElementById('id_id_number').value;
+        if (idNumber.length === 13) {
+            fetch('{% url "members:diy_validate_id" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ id_number: idNumber })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    this.$refs.idFeedback.textContent = 'ID number is valid';
+                    this.$refs.idFeedback.classList.remove('text-red-500');
+                    this.$refs.idFeedback.classList.add('text-green-500');
+                    
+                    // Auto-fill date of birth and gender if available
+                    if (data.date_of_birth) {
+                        document.getElementById('id_date_of_birth').value = data.date_of_birth;
+                    }
+                    if (data.gender) {
+                        document.getElementById('id_gender').value = data.gender;
+                    }
+                } else {
+                    this.$refs.idFeedback.textContent = 'Invalid ID number';
+                    this.$refs.idFeedback.classList.remove('text-green-500');
+                    this.$refs.idFeedback.classList.add('text-red-500');
+                }
+            });
+        } else {
+            this.$refs.idFeedback.textContent = '';
+        }
+    }
+}">
+    <h2 class="text-xl font-semibold mb-6">Personal Details</h2>
+    
+    <form id="application-form" method="post" class="space-y-6" data-step="1">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="form-group">
+                <label for="id_title" class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.title.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                <input type="text" name="first_name" id="id_first_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ form.first_name.value|default:'' }}" required>
+                {% if form.first_name.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.first_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                <input type="text" name="last_name" id="id_last_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ form.last_name.value|default:'' }}" required>
+                {% if form.last_name.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.last_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_date_of_birth" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+                <input type="date" name="date_of_birth" id="id_date_of_birth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" required>
+                {% if form.date_of_birth.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_gender" class="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                <select name="gender" id="id_gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    <option value="" {% if not form.gender.value %}selected{% endif %}>Select Gender</option>
+                    <option value="Male" {% if form.gender.value == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if form.gender.value == 'Female' %}selected{% endif %}>Female</option>
+                </select>
+                {% if form.gender.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.gender.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <div class="flex items-center mb-4">
+                <input type="checkbox" name="is_south_african" id="id_is_south_african" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                       x-model="isSouthAfrican" {% if form.is_south_african.value %}checked{% endif %}>
+                <label for="id_is_south_african" class="ml-2 block text-sm text-gray-900">
+                    I am a South African citizen
+                </label>
+            </div>
+            
+            <div x-show="isSouthAfrican" class="mb-4">
+                <label for="id_id_number" class="block text-sm font-medium text-gray-700 mb-1">ID Number *</label>
+                <input type="text" name="id_number" id="id_id_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                       value="{{ form.id_number.value|default:'' }}" maxlength="13" @input="validateIdNumber" x-bind:required="isSouthAfrican">
+                <p x-ref="idFeedback" class="text-sm mt-1"></p>
+                {% if form.id_number.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.id_number.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div x-show="!isSouthAfrican" class="mb-4">
+                <label for="id_passport_number" class="block text-sm font-medium text-gray-700 mb-1">Passport Number *</label>
+                <input type="text" name="passport_number" id="id_passport_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                       value="{{ form.passport_number.value|default:'' }}" x-bind:required="!isSouthAfrican">
+                {% if form.passport_number.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.passport_number.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block step_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save with step number
+        if (window.autoSave) {
+            window.autoSave.setStepNumber(1);
+        }
+    });
+</script>
+{% endblock %}

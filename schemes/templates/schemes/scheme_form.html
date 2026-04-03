@@ -42,21 +42,88 @@
     <div class="bg-white p-6 rounded shadow space-y-4">
       <h2 class="text-xl font-semibold">Banking & Compliance</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {% for field in form %}
-          {% if field.name in "bank branch_code account_name account_number compliance_officer compliance_email compliance_phone" %}
-            <div>
-              <label for="{{ field.id_for_label }}" class="block font-medium mb-1">
-                {{ field.label }}{% if field.field.required %}*{% endif %}
-              </label>
-              {% render_field field class="w-full px-3 py-2 border rounded focus:ring" %}
-              {% if field.errors %}
-                <p class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</p>
-              {% endif %}
-            </div>
+        <!-- Bank Selection -->
+        <div>
+          <label for="id_bank" class="block font-medium mb-1">
+            {{ form.bank.label }}{% if form.bank.field.required %}*{% endif %}
+          </label>
+          {{ form.bank|add_class:"w-full px-3 py-2 border rounded focus:ring bank-select" }}
+          {% if form.bank.errors %}
+            <p class="text-sm text-red-600 mt-1">{{ form.bank.errors.0 }}</p>
           {% endif %}
-        {% endfor %}
+        </div>
+        
+        <!-- Branch Code (Auto-filled) -->
+        <div>
+          <label for="id_branch_code" class="block font-medium mb-1">
+            {{ form.branch_code.label }}
+          </label>
+          {{ form.branch_code|add_class:"w-full px-3 py-2 border rounded bg-gray-100"|attr:"readonly" }}
+          {% if form.branch_code.errors %}
+            <p class="text-sm text-red-600 mt-1">{{ form.branch_code.errors.0 }}</p>
+          {% endif %}
+        </div>
+        
+        <!-- Account Number -->
+        <div>
+          <label for="{{ form.account_no.id_for_label }}" class="block font-medium mb-1">
+            {{ form.account_no.label }}{% if form.account_no.field.required %}*{% endif %}
+          </label>
+          {% render_field form.account_no class="w-full px-3 py-2 border rounded focus:ring" %}
+          {% if form.account_no.errors %}
+            <p class="text-sm text-red-600 mt-1">{{ form.account_no.errors.0 }}</p>
+          {% endif %}
+        </div>
+        
+        <!-- Account Type -->
+        <div>
+          <label for="{{ form.account_type.id_for_label }}" class="block font-medium mb-1">
+            {{ form.account_type.label }}
+          </label>
+          {% render_field form.account_type class="w-full px-3 py-2 border rounded focus:ring" %}
+          {% if form.account_type.errors %}
+            <p class="text-sm text-red-600 mt-1">{{ form.account_type.errors.0 }}</p>
+          {% endif %}
+        </div>
       </div>
     </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const bankSelect = document.getElementById('id_bank');
+      const branchCodeInput = document.getElementById('id_branch_code');
+      
+      // Function to update branch code based on selected bank
+      function updateBranchCode() {
+        if (!bankSelect || !branchCodeInput) return;
+        
+        const selectedOption = bankSelect.options[bankSelect.selectedIndex];
+        if (selectedOption && selectedOption.dataset.branchCode) {
+          branchCodeInput.value = selectedOption.dataset.branchCode;
+        } else {
+          branchCodeInput.value = '';
+        }
+      }
+      
+      // Set up event listener for bank selection change
+      if (bankSelect) {
+        bankSelect.addEventListener('change', updateBranchCode);
+        
+        // Set initial branch code if bank is already selected
+        if (bankSelect.value) {
+          // Use a small timeout to ensure the DOM is fully loaded
+          setTimeout(updateBranchCode, 100);
+        }
+      }
+      
+      // Also update when the page is fully loaded
+      window.addEventListener('load', function() {
+        if (bankSelect && bankSelect.value) {
+          updateBranchCode();
+        }
+      });
+    });
+    </script>
 
     <div class="bg-white p-6 rounded shadow space-y-4">
       <h2 class="text-xl font-semibold">Additional Info</h2>

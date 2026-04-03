@@ -104,8 +104,27 @@ api_patterns = [
 # Main URL patterns
 urlpatterns = [
     # Authentication
-    path("auth/", include((auth_patterns, 'auth'))),
-    
+    path("login/", views.RoleBasedLoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(next_page=reverse_lazy("accounts:login")), name="logout"),
+    path("register/", views.UserRegistrationView.as_view(), name="register"),
+    path("verify-email/<str:uidb64>/<str:token>/", views.EmailVerificationView.as_view(), name="verify_email"),
+    path("password-reset/", PasswordResetView.as_view(
+        template_name="accounts/auth/password_reset.html",
+        email_template_name="accounts/emails/password_reset_email.html",
+        subject_template_name="accounts/emails/password_reset_subject.txt",
+        success_url=reverse_lazy("accounts:password_reset_done")
+    ), name="password_reset"),
+    path("password-reset/done/", PasswordResetDoneView.as_view(
+        template_name="accounts/auth/password_reset_done.html"
+    ), name="password_reset_done"),
+    path("password-reset/confirm/<uidb64>/<token>/", PasswordResetConfirmView.as_view(
+        template_name="accounts/auth/password_reset_confirm.html",
+        success_url=reverse_lazy("accounts:password_reset_complete")
+    ), name="password_reset_confirm"),
+    path("password-reset/complete/", PasswordResetCompleteView.as_view(
+        template_name="accounts/auth/password_reset_complete.html"
+    ), name="password_reset_complete"),
+
     # Dashboards
     path("dashboard/", include((dashboard_patterns, 'dashboard'))),
     

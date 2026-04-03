@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legacyadmin-web
+  labels:
+    app: legacyadmin
+    component: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: legacyadmin
+      component: web
+  template:
+    metadata:
+      labels:
+        app: legacyadmin
+        component: web
+    spec:
+      containers:
+      - name: web
+        image: ${DOCKER_REGISTRY}/legacyadmin-web:${TAG}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        env:
+        - name: DJANGO_SETTINGS_MODULE
+          value: "legacyadmin.settings_prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: redis-url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: django-secret-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: openai-api-key
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-secret-access-key
+        - name: AWS_STORAGE_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: aws-storage-bucket-name
+        - name: EMAIL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host
+        - name: EMAIL_HOST_USER
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host-user
+        - name: EMAIL_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: email-host-password
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: twilio-account-sid
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: legacyadmin-secrets
+              key: twilio-auth-token

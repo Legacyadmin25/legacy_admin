@@ -1,0 +1,247 @@
+{% extends "members/diy/base_application_autosave.html" %}
+{% load static %}
+
+{% block title %}Payment Options - DIY Application{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+    paymentMethod: '{{ form.payment_method.value|default:'debit_order' }}',
+    bankName: '{{ form.bank_name.value|default:'' }}',
+    accountNumber: '{{ form.account_number.value|default:'' }}',
+    accountType: '{{ form.account_type.value|default:'' }}',
+    branchCode: '{{ form.branch_code.value|default:'' }}',
+    accountHolderName: '{{ form.account_holder_name.value|default:'' }}',
+    debitDay: {{ form.debit_day.value|default:1 }},
+    termsAccepted: {% if form.terms_accepted.value %}true{% else %}false{% endif %},
+    marketingConsent: {% if form.marketing_consent.value %}true{% else %}false{% endif %},
+    popiaConsent: {% if form.popia_consent.value %}true{% else %}false{% endif %},
+    
+    validateDebitOrderFields() {
+        if (this.paymentMethod !== 'debit_order') return true;
+        
+        return this.bankName && 
+               this.accountNumber && 
+               this.accountType && 
+               this.branchCode && 
+               this.accountHolderName && 
+               this.debitDay;
+    },
+    
+    isFormValid() {
+        const debitOrderValid = this.paymentMethod !== 'debit_order' || this.validateDebitOrderFields();
+        return this.paymentMethod && this.termsAccepted && this.popiaConsent && debitOrderValid;
+    }
+}">
+    <h2 class="text-xl font-semibold mb-6">Payment Options</h2>
+    
+    <form id="application-form" method="post" class="space-y-6" data-step="5">
+        {% csrf_token %}
+        
+        <div class="mb-8">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Select Payment Method</h3>
+            
+            <div class="space-y-4">
+                <!-- Debit Order -->
+                <div class="border rounded-lg overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b flex items-center">
+                        <input type="radio" id="payment_debit_order" name="payment_method" value="debit_order" 
+                               x-model="paymentMethod" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <label for="payment_debit_order" class="ml-3 block text-sm font-medium text-gray-700">
+                            Debit Order
+                        </label>
+                    </div>
+                    
+                    <div class="p-4" x-show="paymentMethod === 'debit_order'">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="form-group">
+                                <label for="id_bank_name" class="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+                                <select name="bank_name" id="id_bank_name" x-model="bankName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Bank</option>
+                                    <option value="ABSA">ABSA</option>
+                                    <option value="Capitec">Capitec</option>
+                                    <option value="FNB">FNB</option>
+                                    <option value="Nedbank">Nedbank</option>
+                                    <option value="Standard Bank">Standard Bank</option>
+                                    <option value="African Bank">African Bank</option>
+                                    <option value="Discovery Bank">Discovery Bank</option>
+                                    <option value="TymeBank">TymeBank</option>
+                                </select>
+                                {% if form.bank_name.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.bank_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_account_number" class="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
+                                <input type="text" name="account_number" id="id_account_number" x-model="accountNumber" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                {% if form.account_number.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.account_number.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_account_type" class="block text-sm font-medium text-gray-700 mb-1">Account Type *</label>
+                                <select name="account_type" id="id_account_type" x-model="accountType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Account Type</option>
+                                    <option value="current">Current Account</option>
+                                    <option value="savings">Savings Account</option>
+                                    <option value="transmission">Transmission Account</option>
+                                </select>
+                                {% if form.account_type.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.account_type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_branch_code" class="block text-sm font-medium text-gray-700 mb-1">Branch Code *</label>
+                                <input type="text" name="branch_code" id="id_branch_code" x-model="branchCode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                {% if form.branch_code.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.branch_code.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_account_holder_name" class="block text-sm font-medium text-gray-700 mb-1">Account Holder Name *</label>
+                                <input type="text" name="account_holder_name" id="id_account_holder_name" x-model="accountHolderName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                {% if form.account_holder_name.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.account_holder_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_debit_day" class="block text-sm font-medium text-gray-700 mb-1">Debit Day *</label>
+                                <select name="debit_day" id="id_debit_day" x-model="debitDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Debit Day</option>
+                                    {% for i in "123456789"|add:"0123456789"|add:"12345678" %}
+                                    <option value="{{ i }}">{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.debit_day.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ form.debit_day.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- EFT -->
+                <div class="border rounded-lg overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b flex items-center">
+                        <input type="radio" id="payment_eft" name="payment_method" value="eft" 
+                               x-model="paymentMethod" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <label for="payment_eft" class="ml-3 block text-sm font-medium text-gray-700">
+                            Electronic Funds Transfer (EFT)
+                        </label>
+                    </div>
+                    
+                    <div class="p-4" x-show="paymentMethod === 'eft'">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        You will receive our banking details after completing your application. Please use your policy number as the reference when making payment.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Easypay -->
+                <div class="border rounded-lg overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b flex items-center">
+                        <input type="radio" id="payment_easypay" name="payment_method" value="easypay" 
+                               x-model="paymentMethod" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <label for="payment_easypay" class="ml-3 block text-sm font-medium text-gray-700">
+                            Easypay QR Code
+                        </label>
+                    </div>
+                    
+                    <div class="p-4" x-show="paymentMethod === 'easypay'">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        You will receive a QR code after completing your application. You can scan this code at any participating retailer to make your payment.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Terms and Consent -->
+        <div class="mt-8">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Terms and Consent</h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="terms_accepted" id="id_terms_accepted" x-model="termsAccepted" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="id_terms_accepted" class="font-medium text-gray-700">I accept the terms and conditions *</label>
+                        <p class="text-gray-500">By checking this box, you agree to our <a href="#" class="text-blue-600 hover:underline">Terms and Conditions</a> and <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>.</p>
+                        {% if form.terms_accepted.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.terms_accepted.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="marketing_consent" id="id_marketing_consent" x-model="marketingConsent" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="id_marketing_consent" class="font-medium text-gray-700">Marketing Consent</label>
+                        <p class="text-gray-500">I consent to receive marketing communications about products, services, and promotions.</p>
+                        {% if form.marketing_consent.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.marketing_consent.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="popia_consent" id="id_popia_consent" x-model="popiaConsent" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="id_popia_consent" class="font-medium text-gray-700">POPIA Consent *</label>
+                        <p class="text-gray-500">I consent to the processing of my personal information in accordance with the Protection of Personal Information Act (POPIA).</p>
+                        {% if form.popia_consent.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.popia_consent.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block form_buttons %}
+<button type="submit" form="application-form" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+        x-data
+        x-bind:disabled="!isFormValid()">
+    Next <i class="fas fa-arrow-right ml-2"></i>
+</button>
+{% endblock %}
+
+{% block step_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save with step number
+        if (window.autoSave) {
+            window.autoSave.setStepNumber(5);
+        }
+    });
+</script>
+{% endblock %}

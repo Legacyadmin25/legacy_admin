@@ -106,9 +106,42 @@ class Payment(models.Model):
             models.Index(fields=['member']),
             models.Index(fields=['date']),
         ]
+    
+    # Audit fields for tracking status changes
+    _original_status = None
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Store original status for change detection
+        self._original_status = self.status
 
     def __str__(self):
         return f"Payment #{self.id} - {self.member} (${self.amount})"
+    
+    def save(self, *args, **kwargs):
+        """Save payment and log status changes to audit trail"""
+        super().save(*args, **kwargs)
+        
+        # Log status changes for audit trail
+        if self._original_status and self._original_status != self.status:
+            from audit.operations import audit_payment_processing
+            from audit.middleware import get_request_context
+            request = get_request_context()
+            user = request.user if request and hasattr(request, 'user') else self.updated_by
+            
+            audit_payment_processing(
+                self,
+                action='status_change',
+                amount=self.amount,
+                status=self.status,
+                user=user,
+                details={
+                    'method': self.get_payment_method_display(),
+                    'reference': self.reference_number,
+                    'old_status': self._original_status
+                }
+            )
+            self._original_status = self.status
 
 class PaymentReceipt(models.Model):
     RECEIPT_STATUS = [

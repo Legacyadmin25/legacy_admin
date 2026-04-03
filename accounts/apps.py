@@ -45,4 +45,4 @@ class AccountsConfig(AppConfig):
         post_migrate.connect(create_initial_roles, sender=self)
         
         # Import models here to ensure they're registered
-        from .models import User, Profile, Role, UserRole  # noqa: F401
+        from .models import User  # noqa: F401

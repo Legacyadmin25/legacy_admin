@@ -49,11 +49,8 @@ def has_permission(user, permission_code):
     if user.is_superuser:
         return True
         
-    # Check if user has the permission through their profile
-    if hasattr(user, 'profile'):
-        return user.profile.has_permission(permission_code)
-        
-    return False
+    # Check if user has the permission through their groups
+    return user.has_permission(permission_code)
 
 @register.simple_tag(takes_context=True)
 def if_has_permission(context, permission_code, true_text='', false_text=''):
@@ -112,15 +109,8 @@ def role_badge(user):
     if not user or not user.is_authenticated:
         return {'role_name': 'Guest', 'role_class': 'secondary'}
         
-    # Get the primary role
-    if hasattr(user, 'profile'):
-        role_name = user.profile.primary_role or 'User'
-    elif user.is_superuser:
-        role_name = 'Superuser'
-    elif user.is_staff:
-        role_name = 'Staff'
-    else:
-        role_name = 'User'
+    # Get the primary role from User model
+    role_name = user.primary_role or 'User'
     
     # Map roles to CSS classes
     role_classes = {

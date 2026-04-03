@@ -9,10 +9,10 @@ from members.forms import (
     PersonalDetailsForm, PolicyDetailsForm, DependentForm, BeneficiaryForm,
     PaymentDetailsForm, BankDetailsForm, BeneficiaryFormSet, DocumentUploadForm
 )
-from members.models import Member, Policy, Scheme, Plan, Branch, Dependent, Beneficiary
-from schemes.models import PlanTier, Benefit
+from members.models import Member, Policy, Branch, Dependent, Beneficiary
+from schemes.models import Scheme, Plan, PlanTier, Benefit
 from accounts.models import User
-from utils.luhn import luhn_check, validate_id_number
+from members.utils import luhn_check, validate_sa_id as validate_id_number
 
 pytestmark = pytest.mark.django_db
 

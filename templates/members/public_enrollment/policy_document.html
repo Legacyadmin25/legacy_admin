@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        .container {
+            width: 100%;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #1e3a8a;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .company-name {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .document-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+            color: #1e3a8a;
+        }
+        .section {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .section-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 5px;
+        }
+        .row {
+            display: table;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .col {
+            display: table-cell;
+            padding-right: 20px;
+        }
+        .col-label {
+            font-weight: bold;
+            width: 35%;
+            color: #666;
+        }
+        .col-value {
+            width: 65%;
+            color: #333;
+        }
+        .terms {
+            font-size: 10pt;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+        .reference-box {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #0ea5e9;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .reference-number {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #0369a1;
+        }
+        table {
+            width: 100%;
+            margin-top: 10px;
+        }
+        table tr td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        table tr:first-child td {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            border-bottom: 2px solid #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-name">{{ company_name }}</div>
+            <div style="color: #666; font-size: 10pt; margin-top: 5px;">
+                Insurance Solutions | Life & Wellness Coverage
+            </div>
+        </div>
+
+        <!-- Reference Box -->
+        <div class="reference-box">
+            <div>Policy Application Reference:</div>
+            <div class="reference-number">{{ application.id }}</div>
+        </div>
+
+        <!-- Title -->
+        <div class="document-title">POLICY APPLICATION DOCUMENT</div>
+        <div style="font-size: 10pt; color: #666; margin-bottom: 20px;">
+            Generated: {{ generated_date|date:"d F Y, H:i" }}
+        </div>
+
+        <!-- Applicant Information -->
+        <div class="section">
+            <div class="section-title">Personal Information</div>
+            <div class="row">
+                <div class="col col-label">Full Name:</div>
+                <div class="col col-value">{{ application.title }} {{ application.first_name }} {{ application.last_name }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Email:</div>
+                <div class="col col-value">{{ application.email }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Phone:</div>
+                <div class="col col-value">{{ application.phone_number }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Date of Birth:</div>
+                <div class="col col-value">{{ application.date_of_birth|date:"d F Y" }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Gender:</div>
+                <div class="col col-value">{{ application.get_gender_display }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Marital Status:</div>
+                <div class="col col-value">{{ application.get_marital_status_display }}</div>
+            </div>
+        </div>
+
+        <!-- Address Information -->
+        <div class="section">
+            <div class="section-title">Address Details</div>
+            <div class="row">
+                <div class="col col-label">Street Address:</div>
+                <div class="col col-value">{{ application.physical_address_line_1 }}</div>
+            </div>
+            {% if application.physical_address_line_2 %}
+            <div class="row">
+                <div class="col col-label">Suburb/Area:</div>
+                <div class="col col-value">{{ application.physical_address_line_2 }}</div>
+            </div>
+            {% endif %}
+            <div class="row">
+                <div class="col col-label">City/Town:</div>
+                <div class="col col-value">{{ application.physical_address_city }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Postal Code:</div>
+                <div class="col col-value">{{ application.physical_address_postal_code }}</div>
+            </div>
+        </div>
+
+        <!-- Plan Details -->
+        <div class="section">
+            <div class="section-title">Plan Details</div>
+            <div class="row">
+                <div class="col col-label">Plan Name:</div>
+                <div class="col col-value">{{ application.plan.name }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Monthly Premium:</div>
+                <div class="col col-value">R{{ application.plan.premium }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Main Cover Amount:</div>
+                <div class="col col-value">R{{ application.plan.main_cover }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Payment Method:</div>
+                <div class="col col-value">{{ application.get_payment_method_display }}</div>
+            </div>
+        </div>
+
+        <!-- Payment Information (if debit order) -->
+        {% if application.payment_method == 'DEBIT_ORDER' %}
+        <div class="section">
+            <div class="section-title">Debit Order Details</div>
+            <div class="row">
+                <div class="col col-label">Bank:</div>
+                <div class="col col-value">{{ application.bank.name }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Account Holder:</div>
+                <div class="col col-value">{{ application.account_holder_name }}</div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Debit Day:</div>
+                <div class="col col-value">{{ application.debit_instruction_day }} of each month</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Application Status -->
+        <div class="section">
+            <div class="section-title">Application Status</div>
+            <div class="row">
+                <div class="col col-label">Status:</div>
+                <div class="col col-value" style="font-weight: bold; color: #059669;">
+                    {% if application.status == 'submitted' %}SUBMITTED
+                    {% elif application.status == 'approved' %}APPROVED
+                    {% elif application.status == 'rejected' %}REJECTED
+                    {% else %}{{ application.get_status_display }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col col-label">Submitted:</div>
+                <div class="col col-value">{{ application.submitted_at|date:"d F Y, H:i" }}</div>
+            </div>
+            {% if policy %}
+            <div class="row">
+                <div class="col col-label">Policy Number:</div>
+                <div class="col col-value">{{ policy.policy_number }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- POPIA Consent -->
+        <div class="section">
+            <div class="section-title">POPIA Consent</div>
+            <div style="font-size: 10pt; line-height: 1.6;">
+                {% if application.popia_consent %}
+                ✓ Applicant has consented to the processing of personal information in accordance with 
+                the Protection of Personal Information Act (POPIA), 2013.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Terms & Conditions -->
+        <div class="terms">
+            <div style="font-weight: bold; margin-bottom: 10px;">Terms & Conditions</div>
+            <ul style="margin-left: 20px; font-size: 9pt;">
+                <li>This policy document serves as your application record.</li>
+                <li>Premium is payable on the debit day of each month (if debit order selected).</li>
+                <li>Coverage starts on the date of approval by the insurance company.</li>
+                <li>Please keep this document for your records and reference.</li>
+                <li>For claims or inquiries, contact our support team with this reference number.</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>This is a system-generated document. No signature is required.</p>
+            <p>Reference: APP-{{ application.id }} | Generated: {{ generated_date|date:"Y-m-d H:i:s" }}</p>
+            <p style="margin-top: 10px; color: #999; font-size: 8pt;">
+                © {{ generated_date|date:"Y" }} {{ company_name }}. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

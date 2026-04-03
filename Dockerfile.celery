@@ -1,0 +1,33 @@
+# Dockerfile for Celery workers
+
+FROM python:3.10-slim
+
+# Create a non-root user
+RUN useradd -m legacyuser
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    wkhtmltopdf \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Set proper permissions
+RUN chown -R legacyuser:legacyuser /app
+USER legacyuser
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=legacyadmin.settings_prod
+
+# Command to run Celery worker
+CMD ["celery", "-A", "legacyadmin", "worker", "--loglevel=info"]

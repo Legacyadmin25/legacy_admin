@@ -12,19 +12,31 @@
         <table class="min-w-full">
             <thead class="bg-gray-100">
                 <tr>
-                    <th class="px-6 py-3 text-left">ID</th>
+                    <th class="px-6 py-3 text-left">Scheme #</th>
                     <th class="px-6 py-3 text-left">Name</th>
+                    <th class="px-6 py-3 text-left">Status</th>
+                    <th class="px-6 py-3 text-left">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for scheme in schemes %}
-                <tr class="border-t">
-                    <td class="px-6 py-4">{{ scheme.id }}</td>
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-6 py-4 font-mono">
+                        {{ scheme.prefix|default_if_none:"-" }}
+                    </td>
                     <td class="px-6 py-4">{{ scheme.name }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full {% if scheme.active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ scheme.active|yesno:"Active,Inactive" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="{% url 'settings:scheme_edit' scheme.id %}" class="text-blue-600 hover:text-blue-800">Edit</a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="2" class="px-6 py-4 text-center">No schemes found</td>
+                    <td colspan="4" class="px-6 py-4 text-center">No schemes found</td>
                 </tr>
                 {% endfor %}
             </tbody>

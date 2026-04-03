@@ -8,50 +8,124 @@
 <div class="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
   <h1 class="text-3xl font-bold mb-6 text-indigo-700">Branch Setup</h1>
   <div class="bg-gray-50 p-6 rounded-lg mb-8 border border-gray-200">
-    <h2 class="text-xl font-semibold mb-4">Create a New Branch</h2>
+    <h2 class="text-xl font-semibold mb-4">{% if form.instance.pk %}Edit{% else %}Create a New{% endif %} Branch</h2>
     <form method="post" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {# Custom layout for bank and account_no #}
-{% for field in form %}
-  {% if field.name == 'bank' %}
-    <div class="md:col-span-1">
-      <label for="{{ field.id_for_label }}" class="block font-medium mb-1">{{ field.label }}</label>
-      {{ field|add_class:"w-full px-3 py-2 border rounded" }}
-      {% if field.help_text %}
-        <p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>
-      {% endif %}
-      {% if field.errors %}
-        <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
-      {% endif %}
-    </div>
-    <div class="md:col-span-1">
-      <label for="{{ form.account_no.id_for_label }}" class="block font-medium mb-1">{{ form.account_no.label }}</label>
-      {{ form.account_no|add_class:"w-full px-3 py-2 border rounded" }}
-      {% if form.account_no.help_text %}
-        <p class="text-gray-500 text-xs mt-1">{{ form.account_no.help_text }}</p>
-      {% endif %}
-      {% if form.account_no.errors %}
-        <p class="text-red-600 text-xs mt-1">{{ form.account_no.errors.0 }}</p>
-      {% endif %}
-    </div>
-  {% elif field.name == 'account_no' %}
-    {# skip, already rendered #}
-  {% else %}
-    <div>
-      <label for="{{ field.id_for_label }}" class="block font-medium mb-1">{{ field.label }}</label>
-      {{ field|add_class:"w-full px-3 py-2 border rounded" }}
-      {% if field.help_text %}
-        <p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>
-      {% endif %}
-      {% if field.errors %}
-        <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
-      {% endif %}
-    </div>
-  {% endif %}
-{% endfor %}
+        <!-- Name Field -->
+        <div class="md:col-span-1">
+          <label for="{{ form.name.id_for_label }}" class="block font-medium mb-1">{{ form.name.label }}</label>
+          {{ form.name|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.name.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.name.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Bank Selection and Branch Code -->
+        <div class="md:col-span-1">
+          <label for="bankSelect" class="block font-medium mb-1">Bank</label>
+          <select id="bankSelect" name="bank" class="w-full px-3 py-2 border rounded {% if form.bank.errors %}border-red-500{% endif %}" onchange="updateBranchCode()" required>
+            <option value="">-- Select Bank --</option>
+            {% for bank in banks %}
+            <option value="{{ bank.id }}" data-branch-code="{{ bank.branch_code }}" {% if form.bank.value == bank.id|stringformat:'s' %}selected{% endif %}>
+              {{ bank.name }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.bank.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.bank.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Branch Code -->
+        <div class="md:col-span-1">
+          <label for="{{ form.code.id_for_label }}" class="block font-medium mb-1">{{ form.code.label }}</label>
+          {{ form.code|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.code.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.code.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Account Number -->
+        <div class="md:col-span-1">
+          <label for="{{ form.account_no.id_for_label }}" class="block font-medium mb-1">{{ form.account_no.label }}</label>
+          {{ form.account_no|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.account_no.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.account_no.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Phone and Cell -->
+        <div class="md:col-span-1">
+          <label for="{{ form.phone.id_for_label }}" class="block font-medium mb-1">{{ form.phone.label }}</label>
+          {{ form.phone|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.phone.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.phone.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="md:col-span-1">
+          <label for="{{ form.cell.id_for_label }}" class="block font-medium mb-1">{{ form.cell.label }}</label>
+          {{ form.cell|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.cell.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.cell.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Address Fields -->
+        <div class="md:col-span-2">
+          <label for="{{ form.physical_address.id_for_label }}" class="block font-medium mb-1">{{ form.physical_address.label }}</label>
+          {{ form.physical_address|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.physical_address.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.physical_address.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="md:col-span-1">
+          <label for="{{ form.town.id_for_label }}" class="block font-medium mb-1">{{ form.town.label }}</label>
+          {{ form.town|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.town.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.town.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="md:col-span-1">
+          <label for="{{ form.province.id_for_label }}" class="block font-medium mb-1">{{ form.province.label }}</label>
+          {{ form.province|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.province.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.province.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="md:col-span-1">
+          <label for="{{ form.region.id_for_label }}" class="block font-medium mb-1">{{ form.region.label }}</label>
+          {{ form.region|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.region.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.region.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="md:col-span-1">
+          <label for="{{ form.postal_code.id_for_label }}" class="block font-medium mb-1">{{ form.postal_code.label }}</label>
+          {{ form.postal_code|add_class:"w-full px-3 py-2 border rounded" }}
+          {% if form.postal_code.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ form.postal_code.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Bank Field (Hidden) -->
+        <div class="hidden">
+          {{ form.bank }}
+        </div>
       </div>
-      <button type="submit" class="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">Save Branch</button>
+      <div class="flex gap-4">
+        <button type="submit" class="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">
+          {% if form.instance.pk %}Update{% else %}Create{% endif %} Branch
+        </button>
+        <a href="{% url 'branches:branch_list' %}" class="mt-4 px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded inline-flex items-center">
+          Cancel
+        </a>
+      </div>
     </form>
   </div>
 
@@ -99,4 +173,48 @@
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateBranchCode() {
+    const bankSelect = document.getElementById('bankSelect');
+    const branchCode = document.getElementById('{{ form.code.id_for_label }}');
+    const bankIdField = document.getElementById('bank_id_field');
+    
+    if (bankSelect && branchCode) {
+        const selectedOption = bankSelect.options[bankSelect.selectedIndex];
+        if (selectedOption.dataset.branchCode) {
+            branchCode.value = selectedOption.dataset.branchCode;
+        }
+        if (bankIdField) {
+            bankIdField.value = selectedOption.value;
+        }
+    }
+}
+
+// Initialize the form when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const bankSelect = document.getElementById('bankSelect');
+    const branchCode = document.getElementById('{{ form.code.id_for_label }}');
+    
+    // If we have a branch code but no bank is selected, try to find a matching bank
+    if (bankSelect && branchCode && branchCode.value && !bankSelect.value) {
+        for (let i = 0; i < bankSelect.options.length; i++) {
+            if (bankSelect.options[i].dataset.branchCode === branchCode.value) {
+                bankSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // Set up the change event for the bank select
+    if (bankSelect) {
+        bankSelect.addEventListener('change', updateBranchCode);
+    }
+    
+    // Update the branch code when the page loads
+    updateBranchCode();
+});
+</script>
 {% endblock %}

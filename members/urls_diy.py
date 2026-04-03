@@ -1,6 +1,13 @@
 from django.urls import path
 from . import views_diy_v2 as views
 from . import views_diy_api
+from .views_diy_resume import DIYResumeApplicationView, DIYSaveForLaterView
+from .views_diy_premium import CalculatePremiumView
+from .views_diy_status import CheckApplicationStatusView
+from .views_diy_documents import UploadDocumentView, DeleteDocumentView
+from .views_diy_pdf import GeneratePDFView
+from .views_diy_certificate import DownloadCertificateView, VerifyCertificateView
+from .views_diy_chat import DIYChatView
 
 app_name = 'members'
 
@@ -22,12 +29,12 @@ urlpatterns = [
     path('diy/step9/confirmation/<uuid:application_id>/', views.DIYConfirmationView.as_view(), name='diy_confirmation'),
     
     # Resume Application
-    path('diy/resume/<str:token>/', views.DIYResumeApplicationView.as_view(), name='diy_resume'),
-    path('diy/save-for-later/', views.DIYSaveForLaterView.as_view(), name='diy_save_for_later'),
+    path('diy/resume/<str:token>/', DIYResumeApplicationView.as_view(), name='diy_resume'),
+    path('diy/save-for-later/', DIYSaveForLaterView.as_view(), name='diy_save_for_later'),
     
     # API endpoints
-    path('api/diy/calculate-premium/', views.CalculatePremiumView.as_view(), name='diy_calculate_premium'),
-    path('api/diy/check-status/', views.CheckApplicationStatusView.as_view(), name='diy_check_status'),
+    path('api/diy/calculate-premium/', CalculatePremiumView.as_view(), name='diy_calculate_premium'),
+    path('api/diy/check-status/', CheckApplicationStatusView.as_view(), name='diy_check_status'),
     
     # New API endpoints using function-based views
     path('api/diy/process-id-document/', views_diy_api.process_id_document, name='diy_process_id_document'),
@@ -37,14 +44,14 @@ urlpatterns = [
     path('api/diy/ask-ai-about-plan/', views_diy_api.ask_ai_about_plan, name='diy_ask_ai_about_plan'),
     
     # Document management
-    path('api/diy/upload-document/', views.UploadDocumentView.as_view(), name='diy_upload_document'),
-    path('api/diy/delete-document/', views.DeleteDocumentView.as_view(), name='diy_delete_document'),
+    path('api/diy/upload-document/', UploadDocumentView.as_view(), name='diy_upload_document'),
+    path('api/diy/delete-document/', DeleteDocumentView.as_view(), name='diy_delete_document'),
     
     # PDF generation
-    path('api/diy/generate-pdf/', views.GeneratePDFView.as_view(), name='diy_generate_pdf'),
-    path('diy/download-certificate/<uuid:application_id>/', views.DownloadCertificateView.as_view(), name='diy_download_certificate'),
-    path('diy/verify-certificate/<uuid:application_id>/', views.VerifyCertificateView.as_view(), name='diy_verify_certificate'),
+    path('api/diy/generate-pdf/', GeneratePDFView.as_view(), name='diy_generate_pdf'),
+    path('diy/download-certificate/<uuid:application_id>/', DownloadCertificateView.as_view(), name='diy_download_certificate'),
+    path('diy/verify-certificate/<uuid:application_id>/', VerifyCertificateView.as_view(), name='diy_verify_certificate'),
     
     # AI Chat
-    path('diy/chat/<uuid:application_id>/', views.DIYChatView.as_view(), name='diy_chat'),
+    path('diy/chat/<uuid:application_id>/', DIYChatView.as_view(), name='diy_chat'),
 ]

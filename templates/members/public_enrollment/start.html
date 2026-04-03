@@ -1,0 +1,44 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Start Policy Application{% endblock %}
+{% block header_title %}Welcome!{% endblock %}
+{% block header_subtitle %}Start Your Policy Application{% endblock %}
+{% block current_step %}1{% endblock %}
+{% block progress_percent %}0%{% endblock %}
+{% block progress_label %}Getting Started{% endblock %}
+
+{% block form_content %}
+    <div class="alert alert-info">
+        <strong>Welcome!</strong> You're about to apply for a policy. This process will take approximately 10-15 minutes.
+    </div>
+
+    <div class="form-section">
+        <h4>Let's Get Started</h4>
+        
+        <div class="info-box">
+            <strong>What you'll need:</strong>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+                <li>Your ID number or passport</li>
+                <li>Your residential address</li>
+                <li>Contact information</li>
+                <li>Bank details (for payment)</li>
+            </ul>
+        </div>
+
+        <p style="font-size: 14px; color: #666; line-height: 1.6;">
+            This application will guide you through selecting a plan and providing the necessary information to complete your policy setup. 
+            Once submitted, our team will review your application and send you confirmation details.
+        </p>
+
+        <div class="alert alert-warning" style="margin-top: 15px;">
+            <small>
+                <strong>Privacy Notice:</strong> Your information is secure and will be handled according to our privacy policy. 
+                We comply with all South African data protection regulations.
+            </small>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="submit" class="btn btn-primary">Begin Application</button>
+{% endblock %}

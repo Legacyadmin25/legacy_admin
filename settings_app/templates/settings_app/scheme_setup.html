@@ -115,13 +115,22 @@
             {{ form.terms.errors }}
           </div>
           <div>
-            <label for="id_bank_name" class="block font-semibold mb-1">Bank name</label>
-            {% render_field form.bank_name class="w-full px-4 py-2 border rounded focus:ring" %}
-            {{ form.bank_name.errors }}
+            <label for="id_bank" class="block font-semibold mb-1">Bank</label>
+            <select name="bank" id="id_bank" class="w-full px-4 py-2 border rounded focus:ring bank-select" onchange="updateBranchCode()">
+                <option value="">Select Bank</option>
+                {% for bank in form.bank.field.queryset %}
+                    <option value="{{ bank.id }}" 
+                            {% if form.bank.value == bank.id %}selected{% endif %}
+                            data-branch-code="{{ bank.branch_code|default:'' }}">
+                        {{ bank.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            {{ form.bank.errors }}
           </div>
           <div>
             <label for="id_branch_code" class="block font-semibold mb-1">Branch code</label>
-            {% render_field form.branch_code class="w-full px-4 py-2 border rounded focus:ring" %}
+            {% render_field form.branch_code class="w-full px-4 py-2 border rounded focus:ring bg-gray-100" readonly="readonly" %}
             {{ form.branch_code.errors }}
           </div>
           <div>
@@ -173,8 +182,12 @@
         {% for scheme in schemes %}
           <tr>
             <td class="px-4 py-2">{{ scheme.name }}</td>
-            <td class="px-4 py-2">{{ scheme.scheme_number }}</td>
-            <td class="px-4 py-2">{{ scheme.is_active|yesno:"Yes,No" }}</td>
+            <td class="px-4 py-2">{{ scheme.prefix|default:scheme.id }}</td>
+            <td class="px-4 py-2">
+              <span class="px-2 py-1 text-xs font-semibold rounded-full {% if scheme.active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {{ scheme.active|yesno:"Active,Inactive" }}
+              </span>
+            </td>
             <td class="px-4 py-2 space-x-2">
               <a href="{% url 'settings:scheme_edit' scheme.pk %}" class="text-blue-600 hover:underline">Edit</a>
               <a href="{% url 'settings:scheme_delete' scheme.pk %}" class="text-red-600 hover:underline">Delete</a>
@@ -190,17 +203,55 @@
 </div>
 <script>
   document.addEventListener('DOMContentLoaded', function(){
+    // Logo preview functionality
     const inp = document.getElementById('logo-input');
-    if (!inp) return;
-    inp.addEventListener('change', function(e){
-      if (e.target.files && e.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const img = document.getElementById('logo-preview');
-          img.src = evt.target.result;
-          img.classList.remove('hidden');
-        };
-        reader.readAsDataURL(e.target.files[0]);
+    if (inp) {
+      inp.onchange = function(e) {
+        if (e.target.files && e.target.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            const preview = document.getElementById('logo-preview');
+            if (preview) {
+              preview.src = evt.target.result;
+            }
+          };
+          reader.readAsDataURL(e.target.files[0]);
+        }
+      };
+    }
+    
+    // Initialize bank and branch code functionality
+    const bankSelect = document.getElementById('id_bank');
+    const branchCodeInput = document.getElementById('id_branch_code');
+    
+    // Function to update branch code based on selected bank
+    window.updateBranchCode = function() {
+      if (!bankSelect || !branchCodeInput) return;
+      
+      const selectedOption = bankSelect.options[bankSelect.selectedIndex];
+      if (selectedOption && selectedOption.dataset && selectedOption.dataset.branchCode) {
+        branchCodeInput.value = selectedOption.dataset.branchCode;
+      } else if (selectedOption && selectedOption.getAttribute('data-branch-code')) {
+        // Fallback for older browsers
+        branchCodeInput.value = selectedOption.getAttribute('data-branch-code');
+      } else {
+        branchCodeInput.value = '';
+      }
+    };
+    
+    // Set up event listeners
+    if (bankSelect) {
+      // Set initial branch code if bank is already selected
+      if (bankSelect.value) {
+        // Use a small timeout to ensure the DOM is fully loaded
+        setTimeout(updateBranchCode, 100);
+      }
+    }
+    
+    // Also update when the page is fully loaded
+    window.addEventListener('load', function() {
+      if (bankSelect && bankSelect.value) {
+        updateBranchCode();
       }
     });
   });

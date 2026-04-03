@@ -4,7 +4,8 @@ from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission, Group
 from django.contrib.contenttypes.models import ContentType
-from members.models import Policy, Member, Dependent, Beneficiary, Scheme, Plan, Branch
+from members.models import Policy, Member, Dependent, Beneficiary, Branch
+from schemes.models import Scheme, Plan
 from datetime import date, timedelta
 from django.utils import timezone
 

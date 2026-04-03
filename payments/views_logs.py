@@ -8,11 +8,14 @@ from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 from django.http import HttpResponse
 from django.core.paginator import Paginator
 
 from .models import PaymentImport
+from config.permissions import filter_by_user_scope
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +37,8 @@ def import_log_list(request):
     date_to = request.GET.get('date_to', '')
     user_id = request.GET.get('user_id', '')
     
-    # Start with all imports
-    imports = PaymentImport.objects.all().order_by('-created_at')
+    # Start with all imports with multi-tenancy filtering
+    imports = filter_by_user_scope(PaymentImport.objects.all(), request.user, PaymentImport).order_by('-imported_at')
     
     # Apply filters
     if import_type:
@@ -45,13 +48,13 @@ def import_log_list(request):
     if date_from:
         try:
             date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
-            imports = imports.filter(created_at__date__gte=date_from)
+            imports = imports.filter(imported_at__date__gte=date_from)
         except ValueError:
             pass
     if date_to:
         try:
             date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-            imports = imports.filter(created_at__date__lte=date_to)
+            imports = imports.filter(imported_at__date__lte=date_to)
         except ValueError:
             pass
     if user_id:
@@ -68,7 +71,7 @@ def import_log_list(request):
     context = {
         'page_obj': page_obj,
         'import_types': dict(PaymentImport.IMPORT_TYPES),
-        'statuses': dict(PaymentImport.STATUS_CHOICES),
+        'statuses': dict(PaymentImport.IMPORT_STATUS),
         'users': users,
         'filters': {
             'import_type': import_type,

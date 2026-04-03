@@ -1,0 +1,239 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Consent & Terms - Policy Application{% endblock %}
+{% block header_title %}Final Step: Consent & Confirmation{% endblock %}
+{% block header_subtitle %}Review and agree to continue{% endblock %}
+{% block current_step %}6{% endblock %}
+{% block progress_percent %}100%{% endblock %}
+{% block progress_label %}Review & Confirm{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .consent-item {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+        }
+
+        .consent-header {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .consent-checkbox {
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .consent-text {
+            flex: 1;
+        }
+
+        .consent-text strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .consent-text p {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .summary-section {
+            background: rgba(52, 152, 219, 0.05);
+            border: 1px solid rgba(52, 152, 219, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.1);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: #666;
+        }
+
+        .summary-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+{% endblock %}
+
+{% block form_content %}
+    <!-- Application Summary -->
+    <div class="form-section">
+        <h4>Your Application Summary</h4>
+
+        <div class="summary-section">
+            <div class="summary-row">
+                <span class="summary-label">Full Name:</span>
+                <span class="summary-value">{{ applicant_name }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Email:</span>
+                <span class="summary-value">{{ applicant_email }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Phone:</span>
+                <span class="summary-value">{{ applicant_phone }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Selected Plan:</span>
+                <span class="summary-value">{{ selected_plan }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Payment Method:</span>
+                <span class="summary-value">{{ payment_method }}</span>
+            </div>
+        </div>
+
+        <a href="/apply/step1/" style="font-size: 12px; color: var(--secondary-color); text-decoration: none;">
+            ✎ Edit Information
+        </a>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- POPIA Consent -->
+    <div class="form-section">
+        <h4>Consents & Agreements</h4>
+
+        <!-- Terms & Conditions -->
+        <div class="consent-item">
+            <div class="consent-header">
+                <div class="consent-checkbox">
+                    <input class="form-check-input" type="checkbox" id="id_tc_consent" 
+                        name="tc_consent" required>
+                </div>
+                <div class="consent-text">
+                    <strong>Terms & Conditions</strong>
+                    <p>
+                        I have read and agree to the terms and conditions of the policy.
+                        <a href="#" target="_blank" style="color: var(--secondary-color); text-decoration: none;">
+                            View Terms
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Policy -->
+        <div class="consent-item">
+            <div class="consent-header">
+                <div class="consent-checkbox">
+                    <input class="form-check-input" type="checkbox" id="id_privacy_consent" 
+                        name="privacy_consent" required>
+                </div>
+                <div class="consent-text">
+                    <strong>Privacy Policy</strong>
+                    <p>
+                        I consent to the processing of my personal data as outlined in our privacy policy.
+                        <a href="#" target="_blank" style="color: var(--secondary-color); text-decoration: none;">
+                            View Privacy Policy
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- POPIA Consent -->
+        <div class="consent-item">
+            <div class="consent-header">
+                <div class="consent-checkbox">
+                    <input class="form-check-input" type="checkbox" id="id_popia_consent" 
+                        name="popia_consent" required>
+                </div>
+                <div class="consent-text">
+                    <strong>POPIA Compliance</strong>
+                    <p>
+                        I acknowledge that my personal data will be processed in compliance with the 
+                        Protection of Personal Information Act (POPIA) of South Africa and I have 
+                        been informed of my rights and responsibilities.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marketing Opt-In (Optional) -->
+        <div class="consent-item">
+            <div class="consent-header">
+                <div class="consent-checkbox">
+                    <input class="form-check-input" type="checkbox" id="id_marketing_consent" 
+                        name="marketing_consent">
+                </div>
+                <div class="consent-text">
+                    <strong>Marketing Communications (Optional)</strong>
+                    <p>
+                        I would like to receive updates about new products, special offers, and services via SMS and email.
+                        You can opt-out anytime.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}<br>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="alert alert-info">
+        <strong>What's Next:</strong> 
+        After you confirm, we'll send a one-time verification code (OTP) to your phone number for security purposes. 
+        Please have your phone ready.
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-success">Confirm & Send OTP</button>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure all required consents are checked
+            const form = document.querySelector('.enrollment-form');
+            
+            form.addEventListener('submit', function(e) {
+                const tcConsent = document.getElementById('id_tc_consent');
+                const privacyConsent = document.getElementById('id_privacy_consent');
+                const popiaConsent = document.getElementById('id_popia_consent');
+
+                if (!tcConsent.checked || !privacyConsent.checked || !popiaConsent.checked) {
+                    e.preventDefault();
+                    alert('Please agree to all required consents to continue.');
+                    return false;
+                }
+            });
+
+            // Track consent changes
+            document.querySelectorAll('input[type="checkbox"][name$="_consent"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    console.log(`Consent ${this.id} changed to: ${this.checked}`);
+                });
+            });
+        });
+    </script>
+{% endblock %}

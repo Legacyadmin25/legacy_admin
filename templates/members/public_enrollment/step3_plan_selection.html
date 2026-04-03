@@ -1,0 +1,98 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Select Plan - Policy Application{% endblock %}
+{% block header_title %}Choose Your Plan{% endblock %}
+{% block header_subtitle %}Select the coverage that suits you{% endblock %}
+{% block current_step %}3{% endblock %}
+{% block progress_percent %}50%{% endblock %}
+{% block progress_label %}Plan Selection{% endblock %}
+
+{% block form_content %}
+    <div class="form-section">
+        <h4>Available Plans</h4>
+
+        {% if form.plan.field.queryset.count > 0 %}
+            <div style="display: grid; gap: 15px;">
+                {% for choice in form.plan %}
+                    <label class="form-radio" style="width: 100%; padding: 15px; cursor: pointer;">
+                        {{ choice.tag }}
+                        <label style="flex: 1; margin: 0;">
+                            {{ choice.choice_label }}
+                        </label>
+                    </label>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <strong>No plans available</strong> for your age group. Please contact support.
+            </div>
+        {% endif %}
+
+        {% if form.plan.errors %}
+            <div class="invalid-feedback d-block">{{ form.plan.errors.0 }}</div>
+        {% endif %}
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="form-section">
+        <h4>Payment Method</h4>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+            How would you like to pay your monthly premium?
+        </p>
+
+        <div class="form-radio-group">
+            <label class="form-radio">
+                <input type="radio" name="payment_method" value="DEBIT_ORDER" required 
+                    {% if form.payment_method.value == 'DEBIT_ORDER' %}checked{% endif %}>
+                <label>
+                    <strong>Monthly Debit Order</strong>
+                    <div style="font-size: 12px; color: #666;">Automatic payment from your bank account</div>
+                </label>
+            </label>
+            <label class="form-radio">
+                <input type="radio" name="payment_method" value="MANUAL" 
+                    {% if form.payment_method.value == 'MANUAL' %}checked{% endif %}>
+                <label>
+                    <strong>Manual Payment</strong>
+                    <div style="font-size: 12px; color: #666;">Pay online, via EFT, or check</div>
+                </label>
+            </label>
+        </div>
+
+        {% if form.payment_method.errors %}
+            <div class="invalid-feedback d-block">{{ form.payment_method.errors.0 }}</div>
+        {% endif %}
+
+        <div class="alert alert-info">
+            <small>
+                <strong>Debit Order has benefits:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+                    <li>Never miss a payment</li>
+                    <li>Premium remains fixed</li>
+                    <li>Instant confirmation</li>
+                </ul>
+            </small>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>Next Step:</strong> We'll collect your bank details on the next page if you choose debit order.
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-primary">Continue</button>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // Handle payment method selection
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                console.log('Payment method selected:', this.value);
+            });
+        });
+    </script>
+{% endblock %}

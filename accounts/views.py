@@ -85,7 +85,6 @@ from .mixins import (
 )
 from django.contrib.messages.views import SuccessMessageMixin
 from django import forms
-from .models import Profile
 from django.contrib.auth.models import Group
 
 
@@ -101,7 +100,7 @@ class RoleBasedLoginView(LoginView):
     Custom login view that redirects users to their appropriate dashboard
     based on their role after successful authentication.
     """
-    template_name = 'accounts/auth/login.html'
+    template_name = 'accounts/login.html'
     redirect_authenticated_user = True
     
     def get_success_url(self):
@@ -120,14 +119,14 @@ class RoleBasedLoginView(LoginView):
             
         # Check if user is a superuser
         if user.is_superuser:
-            return reverse('accounts:superuser_dashboard')
+            return reverse('accounts:dashboard:superuser_dashboard')
             
         # Get user's primary group based on role hierarchy
         primary_group = get_primary_group(user)
         
         # Redirect based on primary group
         if primary_group == 'Internal Admin':
-            return reverse('accounts:superuser_dashboard')
+            return reverse('accounts:dashboard:superuser_dashboard')
         elif primary_group == 'Administrator':
             return reverse('accounts:admin_dashboard')
         elif primary_group == 'BranchOwner':
@@ -153,9 +152,9 @@ class RoleBasedLoginView(LoginView):
         # Call the parent's form_valid method to log the user in
         response = super().form_valid(form)
         
-        # Update the user's last login time
+        # Get the user and update the last_activity field
         user = form.get_user()
-        user.profile.update_last_login()
+        user.save()  # This will update the last_activity field due to auto_now=True
         
         # Add a welcome message
         messages.success(
@@ -190,12 +189,8 @@ class UserRegistrationView(FormView):
         # Create the user
         user = form.save(commit=False)
         user.is_active = False  # User needs to verify email first
+        user.phone = form.cleaned_data.get('phone', '')
         user.save()
-        
-        # Create the user's profile
-        profile = user.profile
-        profile.phone = form.cleaned_data.get('phone', '')
-        profile.save()
         
         # Send verification email
         # Add success message
@@ -276,7 +271,7 @@ class ProfileUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     View for updating a user's profile.
     """
-    model = Profile
+    model = User
     form_class = ProfileUpdateForm
     template_name = 'accounts/profile/update.html'
     success_url = reverse_lazy('accounts:profile')
@@ -284,9 +279,9 @@ class ProfileUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     
     def get_object(self, queryset=None):
         """
-        Return the profile to be updated.
+        Return the user to be updated (profile fields are now on User).
         """
-        return self.request.user.profile
+        return self.request.user
     
     def get_form_kwargs(self):
         """
@@ -401,7 +396,7 @@ class UserListView(LoginRequiredMixin, StaffuserRequiredMixin, ListView):
         """
         Return the list of users, excluding superusers unless the current user is a superuser.
         """
-        queryset = User.objects.all().select_related('profile')
+        queryset = User.objects.all()
         
         # If not a superuser, exclude superusers from the list
         if not self.request.user.is_superuser:
@@ -758,7 +753,7 @@ class UserAutocompleteView(LoginRequiredMixin, JSONResponseMixin, View):
             'text': f'{user.get_full_name()} ({user.username})',
             'username': user.username,
             'email': user.email,
-            'avatar_url': user.profile.get_avatar_url() if hasattr(user, 'profile') else ''
+            'avatar_url': user.get_avatar_url()
         } for user in users]
         
         return self.render_json_response({'results': results})

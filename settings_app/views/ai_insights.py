@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 
-from settings_app.models import Branch, UserRole
+from settings_app.models import Branch
 from schemes.models import Scheme
 from settings_app.utils.openai_helper import get_branch_insights, get_scheme_insights
 

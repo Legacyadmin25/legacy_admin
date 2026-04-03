@@ -1,0 +1,301 @@
+{% extends 'members/public_enrollment/base_enrollment.html' %}
+
+{% block title %}Verify OTP - Policy Application{% endblock %}
+{% block header_title %}Verify Your Phone Number{% endblock %}
+{% block header_subtitle %}Enter the code sent to your phone{% endblock %}
+{% block current_step %}6{% endblock %}
+{% block progress_percent %}100%{% endblock %}
+{% block progress_label %}OTP Verification{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .otp-message {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #27852e;
+        }
+
+        .otp-code-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .otp-digit {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .otp-digit:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        .otp-digit.error {
+            border-color: var(--danger-color);
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .resend-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .resend-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+
+        .resend-link.disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .countdown {
+            display: inline-block;
+            margin-left: 8px;
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .countdown.hidden {
+            display: none;
+        }
+
+        .attempts-info {
+            background: rgba(241, 196, 15, 0.1);
+            border: 1px solid rgba(241, 196, 15, 0.3);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #d68910;
+        }
+    </style>
+{% endblock %}
+
+{% block form_content %}
+    <div class="otp-message">
+        <strong>✓ SMS Sent Successfully</strong>
+        <br>
+        We've sent a 6-digit verification code to <strong>{{ phone_masked }}</strong>
+    </div>
+
+    <div class="form-section">
+        <h4>Enter Verification Code</h4>
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
+            You have <strong>15 minutes</strong> to enter the code before it expires.
+        </p>
+
+        <!-- OTP Input Fields -->
+        <div class="otp-code-input" id="otp-container">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        </div>
+
+        <!-- Hidden input for full OTP -->
+        <input type="hidden" name="otp_code" id="id_otp_code">
+
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if attempts_remaining %}
+            <div class="attempts-info" id="attempts-info">
+                Attempts remaining: <strong>{{ attempts_remaining }}/3</strong>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Resend Section -->
+    <div class="resend-section">
+        <span style="font-size: 13px; color: #666;">Didn't receive the code?</span>
+        <br>
+        <button type="button" class="resend-link" id="resend-btn" onclick="handleResendOTP()">
+            Resend Code
+        </button>
+        <span class="countdown hidden" id="countdown"></span>
+        {% if resend_count %}
+            <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                Resends remaining: <strong>{{ 3|add:resend_count|stringformat:"d" }}/3</strong>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block footer_buttons %}
+    <button type="submit" class="btn btn-primary" id="submit-btn">Verify & Complete</button>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        const otpInputs = document.querySelectorAll('.otp-digit');
+        const otpCodeInput = document.getElementById('id_otp_code');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Handle OTP input
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                // Allow only numbers
+                this.value = this.value.replace(/[^0-9]/g, '');
+
+                // Move to next field
+                if (this.value && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+
+                // Update hidden input
+                updateOTPCode();
+
+                // Enable submit if all fields filled
+                if (getOTPCode().length === 6) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
+            });
+
+            // Handle backspace
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !this.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+
+            // Handle paste
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const data = e.clipboardData.getData('text');
+                if (/^\d{6}$/.test(data)) {
+                    data.split('').forEach((digit, i) => {
+                        if (i < otpInputs.length) {
+                            otpInputs[i].value = digit;
+                        }
+                    });
+                    updateOTPCode();
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+
+        function getOTPCode() {
+            return Array.from(otpInputs).map(input => input.value).join('');
+        }
+
+        function updateOTPCode() {
+            otpCodeInput.value = getOTPCode();
+        }
+
+        // Handle Resend OTP
+        function handleResendOTP() {
+            const btn = document.getElementById('resend-btn');
+            if (btn.classList.contains('disabled')) return;
+
+            // Make AJAX request to resend OTP
+            fetch('{% url "public_enrollment:otp_resend" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    application_id: '{{ application_id }}'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('New verification code sent to your phone!');
+                    
+                    // Clear inputs
+                    otpInputs.forEach(input => input.value = '');
+                    otpInputs[0].focus();
+                    
+                    // Disable resend button for 60 seconds
+                    disableResendButton();
+                } else {
+                    alert('Error: ' + (data.error || 'Could not resend code'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function disableResendButton() {
+            const btn = document.getElementById('resend-btn');
+            const countdown = document.getElementById('countdown');
+            
+            btn.classList.add('disabled');
+            countdown.classList.remove('hidden');
+            
+            let seconds = 60;
+            countdown.textContent = `(${seconds}s)`;
+            
+            const interval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    btn.classList.remove('disabled');
+                    countdown.classList.add('hidden');
+                } else {
+                    countdown.textContent = `(${seconds}s)`;
+                }
+            }, 1000);
+        }
+
+        // Set initial submit button state
+        submitBtn.disabled = true;
+
+        // Focus first input on load
+        otpInputs[0].focus();
+
+        // Countdown timer for OTP expiry (15 minutes)
+        const expiryTime = {{ expiry_timestamp|default:0 }};
+        if (expiryTime) {
+            setInterval(() => {
+                const now = Math.floor(Date.now() / 1000);
+                const remaining = expiryTime - now;
+                
+                if (remaining <= 0) {
+                    document.querySelector('.otp-message').innerHTML = '<strong style="color: #e74c3c;">✗ Code Expired</strong><br>Please request a new code.';
+                    submitBtn.disabled = true;
+                    otpInputs.forEach(input => input.disabled = true);
+                }
+            }, 1000);
+        }
+    </script>
+{% endblock %}

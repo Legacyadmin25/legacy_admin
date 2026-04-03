@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Field
 from .models import Member, Policy, Dependent, Beneficiary
-from utils.luhn import luhn_check, validate_id_number
+from members.utils import luhn_check, validate_sa_id as validate_id_number
 from datetime import date
 
 
@@ -90,8 +90,8 @@ class PersonalDetailsForm(forms.ModelForm):
                     return cleaned
                     
                 # Extract DOB and gender from ID
-                from utils.luhn import validate_id_number
-                valid, dob, gender = validate_id_number(id_number)
+                from members.utils import validate_sa_id
+                valid, dob, gender = validate_sa_id(id_number)
                 if not valid:
                     self.add_error('id_number', _('Invalid South African ID number.'))
                 else:
@@ -588,11 +588,11 @@ class SpouseInfoForm(forms.ModelForm):
             if not spouse_id:
                 self.add_error('spouse_id_number', 'ID number is required for South African citizens')
             else:
-                # Import the validate_id_number function from utils.luhn
-                from utils.luhn import validate_id_number
+                # Import the validate_sa_id function from members.utils
+                from members.utils import validate_sa_id
                 
                 # Validate ID number format and extract data
-                is_valid, dob_from_id, gender_from_id = validate_id_number(spouse_id)
+                is_valid, dob_from_id, gender_from_id = validate_sa_id(spouse_id)
                 
                 if not is_valid:
                     self.add_error('spouse_id_number', 'Invalid South African ID number')

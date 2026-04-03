@@ -9,8 +9,10 @@ import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib import messages
+from django.views.decorators.http import require_POST, require_http_methods
+from django.shortcuts import redirect
+from django.http import JsonResponse
+import re
 
 from settings_app.models import AISettings, AIUserConsent, AIRequestLog
 from settings_app.utils.ai_privacy import redact_pii, prepare_ai_prompt

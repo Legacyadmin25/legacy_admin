@@ -1,0 +1,276 @@
+{% extends "members/diy/base_application_autosave.html" %}
+{% load static %}
+
+{% block title %}Review & Submit - DIY Application{% endblock %}
+
+{% block step_content %}
+<div>
+    <h2 class="text-xl font-semibold mb-6">Review Your Application</h2>
+    
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    Please review all your information carefully before submitting. Once submitted, your application will be processed and cannot be easily modified.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <form id="application-form" method="post" class="space-y-6" data-step="6">
+        {% csrf_token %}
+        
+        <!-- Personal Details -->
+        <div class="border rounded-lg overflow-hidden mb-6">
+            <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-700">Personal Details</h3>
+                <a href="{% url 'members:diy_application_step' step=1 %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Full Name</span>
+                        <span class="font-medium">{{ all_data.1.title }} {{ all_data.1.first_name }} {{ all_data.1.last_name }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Date of Birth</span>
+                        <span class="font-medium">{{ all_data.1.date_of_birth }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Gender</span>
+                        <span class="font-medium">{{ all_data.1.gender }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">
+                            {% if all_data.1.is_south_african %}ID Number{% else %}Passport Number{% endif %}
+                        </span>
+                        <span class="font-medium">
+                            {% if all_data.1.is_south_african %}{{ all_data.1.id_number }}{% else %}{{ all_data.1.passport_number }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="border rounded-lg overflow-hidden mb-6">
+            <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-700">Contact Information</h3>
+                <a href="{% url 'members:diy_application_step' step=2 %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Phone Number</span>
+                        <span class="font-medium">{{ all_data.2.phone_number }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Email</span>
+                        <span class="font-medium">{{ all_data.2.email }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col col-span-2">
+                        <span class="text-sm text-gray-500">Address</span>
+                        <span class="font-medium">
+                            {{ all_data.2.address_line_1 }}
+                            {% if all_data.2.address_line_2 %}, {{ all_data.2.address_line_2 }}{% endif %}
+                            <br>
+                            {{ all_data.2.city }}, {{ all_data.2.province }}, {{ all_data.2.postal_code }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Beneficiaries -->
+        <div class="border rounded-lg overflow-hidden mb-6">
+            <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-700">Beneficiaries</h3>
+                <a href="{% url 'members:diy_application_step' step=3 %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            
+            <div class="p-4">
+                {% if all_data.3.beneficiaries_data %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for beneficiary in all_data.3.beneficiaries_data %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ beneficiary.full_name }}</div>
+                                    {% if beneficiary.id_number %}
+                                    <div class="text-sm text-gray-500">ID: {{ beneficiary.id_number }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ beneficiary.relationship }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ beneficiary.percentage }}%</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ beneficiary.phone_number }}</div>
+                                    <div class="text-sm text-gray-500">{{ beneficiary.email }}</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No beneficiaries added.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Policy Details -->
+        <div class="border rounded-lg overflow-hidden mb-6">
+            <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-700">Policy Details</h3>
+                <a href="{% url 'members:diy_application_step' step=4 %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Selected Plan</span>
+                        <span class="font-medium">{{ all_data.4.plan_name }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Cover Amount</span>
+                        <span class="font-medium">R{{ all_data.4.cover_amount }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Family Members</span>
+                        <span class="font-medium">
+                            {% if all_data.4.has_spouse %}Spouse, {% endif %}
+                            {% if all_data.4.has_children %}{{ all_data.4.children_count }} Children, {% endif %}
+                            {% if all_data.4.has_extended_family %}{{ all_data.4.extended_family_count }} Extended Family Members{% endif %}
+                            {% if not all_data.4.has_spouse and not all_data.4.has_children and not all_data.4.has_extended_family %}None{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Monthly Premium</span>
+                        <span class="font-medium text-blue-600">R{{ all_data.4.premium_amount }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Options -->
+        <div class="border rounded-lg overflow-hidden mb-6">
+            <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-700">Payment Options</h3>
+                <a href="{% url 'members:diy_application_step' step=5 %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Payment Method</span>
+                        <span class="font-medium">
+                            {% if all_data.5.payment_method == 'debit_order' %}
+                                Debit Order
+                            {% elif all_data.5.payment_method == 'eft' %}
+                                Electronic Funds Transfer (EFT)
+                            {% elif all_data.5.payment_method == 'easypay' %}
+                                Easypay QR Code
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if all_data.5.payment_method == 'debit_order' %}
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Bank Name</span>
+                        <span class="font-medium">{{ all_data.5.bank_name }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Account Number</span>
+                        <span class="font-medium">{{ all_data.5.account_number }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Account Type</span>
+                        <span class="font-medium">{{ all_data.5.account_type }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Account Holder</span>
+                        <span class="font-medium">{{ all_data.5.account_holder_name }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Debit Day</span>
+                        <span class="font-medium">{{ all_data.5.debit_day }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Final Confirmation -->
+        <div class="bg-gray-50 p-6 rounded-lg">
+            <div class="flex items-start mb-4">
+                <div class="flex items-center h-5">
+                    <input type="checkbox" name="confirm_details" id="id_confirm_details" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" required>
+                </div>
+                <div class="ml-3 text-sm">
+                    <label for="id_confirm_details" class="font-medium text-gray-700">I confirm that all the information provided is correct *</label>
+                    <p class="text-gray-500">By checking this box, you confirm that all the information you have provided is accurate and complete.</p>
+                    {% if form.confirm_details.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.confirm_details.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block form_buttons %}
+<button type="submit" form="application-form" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+    Submit Application <i class="fas fa-check ml-2"></i>
+</button>
+{% endblock %}
+
+{% block step_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save with step number
+        if (window.autoSave) {
+            window.autoSave.setStepNumber(6);
+        }
+    });
+</script>
+{% endblock %}

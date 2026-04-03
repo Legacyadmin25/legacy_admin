@@ -1,0 +1,238 @@
+{% load widget_tweaks %}
+
+<!-- Form content to be loaded via HTMX -->
+<script>
+  // Update modal title
+  document.getElementById('modal-title-text').textContent = '{% if form.instance.pk %}Edit Underwriter: {{ form.instance.name }}{% else %}Add New Underwriter{% endif %}';
+  
+  // Focus management
+  document.addEventListener('DOMContentLoaded', function() {
+    // Focus the first input field when the modal opens
+    setTimeout(function() {
+      const firstInput = document.querySelector('#underwriterForm input:not([type="hidden"])');
+      if (firstInput) {
+        firstInput.focus();
+      }
+    }, 100);
+  });
+</script>
+
+<form id="underwriterForm" 
+      hx-post="{% if form.instance.pk %}{% url 'settings:underwriter_edit' form.instance.pk %}{% else %}{% url 'settings:underwriter_add' %}{% endif %}" 
+      hx-encoding="multipart/form-data"
+      hx-target="#underwriter-modal-content"
+      hx-swap="innerHTML"
+      hx-indicator=".htmx-indicator"
+      hx-trigger="submit"
+      hx-on::after-request="
+        if(event.detail.successful) { 
+          MicroModal.close('underwriter-modal'); 
+          document.body.dispatchEvent(new CustomEvent('underwriterSaved')); 
+        } else if(event.detail.xhr.status === 400) {
+          // Handle validation errors from the server
+          try {
+            const response = JSON.parse(event.detail.xhr.responseText);
+            if (response.fieldErrors) {
+              // Dispatch event to update Alpine.js errors
+              document.dispatchEvent(new CustomEvent('validation-errors', {
+                detail: response.fieldErrors
+              }));
+            }
+          } catch(e) {
+            console.error('Error parsing validation response', e);
+          }
+        }"
+      class="space-y-6" 
+      x-data="{ 
+        formErrors: {}, 
+        validateName: function(value) {
+          if (!value || value.trim() === '') {
+            return 'Name is required';
+          } else if (value.length > 100) {
+            return 'Name must be less than 100 characters';
+          }
+          return '';
+        },
+        validateFspNumber: function(value) {
+          if (!value || value.trim() === '') {
+            return 'FSP Number is required';
+          }
+          return '';
+        },
+        validateEmail: function(value) {
+          if (value && !value.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
+            return 'Please enter a valid email address';
+          }
+          return '';
+        }
+      }">
+      
+      <!-- Listen for server validation errors -->
+      <div x-init="
+        document.addEventListener('validation-errors', function(e) {
+          formErrors = e.detail;
+        });
+      "></div>
+      
+  {% csrf_token %}
+  
+  {% if form.non_field_errors %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-exclamation-circle text-red-500"></i>
+        </div>
+        <div class="ml-3">
+          {% for error in form.non_field_errors %}
+            <p class="text-sm text-red-700">{{ error }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- LEFT -->
+    <div class="space-y-6">
+      <div x-data="{ value: '{{ form.name.value|default:"" }}', error: '{{ form.name.errors.0|default:"" }}' }" x-init="$watch('value', () => { error = validateName(value) })">
+        <label for="id_name" class="block font-semibold mb-1">Name*</label>
+        <input type="text" name="name" id="id_name" 
+               class="w-full px-4 py-2 border rounded focus:ring" 
+               :class="{'border-red-500': error || formErrors.name}" 
+               x-model="value" 
+               @input="error = validateName(value)"
+               @blur="error = validateName(value)">
+        <p class="text-sm text-red-600 mt-1" x-show="error || formErrors.name" x-text="error || formErrors.name"></p>
+      </div>
+      
+      <div x-data="{ value: '{{ form.fsp_number.value|default:"" }}', error: '{{ form.fsp_number.errors.0|default:"" }}' }" x-init="$watch('value', () => { error = validateFspNumber(value) })">
+        <label for="id_fsp_number" class="block font-semibold mb-1">FSP Number*</label>
+        <input type="text" name="fsp_number" id="id_fsp_number" 
+               class="w-full px-4 py-2 border rounded focus:ring" 
+               :class="{'border-red-500': error || formErrors.fsp_number}" 
+               x-model="value" 
+               @input="error = validateFspNumber(value)"
+               @blur="error = validateFspNumber(value)">
+        <p class="text-sm text-red-600 mt-1" x-show="error || formErrors.fsp_number" x-text="error || formErrors.fsp_number"></p>
+      </div>
+      
+      <div x-data="{ value: '{{ form.contact_person.value|default:"" }}', error: '{{ form.contact_person.errors.0|default:"" }}' }">
+        <label for="id_contact_person" class="block font-semibold mb-1">Contact Person*</label>
+        <input type="text" name="contact_person" id="id_contact_person" 
+               class="w-full px-4 py-2 border rounded focus:ring" 
+               :class="{'border-red-500': error || formErrors.contact_person}" 
+               x-model="value" 
+               @blur="error = value ? '' : 'Contact Person is required'">
+        <p class="text-sm text-red-600 mt-1" x-show="error || formErrors.contact_person" x-text="error || formErrors.contact_person"></p>
+      </div>
+      
+      <div x-data="{ value: '{{ form.contact_number.value|default:"" }}', error: '{{ form.contact_number.errors.0|default:"" }}' }">
+        <label for="id_contact_number" class="block font-semibold mb-1">Contact Number</label>
+        <input type="text" name="contact_number" id="id_contact_number" 
+               class="w-full px-4 py-2 border rounded focus:ring" 
+               :class="{'border-red-500': error || formErrors.contact_number}" 
+               x-model="value">
+        <p class="text-sm text-red-600 mt-1" x-show="error || formErrors.contact_number" x-text="error || formErrors.contact_number"></p>
+      </div>
+      
+      <div x-data="{ value: '{{ form.email.value|default:"" }}', error: '{{ form.email.errors.0|default:"" }}' }" x-init="$watch('value', () => { error = validateEmail(value) })">
+        <label for="id_email" class="block font-semibold mb-1">Email</label>
+        <input type="email" name="email" id="id_email" 
+               class="w-full px-4 py-2 border rounded focus:ring" 
+               :class="{'border-red-500': error || formErrors.email}" 
+               x-model="value" 
+               @input="error = validateEmail(value)"
+               @blur="error = validateEmail(value)">
+        <p class="text-sm text-red-600 mt-1" x-show="error || formErrors.email" x-text="error || formErrors.email"></p>
+      </div>
+      <div>
+        <label for="id_address1" class="block font-semibold mb-1">Address Line 1</label>
+        {% render_field form.address1 class="w-full px-4 py-2 border rounded focus:ring" %}
+        {% if form.address1.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.address1.errors.0 }}</div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_address2" class="block font-semibold mb-1">Address Line 2</label>
+        {% render_field form.address2 class="w-full px-4 py-2 border rounded focus:ring" %}
+        {% if form.address2.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.address2.errors.0 }}</div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_address3" class="block font-semibold mb-1">Address Line 3</label>
+        {% render_field form.address3 class="w-full px-4 py-2 border rounded focus:ring" %}
+        {% if form.address3.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.address3.errors.0 }}</div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_postal_code" class="block font-semibold mb-1">Postal Code</label>
+        {% render_field form.postal_code class="w-full px-4 py-2 border rounded focus:ring" %}
+        {% if form.postal_code.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.postal_code.errors.0 }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="space-y-6">
+      <div>
+        <label for="id_disclaimer" class="block font-semibold mb-1">Disclaimer</label>
+        {% render_field form.disclaimer class="w-full px-4 py-2 border rounded h-48 focus:ring" %}
+        {% if form.disclaimer.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.disclaimer.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">Logo</label>
+        {% if form.instance.logo %}
+          <img id="logo-preview" src="{{ form.instance.logo.url }}" alt="Current logo" class="h-24 mb-2 rounded border" />
+          <button type="submit" name="remove_logo" value="true" class="inline-block bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mb-2">
+            Remove Logo
+          </button>
+        {% endif %}
+        {% render_field form.logo class="w-full px-4 py-2 border rounded focus:ring" id="logo-input" %}
+        {% if form.logo.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.logo.errors.0 }}</div>
+        {% endif %}
+        <div id="logo-preview-container" class="h-24 mt-2 {% if not form.instance.logo %}hidden{% endif %}">
+          <img id="logo-preview-dynamic" src="{% if form.instance.logo %}{{ form.instance.logo.url }}{% else %}#{% endif %}" alt="Logo Preview" class="h-full rounded border" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-end space-x-2 mt-6">
+    <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" data-micromodal-close>Cancel</button>
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center">
+      <span>Save</span>
+      <span class="spinner ml-2 hidden">
+        <i class="fas fa-spinner fa-spin"></i>
+      </span>
+    </button>
+  </div>
+</form>
+
+<!-- Logo preview script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const logoInput = document.getElementById('logo-input');
+    const previewContainer = document.getElementById('logo-preview-container');
+    const preview = document.getElementById('logo-preview-dynamic');
+
+    if (logoInput && preview && previewContainer) {
+      logoInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            preview.src = evt.target.result;
+            previewContainer.classList.remove('hidden');
+          };
+          reader.readAsDataURL(e.target.files[0]);
+        }
+      });
+    }
+  });
+</script>

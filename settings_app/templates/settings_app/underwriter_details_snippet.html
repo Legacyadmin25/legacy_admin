@@ -1,0 +1,26 @@
+{% if underwriter %}
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
+  <div class="flex items-start">
+    {% if underwriter.logo %}
+    <div class="mr-4 flex-shrink-0">
+      <img src="{{ underwriter.logo.url }}" alt="{{ underwriter.name }} logo" class="h-12 w-auto object-contain">
+    </div>
+    {% endif %}
+    <div class="flex-grow">
+      <h3 class="text-lg font-semibold text-blue-800">{{ underwriter.name }}</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 mt-2 text-sm">
+        <div>
+          <p><span class="font-medium">FSP Number:</span> {{ underwriter.fsp_number }}</p>
+          <p><span class="font-medium">Contact:</span> {{ underwriter.contact_person }}</p>
+        </div>
+        <div>
+          <p><span class="font-medium">Email:</span> {{ underwriter.email }}</p>
+          <p><span class="font-medium">Phone:</span> {{ underwriter.phone }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="hidden"></div>
+{% endif %}

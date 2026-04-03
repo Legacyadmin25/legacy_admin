@@ -16,7 +16,6 @@ from django.shortcuts import get_object_or_404
 from members.models import Policy
 from settings_app.models import AIRequestLog, AIUserConsent
 from settings_app.utils.ai_privacy import redact_pii, prepare_ai_prompt
-from settings_app.models import UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +31,10 @@ def generate_policy_summary(request, policy_id):
     
     Access is restricted to internal_admin and scheme_manager roles only.
     """
-    # Check user role - only internal_admin and scheme_manager can use this feature
-    try:
-        user_role = request.user.role.role_type
-        if user_role not in ['internal_admin', 'scheme_manager']:
-            return JsonResponse({
-                'success': False,
-                'error': 'You do not have permission to use the AI Summary feature.'
-            })
-    except (UserRole.DoesNotExist, AttributeError):
+    # Check user role - only users in Internal Admin and Scheme Manager groups can use this feature
+    user_groups = set(request.user.groups.values_list('name', flat=True))
+    
+    if 'Internal Admin' not in user_groups and 'Scheme Manager' not in user_groups:
         return JsonResponse({
             'success': False,
             'error': 'You do not have permission to use the AI Summary feature.'

@@ -4,6 +4,9 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from .models import Branch, Agent, Underwriter, PlanMemberTier, UserProfile, UserGroup, PagePermission, SchemeDocument
 from schemes.models import Plan
+from import_export import resources, fields
+from import_export.admin import ImportExportModelAdmin
+from import_export.widgets import ForeignKeyWidget, BooleanWidget
 
 
 @admin.register(Branch)
@@ -59,10 +62,26 @@ class AgentAdmin(admin.ModelAdmin):
 
 
 
+class UnderwriterResource(resources.ModelResource):
+    name = fields.Field(column_name='name', attribute='name')
+    fsp_number = fields.Field(column_name='fsp_number', attribute='fsp_number')
+    is_active = fields.Field(column_name='is_active', attribute='is_active', widget=BooleanWidget())
+    email = fields.Field(column_name='email', attribute='email')
+    contact_number = fields.Field(column_name='contact_number', attribute='contact_number')
+    contact_person = fields.Field(column_name='contact_person', attribute='contact_person')
+    
+    class Meta:
+        model = Underwriter
+        import_id_fields = ('name',)
+        fields = ('id', 'name', 'fsp_number', 'is_active', 'email', 'contact_number', 'contact_person')
+        export_order = fields
+
 @admin.register(Underwriter)
-class UnderwriterAdmin(admin.ModelAdmin):
-    list_display = ('name', 'fsp_number', 'contact_person', 'contact_number')
-    search_fields = ('name', 'fsp_number', 'contact_person')
+class UnderwriterAdmin(ImportExportModelAdmin):
+    resource_class = UnderwriterResource
+    list_display = ('name', 'fsp_number', 'contact_person', 'contact_number', 'is_active')
+    search_fields = ('name', 'fsp_number', 'contact_person', 'email')
+    list_filter = ('is_active',)
     ordering = ('name',)
 
 

@@ -1,8 +1,11 @@
 from django.urls import path, include
+from .views import ai_privacy_test
 from . import views
 from .views.agents import bulk_agent_actions, regenerate_diy_token
+from .views.test_scheme import TestSchemeCreateView, TestSchemeUpdateView
 from .views.underwriters import (
-    UnderwriterListView, UnderwriterCreateView, UnderwriterUpdateView, UnderwriterDeleteView
+    UnderwriterListView, UnderwriterCreateView, UnderwriterUpdateView, UnderwriterDeleteView,
+    underwriter_template_download, get_underwriter_details, underwriter_search
 )
 from .views.plans import (
     PlanListView, PlanCreateView, PlanUpdateView, plan_deactivate, export_plans_csv, clone_plan,
@@ -21,6 +24,8 @@ from members.communications.views import sms_sending
 app_name = 'settings'
 
 urlpatterns = [
+    path('ai-privacy/test-redact/', ai_privacy_test.test_redact_pii, name='test_redact_pii'),
+    path('ai-privacy/update/', ai_privacy_test.update_ai_consent, name='update_ai_consent'),
     # General settings
     path('', views.general_settings, name='general_settings'),
     
@@ -39,8 +44,8 @@ urlpatterns = [
 
     # Scheme Setup
     path('scheme-setup/', views.SchemeListView.as_view(), name='scheme'),
-    path('scheme-setup/create/', views.SchemeCreateView.as_view(), name='scheme_create'),
-    path('scheme-setup/<int:pk>/edit/', views.SchemeUpdateView.as_view(), name='scheme_edit'),
+    path('scheme-setup/create/', TestSchemeCreateView.as_view(), name='scheme_create'),
+    path('scheme-setup/<int:pk>/edit/', TestSchemeUpdateView.as_view(), name='scheme_edit'),
     path('scheme-setup/<int:pk>/delete/', views.SchemeDeleteView.as_view(), name='scheme_delete'),
     path('scheme-setup/documents/upload/', views.upload_scheme_document, name='scheme_doc_upload'),
     path('scheme-setup/documents/<int:pk>/delete/', views.delete_scheme_document, name='scheme_doc_delete'),
@@ -93,9 +98,11 @@ urlpatterns = [
     path('underwriters/add/', UnderwriterCreateView.as_view(), name='underwriter_add'),
     path('underwriters/edit/<int:pk>/', UnderwriterUpdateView.as_view(), name='underwriter_edit'),
     path('underwriters/delete/<int:pk>/', UnderwriterDeleteView.as_view(), name='underwriter_delete'),
+    path('underwriters/template/', underwriter_template_download, name='underwriter_template'),
+    path('underwriters/search/', underwriter_search, name='underwriter_search'),
+    path('underwriter/api/details/', get_underwriter_details, name='get_underwriter_details'),
 
-    # Permissions & Communications
-    path('manage-rights/', views.manage_rights_view, name='manage_rights'),
+    # Communications
     path('sms-sending/', sms_sending, name='sms_sending'),
     
     # Test OpenAI Configuration

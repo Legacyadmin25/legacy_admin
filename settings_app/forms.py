@@ -32,15 +32,65 @@ class SchemeForm(forms.ModelForm):
     class Meta:
         model = SchemeModel
         fields = [
-    'branch', 'name', 'prefix', 'registration_no', 'fsp_number', 'email',
-    'phone', 'logo', 'terms', 'debit_order_no', 'bank_name', 'branch_code',
-    'account_no', 'account_type'
-]
-
+            'branch', 'name', 'prefix', 'registration_no', 'fsp_number', 'email',
+            'phone', 'logo', 'terms', 'debit_order_no', 'bank', 'branch_code',
+            'account_no', 'account_type', 'address', 'city', 'province', 'postal_code',
+            'allow_auto_policy_number', 'active'
+        ]
+        widgets = {
+            'address': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'city': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'province': forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'postal_code': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'allow_auto_policy_number': forms.CheckboxInput(attrs={'class': 'form-checkbox h-5 w-5 text-blue-600'}),
+            'active': forms.CheckboxInput(attrs={'class': 'form-checkbox h-5 w-5 text-blue-600'}),
+            'bank': forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'branch_code': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded', 'readonly': True}),
+            'account_no': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+            'account_type': forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded'}),
+        }
+        
     def __init__(self, *args, **kwargs):
+        from branches.models import Bank
+        from schemes.constants import PROVINCE_CHOICES
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.required = False
+        
+        # Set active field initial value
+        if self.instance and self.instance.pk:
+            self.fields['active'].initial = self.instance.active
+        else:
+            self.fields['active'].initial = True
+        
+        # Make fields not required by default, but keep required fields
+        required_fields = ['branch', 'name', 'registration_no', 'fsp_number', 'email', 'phone']
+        for field_name, field in self.fields.items():
+            field.required = field_name in required_fields
+            
+        # Set up province choices
+        self.fields['province'] = forms.ChoiceField(
+            choices=PROVINCE_CHOICES,
+            required=False,
+            widget=forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded'})
+        )
+        
+        # Set up bank choices with branch code data
+        self.fields['bank'].queryset = Bank.objects.all().order_by('name')
+        
+        # Set initial branch code if bank is selected
+        if self.instance and self.instance.bank:
+            self.fields['branch_code'].initial = self.instance.bank.branch_code
+        
+        # Update bank widget to include data-branch-code attribute
+        self.fields['bank'].widget.attrs.update({
+            'onchange': 'updateBranchCode(this)',
+            'class': 'w-full px-4 py-2 border rounded bank-select',
+        })
+        
+        # Add data attributes for branch codes
+        self.fields['bank'].widget.choices = [
+            (bank.id, bank.name, {'data-branch-code': bank.branch_code or ''}) 
+            for bank in self.fields['bank'].queryset
+        ]
 
 
 class SchemeDocumentForm(forms.ModelForm):
@@ -74,11 +124,47 @@ class AgentForm(forms.ModelForm):
         widgets = {
             'commission_percentage': forms.TextInput(attrs={'placeholder': '%'}),
             'commission_rand_value': forms.TextInput(),
+            'address1': forms.TextInput(attrs={'class': 'form-control'}),
+            'address2': forms.TextInput(attrs={'class': 'form-control'}),
+            'address3': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Set required fields
+        required_fields = ['full_name', 'surname', 'contact_number', 'email', 'scheme']
+        for field_name in required_fields:
+            if field_name in self.fields:
+                self.fields[field_name].required = True
+        
+        # Add help text for required fields
+        for field_name, field in self.fields.items():
+            if field.required:
+                field.help_text = f"{field.help_text or ''} Required field.".strip()
+        
+        # Make address fields required
+        self.fields['address1'].required = True
+        self.fields['address2'].required = True
+        self.fields['address3'].required = True
+        self.fields['code'].required = True
+        
+        # Make ID number and passport number optional
+        self.fields['id_number'].required = False
+        self.fields['passport_number'].required = False
+        
+        # Add help text for ID number
+        self.fields['id_number'].help_text = "Optional. If provided, must be a valid South African ID number."
+        
+        # Set default values for address fields if they're empty
+        if not self.instance.pk:
+            self.fields['address1'].initial = ''
+            self.fields['address2'].initial = ''
+            self.fields['address3'].initial = ''
+            self.fields['code'].initial = ''
 
         if user and not user.is_superuser:
             if user.groups.filter(name='Branch Owner').exists():
@@ -87,22 +173,29 @@ class AgentForm(forms.ModelForm):
                 self.fields['scheme'].queryset = Scheme.objects.filter(admin_user=user)
 
     def clean_id_number(self):
-        idn = self.cleaned_data.get('id_number')
+        idn = self.cleaned_data.get('id_number', '').strip()
         if idn and (len(idn) != 13 or not idn.isdigit() or not luhn_checksum(idn)):
             raise ValidationError("Invalid South African ID number.")
-        return idn
+        return idn if idn else None
 
     def clean_contact_number(self):
-        contact = self.cleaned_data.get('contact_number')
+        contact = self.cleaned_data.get('contact_number', '').strip()
         if contact and (not contact.isdigit() or len(contact) != 10):
             raise ValidationError("Contact number must be exactly 10 digits.")
         return contact
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = self.cleaned_data.get('email', '').strip()
         if email:
             validate_email(email)
         return email
+        
+    def save(self, commit=True):
+        agent = super().save(commit=False)
+        if commit:
+            agent.save()
+            self.save_m2m()
+        return agent
 
 
 # ─── Underwriter Form ───────────────────────────────────────────────────
@@ -296,6 +389,23 @@ class GroupSelectForm(forms.Form):
 
 # ─── Plan Form ──────────────────────────────────────────────────────────
 class PlanForm(forms.ModelForm):
+    # Override the underwriter field to use a ModelChoiceField
+    underwriter = forms.ModelChoiceField(
+        queryset=Underwriter.objects.all().order_by('name'),
+        label="Underwriter",
+        empty_label="— Select Underwriter —",
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border rounded focus:ring',
+            'hx-get': '/settings/underwriter/api/details',
+            'hx-trigger': 'change',
+            'hx-target': '#underwriter-details',
+            'x-on:change': 'underwriterChanged($event.target.value)'
+        })
+    )
+    # Set default values for waiting period and lapse period
+    waiting_period = forms.IntegerField(initial=6, help_text="Months before cover starts")
+    lapse_period = forms.IntegerField(initial=2, help_text="Months before lapse")
+    
     class Meta:
         model = SchemePlan
         fields = [
@@ -328,7 +438,6 @@ class PlanForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class':'w-full px-4 py-2 border rounded', 'rows': 2}),
             'policy_type': forms.Select(attrs={'class':'w-full border rounded'}),
             'premium': forms.NumberInput(attrs={'class':'w-full px-4 py-2 border rounded'}),
-            'underwriter': forms.TextInput(attrs={'class':'w-full px-4 py-2 border rounded'}),
             'scheme': forms.Select(attrs={'class':'w-full border rounded'}),
             'min_age': forms.NumberInput(attrs={'class':'w-full px-4 py-2 border rounded'}),
             'max_age': forms.NumberInput(attrs={'class':'w-full px-4 py-2 border rounded'}),
@@ -429,8 +538,9 @@ class BasePlanMemberTierFormSet(BaseInlineFormSet):
                     for existing_range in user_type_age_ranges[key]:
                         existing_from, existing_to = existing_range
                         
-                        # Check if ranges overlap
-                        if (age_from <= existing_to and age_to >= existing_from):
+                        # Check if ranges overlap (modified to allow adjacent ranges)
+                        # Allow ranges that only touch at endpoints (e.g., 0-1 and 1-5)
+                        if (age_from < existing_to and age_to > existing_from):
                             form.add_error('age_from', 'Age ranges for the same user type cannot overlap')
                             break
                     
@@ -448,7 +558,7 @@ PlanMemberTierFormSet = inlineformset_factory(
     PlanMemberTier,
     form=PlanMemberTierForm,
     formset=BasePlanMemberTierFormSet,
-    extra=5,  # Reduced from 15 to 5 for better usability
+    extra=8,  # Fixed number of empty forms for consistent UI
     can_delete=True  # Allow deletion of tiers
 )
 

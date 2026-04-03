@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+  <h1 class="text-2xl font-bold mb-6 border-b pb-2">Admin Dashboard</h1>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Plans Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Plans</h2>
+        <i class="fas fa-file-alt text-blue-500 text-2xl"></i>
+      </div>
+      <div class="flex justify-between">
+        <div>
+          <p class="text-3xl font-bold text-gray-800">{{ total_plans }}</p>
+          <p class="text-sm text-gray-500">Total Plans</p>
+        </div>
+        <div class="flex flex-col items-end">
+          <div class="flex items-center">
+            <span class="text-green-500 mr-1"><i class="fas fa-check-circle"></i></span>
+            <span class="text-sm">{{ active_plans }} Active</span>
+          </div>
+          <div class="flex items-center">
+            <span class="text-red-500 mr-1"><i class="fas fa-times-circle"></i></span>
+            <span class="text-sm">{{ inactive_plans }} Inactive</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Policies Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Policies</h2>
+        <i class="fas fa-file-signature text-green-500 text-2xl"></i>
+      </div>
+      <div class="flex justify-between">
+        <div>
+          <p class="text-3xl font-bold text-gray-800">{{ total_policies }}</p>
+          <p class="text-sm text-gray-500">Total Policies</p>
+        </div>
+        <div class="flex flex-col items-end">
+          <div class="flex items-center">
+            <span class="text-green-500 mr-1"><i class="fas fa-check-circle"></i></span>
+            <span class="text-sm">{{ active_policies }} Active</span>
+          </div>
+          <div class="flex items-center">
+            <span class="text-red-500 mr-1"><i class="fas fa-times-circle"></i></span>
+            <span class="text-sm">{{ inactive_policies }} Inactive</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Members</h2>
+        <i class="fas fa-users text-purple-500 text-2xl"></i>
+      </div>
+      <p class="text-3xl font-bold text-gray-800">{{ total_members }}</p>
+      <p class="text-sm text-gray-500">Total Members</p>
+    </div>
+
+    <!-- Agents & Underwriters -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Agents & Underwriters</h2>
+        <i class="fas fa-user-tie text-indigo-500 text-2xl"></i>
+      </div>
+      <div class="flex justify-between">
+        <div>
+          <p class="text-2xl font-bold text-gray-800">{{ total_agents }}</p>
+          <p class="text-sm text-gray-500">Agents</p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-gray-800">{{ total_underwriters }}</p>
+          <p class="text-sm text-gray-500">Underwriters</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Monthly Premium Chart -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">Monthly Premiums</h2>
+      <canvas id="premiumChart" height="300"></canvas>
+    </div>
+
+    <!-- Monthly Policies Chart -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">Monthly Policy Count</h2>
+      <canvas id="policyChart" height="300"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold text-gray-700">Recent Activity</h2>
+      <a href="#" class="text-blue-500 hover:text-blue-700 text-sm">View All</a>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for activity in recent_activities %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  {% if activity.type == 'policy' %}
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Policy</span>
+                  {% elif activity.type == 'plan' %}
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">Plan</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {% if activity.type == 'policy' %}
+                    Policy #{{ activity.item.id }}
+                  {% elif activity.type == 'plan' %}
+                    {{ activity.item.name }}
+                  {% endif %}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ activity.action|title }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-500">{{ activity.date|date:"M d, Y" }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                {% if activity.type == 'policy' %}
+                  <a href="#" class="text-indigo-600 hover:text-indigo-900">View Policy</a>
+                {% elif activity.type == 'plan' %}
+                  <a href="#" class="text-indigo-600 hover:text-indigo-900">View Plan</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No recent activity found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Safely parse the data from Django template variables
+    const monthsJson = '{{ months_json|default:"[]" }}'.replace(/&quot;/g, '"');
+    const premiumDataJson = '{{ premium_data_json|default:"[]" }}'.replace(/&quot;/g, '"');
+    const policyCountsJson = '{{ policy_counts_json|default:"[]" }}'.replace(/&quot;/g, '"');
+    
+    let months = [];
+    let premiumData = [];
+    let policyCountData = [];
+    
+    try {
+      months = JSON.parse(monthsJson);
+      premiumData = JSON.parse(premiumDataJson);
+      policyCountData = JSON.parse(policyCountsJson);
+    } catch (e) {
+      console.error('Error parsing chart data:', e);
+    }
+    
+    // Initialize Premium Chart
+    if (document.getElementById('premiumChart')) {
+      const premiumCtx = document.getElementById('premiumChart').getContext('2d');
+      new Chart(premiumCtx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Premium (R)',
+            data: premiumData,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return 'R' + value.toLocaleString();
+                }
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += 'R' + context.raw.toLocaleString();
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Initialize Policy Count Chart
+    if (document.getElementById('policyChart')) {
+      const policyCtx = document.getElementById('policyChart').getContext('2d');
+      new Chart(policyCtx, {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Policies Created',
+            data: policyCountData,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

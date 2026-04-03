@@ -1,0 +1,332 @@
+{% extends "members/diy/base_application_autosave.html" %}
+{% load static %}
+
+{% block title %}Policy Details - DIY Application{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .plan-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .plan-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .plan-card.selected {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+    
+    .coverage-slider {
+        width: 100%;
+    }
+    
+    .family-member-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block step_content %}
+<div x-data="{
+    selectedPlan: '{{ form.plan.value|default:'' }}',
+    coverAmount: {{ form.cover_amount.value|default:10000 }},
+    premiumAmount: {{ form.premium_amount.value|default:0 }},
+    hasSpouse: {% if form.has_spouse.value %}true{% else %}false{% endif %},
+    hasChildren: {% if form.has_children.value %}true{% else %}false{% endif %},
+    childrenCount: {{ form.children_count.value|default:0 }},
+    hasExtendedFamily: {% if form.has_extended_family.value %}true{% else %}false{% endif %},
+    extendedFamilyCount: {{ form.extended_family_count.value|default:0 }},
+    
+    plans: [],
+    coverOptions: [5000, 10000, 15000, 20000, 25000, 30000, 50000],
+    
+    async init() {
+        // Load plans from the server
+        try {
+            const response = await fetch('{% url "members:diy_get_plans" %}?scheme_id={{ scheme.id }}');
+            const data = await response.json();
+            this.plans = data.plans;
+            
+            // If a plan is already selected, calculate premium
+            if (this.selectedPlan) {
+                this.calculatePremium();
+            }
+        } catch (error) {
+            console.error('Error loading plans:', error);
+        }
+    },
+    
+    selectPlan(planId) {
+        this.selectedPlan = planId;
+        this.calculatePremium();
+    },
+    
+    async calculatePremium() {
+        if (!this.selectedPlan) return;
+        
+        const payload = {
+            plan_id: this.selectedPlan,
+            cover_amount: this.coverAmount,
+            has_spouse: this.hasSpouse,
+            has_children: this.hasChildren,
+            children_count: this.childrenCount,
+            has_extended_family: this.hasExtendedFamily,
+            extended_family_count: this.extendedFamilyCount
+        };
+        
+        try {
+            const response = await fetch('{% url "members:diy_calculate_premium" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            this.premiumAmount = data.premium;
+            
+            // Update hidden fields
+            document.getElementById('id_premium_amount').value = this.premiumAmount;
+            
+            // Trigger auto-save
+            if (window.autoSave) {
+                window.autoSave.saveFormData();
+            }
+        } catch (error) {
+            console.error('Error calculating premium:', error);
+        }
+    },
+    
+    updateFamilyMembers() {
+        // Ensure children count is valid
+        if (this.hasChildren) {
+            if (this.childrenCount < 1) this.childrenCount = 1;
+        } else {
+            this.childrenCount = 0;
+        }
+        
+        // Ensure extended family count is valid
+        if (this.hasExtendedFamily) {
+            if (this.extendedFamilyCount < 1) this.extendedFamilyCount = 1;
+        } else {
+            this.extendedFamilyCount = 0;
+        }
+        
+        this.calculatePremium();
+    }
+}">
+    <h2 class="text-xl font-semibold mb-6">Policy Details</h2>
+    
+    <form id="application-form" method="post" class="space-y-6" data-step="4">
+        {% csrf_token %}
+        
+        <!-- Hidden fields for form submission -->
+        <input type="hidden" name="plan" id="id_plan" x-model="selectedPlan">
+        <input type="hidden" name="cover_amount" id="id_cover_amount" x-model="coverAmount">
+        <input type="hidden" name="premium_amount" id="id_premium_amount" x-model="premiumAmount">
+        <input type="hidden" name="has_spouse" id="id_has_spouse" x-model="hasSpouse">
+        <input type="hidden" name="has_children" id="id_has_children" x-model="hasChildren">
+        <input type="hidden" name="children_count" id="id_children_count" x-model="childrenCount">
+        <input type="hidden" name="has_extended_family" id="id_has_extended_family" x-model="hasExtendedFamily">
+        <input type="hidden" name="extended_family_count" id="id_extended_family_count" x-model="extendedFamilyCount">
+        
+        <!-- Plan Selection -->
+        <div class="mb-8">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Select a Plan</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="plan in plans" :key="plan.id">
+                    <div class="plan-card p-4 cursor-pointer" 
+                         :class="{'selected': selectedPlan == plan.id}"
+                         @click="selectPlan(plan.id)">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="text-lg font-medium text-gray-900" x-text="plan.name"></h4>
+                            <div x-show="selectedPlan == plan.id" class="bg-blue-500 text-white rounded-full p-1">
+                                <i class="fas fa-check text-xs"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3" x-text="plan.description"></p>
+                        <div class="text-blue-600 font-semibold">
+                            Starting from <span x-text="'R' + plan.base_premium"></span>/month
+                        </div>
+                        <div class="mt-3">
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <template x-for="(feature, index) in plan.features" :key="index">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                                        <span x-text="feature"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Fallback if no plans are loaded -->
+                <template x-if="plans.length === 0">
+                    <div class="col-span-3 text-center py-8 text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Loading available plans...</p>
+                    </div>
+                </template>
+            </div>
+            
+            <div x-show="!selectedPlan" class="mt-2 text-sm text-red-600">
+                Please select a plan to continue.
+            </div>
+        </div>
+        
+        <!-- Cover Amount Selection -->
+        <div class="mb-8" x-show="selectedPlan">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Select Cover Amount</h3>
+            
+            <div class="mb-4">
+                <label for="cover-amount-slider" class="block text-sm font-medium text-gray-700 mb-2">
+                    Cover Amount: R<span x-text="coverAmount.toLocaleString()"></span>
+                </label>
+                <input type="range" id="cover-amount-slider" class="coverage-slider"
+                       x-model="coverAmount" 
+                       :min="Math.min(...coverOptions)" 
+                       :max="Math.max(...coverOptions)" 
+                       :step="1000"
+                       @input="calculatePremium">
+                
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <template x-for="(option, index) in coverOptions" :key="index">
+                        <span x-text="'R' + option.toLocaleString()"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Family Members -->
+        <div class="mb-8" x-show="selectedPlan">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Family Members</h3>
+            
+            <div class="space-y-4">
+                <!-- Spouse -->
+                <div class="family-member-card">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="has-spouse" x-model="hasSpouse" @change="updateFamilyMembers" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="has-spouse" class="ml-2 block text-sm text-gray-900">
+                                Include Spouse
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Children -->
+                <div class="family-member-card">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="has-children" x-model="hasChildren" @change="updateFamilyMembers" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="has-children" class="ml-2 block text-sm text-gray-900">
+                                Include Children
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div x-show="hasChildren" class="pl-6 mt-2">
+                        <label for="children-count" class="block text-sm font-medium text-gray-700 mb-1">
+                            Number of Children
+                        </label>
+                        <div class="flex items-center">
+                            <button type="button" @click="childrenCount > 1 ? childrenCount-- : null; updateFamilyMembers()" class="bg-gray-200 px-3 py-1 rounded-l">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="children-count" x-model.number="childrenCount" min="1" max="10" 
+                                   class="w-16 text-center border-gray-300" @change="updateFamilyMembers">
+                            <button type="button" @click="childrenCount < 10 ? childrenCount++ : null; updateFamilyMembers()" class="bg-gray-200 px-3 py-1 rounded-r">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Extended Family -->
+                <div class="family-member-card">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="has-extended-family" x-model="hasExtendedFamily" @change="updateFamilyMembers" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="has-extended-family" class="ml-2 block text-sm text-gray-900">
+                                Include Extended Family
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div x-show="hasExtendedFamily" class="pl-6 mt-2">
+                        <label for="extended-family-count" class="block text-sm font-medium text-gray-700 mb-1">
+                            Number of Extended Family Members
+                        </label>
+                        <div class="flex items-center">
+                            <button type="button" @click="extendedFamilyCount > 1 ? extendedFamilyCount-- : null; updateFamilyMembers()" class="bg-gray-200 px-3 py-1 rounded-l">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="extended-family-count" x-model.number="extendedFamilyCount" min="1" max="10" 
+                                   class="w-16 text-center border-gray-300" @change="updateFamilyMembers">
+                            <button type="button" @click="extendedFamilyCount < 10 ? extendedFamilyCount++ : null; updateFamilyMembers()" class="bg-gray-200 px-3 py-1 rounded-r">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Premium Summary -->
+        <div class="bg-gray-50 p-6 rounded-lg" x-show="selectedPlan && premiumAmount > 0">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Premium Summary</h3>
+            
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-600">Cover Amount:</span>
+                <span class="font-medium" x-text="'R' + coverAmount.toLocaleString()"></span>
+            </div>
+            
+            <div class="flex justify-between items-center mb-2" x-show="hasSpouse">
+                <span class="text-gray-600">Spouse:</span>
+                <span class="font-medium">Included</span>
+            </div>
+            
+            <div class="flex justify-between items-center mb-2" x-show="hasChildren && childrenCount > 0">
+                <span class="text-gray-600" x-text="'Children (' + childrenCount + '):' "></span>
+                <span class="font-medium">Included</span>
+            </div>
+            
+            <div class="flex justify-between items-center mb-2" x-show="hasExtendedFamily && extendedFamilyCount > 0">
+                <span class="text-gray-600" x-text="'Extended Family (' + extendedFamilyCount + '):' "></span>
+                <span class="font-medium">Included</span>
+            </div>
+            
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <div class="flex justify-between items-center text-lg font-bold">
+                <span class="text-gray-800">Monthly Premium:</span>
+                <span class="text-blue-600" x-text="'R' + premiumAmount.toLocaleString()"></span>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block step_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-save with step number
+        if (window.autoSave) {
+            window.autoSave.setStepNumber(4);
+        }
+    });
+</script>
+{% endblock %}

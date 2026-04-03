@@ -7,7 +7,26 @@
     {% if edit_mode %}Edit Plan{% else %}Create Plan{% endif %}
   </h1>
 
-  <form method="post" action="" class="space-y-8">
+  <div class="htmx-indicator fixed top-0 left-0 w-full h-1 z-50 overflow-hidden opacity-0 transition-opacity duration-300 ease-in-out">
+    <div class="h-full bg-blue-600 animate-progress-bar"></div>
+  </div>
+
+  <form id="planForm" 
+        hx-post="{{ request.path }}" 
+        hx-encoding="multipart/form-data" 
+        hx-target="#planForm" 
+        hx-swap="outerHTML" 
+        hx-indicator=".htmx-indicator"
+        hx-trigger="submit"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'  
+        class="space-y-8" 
+        x-data="{ 
+          formErrors: {}, 
+          selectedUnderwriter: null,
+          underwriterChanged(value) {
+            this.selectedUnderwriter = value;
+          }
+        }">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -24,17 +43,44 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {% for fname in plan_info_fields %}
           {% with field=form|get_item:fname %}
-            <div>
-              <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
-              {% render_field field class="w-full px-4 py-2 border rounded focus:ring" id=fname %}
+            <div x-data="{ value: '', error: '' }" x-init="value = $el.querySelector('input, select, textarea')?.value || ''">
+              <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}
+                {% if field.help_text %}
+                <span class="ml-1 text-gray-500" data-tippy-content="{{ field.help_text }}">?</span>
+                {% endif %}
+              </label>
+              {% render_field field class="w-full px-4 py-2 border rounded focus:ring" id=fname x-model="value" @blur="error = value ? '' : '{{ field.label }} is required'" :class="{'border-red-500': error}" %}
+              <div class="text-sm text-red-600 mt-1" x-show="error" x-text="error"></div>
               {% if field.errors %}<div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>{% endif %}
-              {% if fname == 'description' %}
-              <div class="mt-2">
-                <button type="button" id="suggest-tiers-btn" 
-                        class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
-                  Suggest Tiers from Description
-                </button>
-                <span id="suggest-loading" class="hidden ml-2 text-sm text-gray-500">Generating suggestions...</span>
+              
+              {% if fname == 'underwriter' %}
+              <!-- Underwriter details container that will be populated via HTMX -->
+              <div id="underwriter-details" class="mt-2">
+                {% if form.instance.underwriter %}
+                <!-- If editing an existing plan, pre-load the underwriter details -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="flex items-start">
+                    {% if form.instance.underwriter.logo %}
+                    <div class="mr-4 flex-shrink-0">
+                      <img src="{{ form.instance.underwriter.logo.url }}" alt="{{ form.instance.underwriter.name }} logo" class="h-12 w-auto object-contain">
+                    </div>
+                    {% endif %}
+                    <div class="flex-grow">
+                      <h3 class="text-lg font-semibold text-blue-800">{{ form.instance.underwriter.name }}</h3>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 mt-2 text-sm">
+                        <div>
+                          <p><span class="font-medium">FSP Number:</span> {{ form.instance.underwriter.fsp_number }}</p>
+                          <p><span class="font-medium">Contact:</span> {{ form.instance.underwriter.contact_person }}</p>
+                        </div>
+                        <div>
+                          <p><span class="font-medium">Email:</span> {{ form.instance.underwriter.email }}</p>
+                          <p><span class="font-medium">Phone:</span> {{ form.instance.underwriter.phone }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
               </div>
               {% endif %}
             </div>
@@ -47,11 +93,21 @@
         {% for fname in policy_fields %}
           {% if fname != 'spouses_allowed' and fname != 'children_allowed' and fname != 'extended_allowed' %}
             {% with field=form|get_item:fname %}
-              <div>
-                <label class="block font-medium mb-1">{{ field.label }}{% if field.field.required %}*{% endif %}</label>
-                {% render_field field class="w-full px-4 py-2 border rounded focus:ring" %}
-                {% if field.errors %}<div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>{% endif %}
-              </div>
+              {% if field %}
+                <div x-data="{ value: '', error: '' }" x-init="value = $el.querySelector('input, select, textarea')?.value || ''">
+                  <label for="id_{{ fname }}" class="block font-medium mb-1">
+                    {{ field.label }}{% if field.field.required %}*{% endif %}
+                    {% if field.help_text %}
+                    <span class="ml-1 text-gray-500" data-tippy-content="{{ field.help_text }}">?</span>
+                    {% endif %}
+                  </label>
+                  {% render_field field class="w-full px-4 py-2 border rounded focus:ring" id=fname x-model="value" @blur="error = value ? '' : '{{ field.label }} is required'" :class="{'border-red-500': error}" %}
+                  <div class="text-sm text-red-600 mt-1" x-show="error" x-text="error"></div>
+                  {% if field.errors %}
+                    <div class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
             {% endwith %}
           {% endif %}
         {% endfor %}
@@ -166,25 +222,44 @@
             <span class="block text-xs text-gray-500">Allowed: <span id="preview-extended-allowed">0</span></span>
           </div>
         </div>
-        <button type="button" id="hide-preview-btn" class="text-sm text-blue-600 hover:text-blue-800">Hide Preview</button>
+        <button type="button" id="hide-preview-btn" class="text-sm text-blue-600 hover:text-blue-800 mt-2">Hide Preview</button>
       </div>
       
       <div class="flex justify-between items-center mb-4">
         <div>
-          <button type="button" id="show-preview-btn" class="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300">
-            Show Plan Preview
-          </button>
+          <h3 class="text-lg font-medium">Member Tiers</h3>
+          <p class="text-sm text-gray-500">Fill in the tiers you need for different member types with their cover amounts and premiums. Leave unused rows blank.</p>
         </div>
         <div>
-          <button type="button" id="add-tier-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-            + Add New Tier
+          <button type="button" id="show-preview-btn" class="mr-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
+            <i class="fas fa-eye"></i> Show Preview
           </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4 space-x-4 items-center">
+        <div class="flex items-center">
+          <label for="bulk-add-count" class="mr-2 text-sm font-medium">Bulk add:</label>
+          <input type="number" id="bulk-add-count" min="1" max="8" value="1" class="w-16 px-2 py-1 border rounded">
+          <button type="button" id="bulk-add-btn" class="ml-2 bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-sm">Add Rows</button>
+        </div>
+        <button type="button" id="add-tier-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Add Tier</button>
+      </div>
+
+      <!-- Form-level errors for tiers -->
+      <div id="tier-errors" class="mt-2 mb-4" x-data="{ rowErrors: {} }" x-show="Object.keys(rowErrors).length > 0">
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          <strong class="font-bold">Please fix the following errors:</strong>
+          <template x-for="(error, rowIndex) in rowErrors" :key="rowIndex">
+            <div class="mt-1" x-text="`Row ${parseInt(rowIndex) + 1}: ${error}`"></div>
+          </template>
         </div>
       </div>
 
       <table id="tier-table" class="w-full table-auto border-collapse">
         <thead class="bg-gray-100 text-sm">
           <tr>
+            <th class="px-2 py-1 w-8"></th> <!-- Drag handle column -->
             <th class="px-2 py-1">#</th>
             <th class="px-2 py-1">User Type</th>
             <th class="px-2 py-1">Allowed</th>
@@ -198,10 +273,29 @@
         </thead>
         <tbody id="tier-body">
           {% for tier_form in formset.forms %}
-            <tr class="tier-row">
+            <tr class="tier-row" x-data="{ isDeleted: false }" :class="{ 'opacity-50 bg-gray-100': isDeleted }">
+              <td class="px-2 py-1 text-center cursor-move drag-handle">
+                <span class="drag-handle cursor-move text-gray-400 hover:text-gray-600">⋮⋮</span>
+              </td>
               <td class="px-2 py-1 text-center">
-                {{ forloop.counter }}
-                <button type="button" class="ml-2 text-red-600 hover:text-red-800 delete-tier" title="Remove this row">✖</button>
+                <div class="flex items-center">
+                  <span class="mr-2">{{ forloop.counter }}</span>
+                  <div x-show="!isDeleted" class="flex items-center">
+                    <label class="flex items-center text-sm">
+                      {{ tier_form.DELETE|add_class:'delete-tier' }}<script>document.currentScript.parentElement.querySelector('input[type=checkbox]').classList.add('tier-delete-checkbox');</script>
+                      <span class="ml-1">Delete</span>
+                    </label>
+                  </div>
+                  <div x-show="isDeleted" class="text-xs">
+                    <span class="text-red-500">Deleted</span>
+                    <button type="button" class="ml-2 text-blue-600 hover:underline undo-delete" @click="isDeleted = false; $el.closest('tr').querySelector('.tier-delete-checkbox').checked = false;">Undo</button>
+                  </div>
+                </div>
+                <!-- Hidden ID field for the formset -->
+                <div style="display: none;">
+                  {{ tier_form.id }}
+                  {{ tier_form.ORDER }}
+                </div>
               </td>
               <!-- User Type Field (first field) -->
               {% with field=tier_form.visible_fields.0 %}
@@ -273,7 +367,10 @@
       </table>
 
       <template id="empty-tier-template">
-        <tr class="tier-row">
+        <tr class="tier-row" x-data="{deleted: false}">
+          <td class="px-2 py-1 text-center cursor-move drag-handle">
+            <i class="fas fa-grip-lines"></i>
+          </td>
           <td class="px-2 py-1 text-center">
             __num__
             <button type="button" class="ml-2 text-red-600 hover:text-red-800 delete-tier" title="Remove this row">✖</button>
@@ -318,15 +415,38 @@
     </div>
 
     {# ─── Submit & Cancel ───────────────────────────────────────────── #}
-    <div class="flex justify-end space-x-2">
-      <a href="{% url 'settings:plan' %}"
-         class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-        Cancel
-      </a>
-      <button type="submit"
-              class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-        Save
+    <div class="flex justify-end space-x-4 py-4">
+      <a href="{% url 'settings:plan_list' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</a>
+      <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 relative">
+        <span>Save Plan</span>
+        <span class="htmx-indicator-inline ml-2 opacity-0 htmx-request:opacity-100 transition-opacity duration-300 inline-block">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </span>
       </button>
+    </div>
+    
+    <!-- Hidden modal for success notification -->
+    <div class="modal micromodal-slide" id="success-modal" aria-hidden="true">
+      <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container bg-white rounded p-6 max-w-md mx-auto" role="dialog" aria-modal="true" aria-labelledby="success-modal-title">
+          <header class="flex justify-between items-center mb-4">
+            <h2 id="success-modal-title" class="text-xl font-bold text-green-600">
+              Success!
+            </h2>
+            <button aria-label="Close modal" class="text-gray-400 hover:text-gray-600" data-micromodal-close>
+              <i class="fas fa-times"></i>
+            </button>
+          </header>
+          <div id="success-modal-content" class="text-gray-800">
+            Plan saved successfully!
+          </div>
+          <footer class="mt-4 flex justify-end">
+            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" data-micromodal-close>
+              OK
+            </button>
+          </footer>
+        </div>
+      </div>
     </div>
   </form>
 </div>
@@ -334,11 +454,47 @@
 
 {% block extra_js %}
 <script>
+// Form validation function - enhanced to perform client-side validation
+function validateForm() {
+  let isValid = true;
+  
+  // Check required fields
+  document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+    if (!field.value.trim()) {
+      isValid = false;
+      field.classList.add('border-red-500');
+    } else {
+      field.classList.remove('border-red-500');
+    }
+  });
+  
+  // Check tier rows
+  const tierRows = document.querySelectorAll('.tier-row');
+  tierRows.forEach(row => {
+    // Skip rows marked for deletion
+    if (row.querySelector('input[name$="-DELETE"]')?.checked) {
+      return;
+    }
+    
+    const userType = row.querySelector('.tier-user-type');
+    if (userType && !userType.value) {
+      isValid = false;
+      userType.classList.add('border-red-500');
+    }
+  });
+  
+  if (!isValid) {
+    window.notyf.error('Please correct the errors in the form');
+  }
+  
+  return isValid;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const addBtn = document.getElementById('add-tier-btn');
   const tableBody = document.getElementById('tier-body');
   const template = document.getElementById('empty-tier-template').innerHTML;
-  const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+  const totalForms = document.querySelector('#id_tiers-TOTAL_FORMS');
   const MAX_TIERS = 8; // Maximum number of tiers allowed
   
   // Preview elements
@@ -346,9 +502,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const showPreviewBtn = document.getElementById('show-preview-btn');
   const hidePreviewBtn = document.getElementById('hide-preview-btn');
   
-  // Tier suggestion elements
-  const suggestBtn = document.getElementById('suggest-tiers-btn');
-  const loadingIndicator = document.getElementById('suggest-loading');
 
   // Function to update the Add button state
   function updateAddButtonState() {
@@ -368,11 +521,17 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'R' + numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
   
+  // Function to safely get element value with fallback
+  function getInputValue(id) {
+    const el = document.getElementById(id) || document.getElementById(`id_${id}`);
+    return el ? (el.value || 0) : 0;
+  }
+
   // Function to update the plan preview
   function updatePlanPreview() {
-    // Get main member values
-    const mainCover = document.getElementById('main_cover').value || 0;
-    const mainPremium = document.getElementById('main_premium').value || 0;
+    // Get main member values with fallback for both ID formats
+    const mainCover = getInputValue('main_cover');
+    const mainPremium = getInputValue('main_premium');
     
     // Initialize counters and values for each type
     let spouseAllowed = 0;
@@ -427,6 +586,66 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('preview-extended-allowed').textContent = extendedAllowed;
   }
 
+  // Initialize SortableJS for drag-and-drop reordering of tiers
+  const tierTable = document.getElementById('tier-body');
+  if (tierTable) {
+    const sortable = new Sortable(tierTable, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: function() {
+        // Renumber the rows after drag-and-drop
+        const rows = tierTable.querySelectorAll('.tier-row');
+        rows.forEach((row, index) => {
+          const numberCell = row.querySelector('td:nth-child(2) span:first-child');
+          if (numberCell) {
+            numberCell.textContent = index + 1;
+          }
+        });
+        
+        // Update preview if visible
+        if (!previewSection.classList.contains('hidden')) {
+          updatePlanPreview();
+        }
+      }
+    });
+  }
+  
+  // Bulk-add rows functionality
+  const bulkAddBtn = document.getElementById('bulk-add-btn');
+  const bulkAddCount = document.getElementById('bulk-add-count');
+  
+  if (bulkAddBtn && bulkAddCount) {
+    bulkAddBtn.addEventListener('click', function() {
+      const count = parseInt(bulkAddCount.value) || 1;
+      const currentCount = tableBody.querySelectorAll('.tier-row').length;
+      const maxCount = 8; // Maximum number of rows
+      
+      // Calculate how many rows we can actually add
+      const rowsToAdd = Math.min(count, maxCount - currentCount);
+      
+      if (rowsToAdd <= 0) {
+        window.notyf.error('Maximum number of tiers reached (8)');
+        return;
+      }
+      
+      // Add the requested number of rows
+      for (let i = 0; i < rowsToAdd; i++) {
+        const formCount = parseInt(totalForms.value);
+        const newRowHtml = template.replace(/__prefix__/g, formCount).replace(/__num__/g, formCount + 1);
+        const newRow = document.createElement('tbody');
+        newRow.innerHTML = newRowHtml;
+        tableBody.appendChild(newRow.firstElementChild);
+        totalForms.value = formCount + 1;
+      }
+      
+      // Update button state after adding
+      updateAddButtonState();
+      
+      // Show success message
+      window.notyf.success(`Added ${rowsToAdd} new tier rows`);
+    });
+  }
+  
   // Initial button state
   updateAddButtonState();
   
@@ -437,9 +656,21 @@ document.addEventListener('DOMContentLoaded', function () {
     showPreviewBtn.classList.add('hidden');
   });
   
-  hidePreviewBtn.addEventListener('click', function() {
-    previewSection.classList.add('hidden');
-    showPreviewBtn.classList.remove('hidden');
+  document.getElementById('hide-preview-btn').addEventListener('click', function() {
+    const previewSection = document.getElementById('tier-preview');
+    if (previewSection) {
+      previewSection.classList.add('hidden');
+    }
+  });
+
+  // Handle DELETE checkbox changes to update the preview
+  tableBody.addEventListener('change', function(e) {
+    if (e.target.name && e.target.name.includes('DELETE')) {
+      // If a DELETE checkbox was changed, update the preview if visible
+      if (!previewSection.classList.contains('hidden')) {
+        updatePlanPreview();
+      }
+    }
   });
 
   // Add new tier row
@@ -501,140 +732,94 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
   
-  // Main form fields change listener for preview
-  document.getElementById('main_cover').addEventListener('change', function() {
-    if (!previewSection.classList.contains('hidden')) {
-      updatePlanPreview();
-    }
-  });
-  
-  document.getElementById('main_premium').addEventListener('change', function() {
-    if (!previewSection.classList.contains('hidden')) {
-      updatePlanPreview();
-    }
-  });
-  
-  // Handle tier suggestions
-  suggestBtn.addEventListener('click', function() {
-    // Get plan details
-    const planName = document.getElementById('name').value || '';
-    const description = document.getElementById('description').value || '';
-    const policyType = document.getElementById('policy_type').value || 'service';
-    const premium = document.getElementById('premium').value || '0';
-    
-    // Validate description
-    if (!description.trim()) {
-      alert('Please enter a plan description first.');
-      return;
-    }
-    
-    // Show loading indicator
-    loadingIndicator.classList.remove('hidden');
-    suggestBtn.disabled = true;
-    
-    // Call the API to get suggestions
-    fetch('{% url "settings:api_suggest_tiers" %}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-      },
-      body: JSON.stringify({
-        plan_name: planName,
-        description: description,
-        policy_type: policyType,
-        premium: premium
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Hide loading indicator
-      loadingIndicator.classList.add('hidden');
-      suggestBtn.disabled = false;
-      
-      if (data.error) {
-        alert('Error: ' + data.error);
-        return;
-      }
-      
-      if (!data.tiers || data.tiers.length === 0) {
-        alert('No tier suggestions could be generated. Please add tiers manually.');
-        return;
-      }
-      
-      // Clear existing tiers if any
-      while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
-      }
-      
-      // Add suggested tiers
-      data.tiers.forEach((tier, index) => {
-        if (index >= MAX_TIERS) return; // Don't exceed max tiers
-        
-        const formCount = parseInt(totalForms.value);
-        const newRowHtml = template.replace(/__prefix__/g, index).replace(/__num__/g, index + 1);
-        const newRow = document.createElement('tbody');
-        newRow.innerHTML = newRowHtml;
-        const rowElement = newRow.firstElementChild;
-        
-        // Set values in the new row
-        rowElement.querySelector('.tier-user-type').value = tier.user_type;
-        rowElement.querySelector('.tier-allowed').value = tier.allowed;
-        rowElement.querySelectorAll('.tier-age')[0].value = tier.age_from;
-        rowElement.querySelectorAll('.tier-age')[1].value = tier.age_to;
-        rowElement.querySelector('.tier-cover').value = tier.cover;
-        rowElement.querySelector('.tier-premium').value = tier.premium;
-        
-        // Add the row to the table
-        tableBody.appendChild(rowElement);
-      });
-      
-      // Update form count
-      totalForms.value = Math.min(data.tiers.length, MAX_TIERS);
-      
-      // Update button state
-      updateAddButtonState();
-      
-      // Show success message
-      alert(data.message || 'Tier suggestions added successfully!');
-      
-      // Update preview if visible
-      if (!previewSection.classList.contains('hidden')) {
+  // Helper function to safely add event listener
+  function safeAddEventListener(selector, event, callback) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      if (el) el.addEventListener(event, callback);
+    });
+  }
+
+  // Main form fields change listener for preview with fallback IDs
+  ['#main_cover', '#id_main_cover'].forEach(selector => {
+    safeAddEventListener(selector, 'change', () => {
+      if (previewSection && !previewSection.classList.contains('hidden')) {
         updatePlanPreview();
       }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      loadingIndicator.classList.add('hidden');
-      suggestBtn.disabled = false;
-      alert('An error occurred while getting tier suggestions. Please try again.');
     });
   });
   
-  // Handle form submission to process the allowed values
-  document.querySelector('form').addEventListener('submit', function(e) {
-    // We don't need to prevent default as we're just adding data to the form
-    const rows = tableBody.querySelectorAll('.tier-row');
-    rows.forEach((row, idx) => {
-      // Get the user type and allowed value
-      const userTypeSelect = row.querySelector('select[name$="-user_type"]');
-      const allowedInput = row.querySelector('input[name^="allowed_"]');
-      
-      if (userTypeSelect && allowedInput) {
-        // Create a hidden input to store the allowed value
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = `member_allowed_${idx}`;
-        hiddenInput.value = JSON.stringify({
-          type: userTypeSelect.value,
-          allowed: allowedInput.value
-        });
-        
-        // Add the hidden input to the form
-        this.appendChild(hiddenInput);
+  ['#main_premium', '#id_main_premium'].forEach(selector => {
+    safeAddEventListener(selector, 'change', () => {
+      if (previewSection && !previewSection.classList.contains('hidden')) {
+        updatePlanPreview();
       }
     });
   });
+  
+
+  
+  // Function to check if a form row is empty
+  function isFormRowEmpty(prefix) {
+    const fields = [
+      document.querySelector(`[name="${prefix}user_type"]`),
+      document.querySelector(`[name="${prefix}cover"]`),
+      document.querySelector(`[name="${prefix}premium"]`),
+      document.querySelector(`[name="${prefix}uw_cover"]`),
+      document.querySelector(`[name="${prefix}uw_premium"]`),
+      document.querySelector(`[name="${prefix}extended_commission"]`)
+    ];
+    
+    return !fields.some(el => el && el.value && el.value.trim() !== '');
+  }
+
+  // Handle form submission to mark blank tiers for deletion
+  const form = document.getElementById('planForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      console.log('🔍 Marking blank tiers…');
+
+      const totalInput = document.querySelector('input[name="tiers-TOTAL_FORMS"]');
+      if (!totalInput) {
+        console.warn('⚠️ Could not find tiers-TOTAL_FORMS');
+        return;
+      }
+      
+      const total = parseInt(totalInput.value, 10);
+      
+      for (let i = 0; i < total; i++) {
+        // collect each field in this inline-form
+        const fields = [
+          document.querySelector(`[name="tiers-${i}-user_type"]`),
+          document.querySelector(`[name="tiers-${i}-cover"]`),
+          document.querySelector(`[name="tiers-${i}-premium"]`),
+          document.querySelector(`[name="tiers-${i}-uw_cover"]`),
+          document.querySelector(`[name="tiers-${i}-uw_premium"]`),
+          document.querySelector(`[name="tiers-${i}-extended_commission"]`)
+        ];
+        
+        // is there any non-empty value?
+        const hasValue = fields.some(el => el && el.value && el.value.trim() !== '');
+        if (!hasValue) {
+          // tick the DELETE checkbox
+          const del = document.querySelector(`[name="tiers-${i}-DELETE"]`);
+          if (del) {
+            del.checked = true;
+            console.log(`  • Tier ${i+1} marked DELETE (empty row)`);
+          } else {
+            console.warn(`  • No DELETE field for tier ${i+1}`);
+          }
+        } else {
+          console.log(`  • Tier ${i+1} has data, keeping`);
+        }
+      }
+      
+      // Allow the form to submit normally
+      return true;
+    });
+  } else {
+    console.warn('Form with ID "planForm" not found, form submission handling may not work correctly');
+  }
 });
 </script>
 {% endblock %}

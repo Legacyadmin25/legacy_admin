@@ -18,8 +18,11 @@ from .views_ai_search import ai_search_assistant
 from .views_ai_summary import generate_policy_summary
 from .views_ai import get_payment_ai_summary
 
-# Import the new DIY URLs
-from . import urls_diy
+# Import the DIY URLs
+from .urls_diy import urlpatterns as diy_urls
+
+# Import the new DIY auto-save URLs
+from .urls_diy_autosave import urlpatterns as diy_autosave_urls
 
 # Import TemplateView for simple template rendering
 from django.views.generic import TemplateView
@@ -27,6 +30,8 @@ from django.views.generic import TemplateView
 app_name = 'members'
 
 urlpatterns = [
+    # DIY Application with Auto-save
+    path('diy/autosave/', include('members.urls_diy_autosave')),
     # Policy creation steps (steps 1 to 9) - New multi-step flow
     path('policy/create/step1/',                                 step1_personal,                  name='step1_personal'),
     path('policy/create/step2/<int:pk>/',                       step2_policy_details,            name='step2_policy_details'),
@@ -76,7 +81,7 @@ urlpatterns = [
     path('diy/<str:token>/welcome/',                            diy_signup_start,                name='diy_welcome'),
     
     # New DIY Application Flow
-    path('diy-new/', include(urls_diy)),
+    path('diy/', include(diy_urls)),
 
     # Add the new URL for downloading the policy certificate
     path('policy/<int:policy_id>/download/certificate/',         views.download_policy_certificate, name='download_policy_certificate'),

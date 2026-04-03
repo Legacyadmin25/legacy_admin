@@ -1,49 +1,23 @@
 """
 Admin interface configuration for the accounts app.
 
-This module configures the Django admin interface for the User, Profile, Role,
-and UserRole models.
+This module configures the Django admin interface for the User model.
+Role-based permissions are now handled through Django's built-in Group model.
+Profile fields have been consolidated into the User model.
 """
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import Group as AuthGroup
+from django.utils.translation import gettext_lazy as _
 
-# Import models using helper functions to avoid circular imports
-from .models import get_profile_model, get_role_models
-
-# Get the custom User model
-User = get_user_model()
-Profile = get_profile_model()
-Role, UserRole = get_role_models()
-
-
-class ProfileInline(admin.StackedInline):
-    """Inline admin for the Profile model."""
-    model = Profile
-    can_delete = False
-    verbose_name_plural = 'Profile'
-    fk_name = 'user'
-    fields = [
-        'phone', 'address', 'city', 'state', 'postal_code', 'country',
-        'date_of_birth', 'profile_picture', 'bio', 'is_verified', 'is_active'
-    ]
-
-
-class UserRoleInline(admin.TabularInline):
-    """Inline admin for the UserRole model."""
-    model = UserRole
-    extra = 1
-    verbose_name = _('Role Assignment')
-    verbose_name_plural = _('Role Assignments')
-    raw_id_fields = ('user',)
+# Import models
+from .models import User
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Custom User admin with profile and role inlines."""
-    inlines = (ProfileInline, UserRoleInline)
+    """Custom User admin with profile fields directly on User model."""
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
     search_fields = ('username', 'first_name', 'last_name', 'email')
@@ -52,15 +26,24 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (_('Personal info'), {
-            'fields': ('first_name', 'last_name', 'email', 'date_of_birth')
+            'fields': ('first_name', 'last_name', 'email', 'phone', 'date_of_birth')
         }),
-        (_('Contact info'), {
-            'fields': ('phone',)
+        (_('Address'), {
+            'fields': ('address', 'city', 'state', 'postal_code', 'country'),
+            'classes': ('collapse',)
+        }),
+        (_('Profile'), {
+            'fields': ('profile_picture', 'bio', 'is_verified'),
+            'classes': ('collapse',)
+        }),
+        (_('Branch & Scheme Assignments'), {
+            'fields': ('branch', 'assigned_schemes'),
+            'description': 'Assign users to branches (for BranchOwners) or schemes (for SchemeManagers) to enable data isolation.'
         }),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
-        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
+        (_('Important dates'), {'fields': ('last_login', 'date_joined', 'last_activity')}),
     )
     
     add_fieldsets = (
@@ -70,56 +53,7 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
     
-    def get_inline_instances(self, request, obj=None):
-        if not obj:
-            return []
-        return super().get_inline_instances(request, obj)
-
-
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    """Admin interface for the Profile model."""
-    list_display = ('user', 'full_name', 'email', 'phone', 'is_verified', 'is_active')
-    list_filter = ('is_verified', 'is_active', 'country', 'state')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'user__email', 'phone')
-    list_select_related = ('user',)
-    
-    def full_name(self, obj):
-        """Return the user's full name."""
-        return obj.user.get_full_name()
-    full_name.short_description = 'Name'
-    full_name.admin_order_field = 'user__first_name'
-    
-    def email(self, obj):
-        """Return the user's email."""
-        return obj.user.email
-    email.short_description = 'Email'
-    email.admin_order_field = 'user__email'
-
-
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    """Admin interface for the Role model."""
-    list_display = ('name', 'description', 'is_active', 'created_at', 'updated_at')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('name', 'description')
-    ordering = ('name',)
-    filter_horizontal = ()
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request)
-
-
-@admin.register(UserRole)
-class UserRoleAdmin(admin.ModelAdmin):
-    """Admin interface for the UserRole model."""
-    list_display = ('user', 'role', 'is_active', 'created_at', 'updated_at')
-    list_filter = ('is_active', 'role', 'created_at')
-    search_fields = ('user__username', 'user__email', 'role__name')
-    list_select_related = ('user', 'role')
-    raw_id_fields = ('user',)
-    date_hierarchy = 'created_at'
-    ordering = ('-created_at',)
+    filter_horizontal = ('assigned_schemes',)
 
 
 # Unregister the default Group admin and register our custom one

@@ -18,8 +18,6 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import Profile
-
 User = get_user_model()
 
 
@@ -82,12 +80,12 @@ class UserLoginForm(AuthenticationForm):
 class ProfileUpdateForm(forms.ModelForm):
     """
     Form for updating a user's profile.
+    Uses Django User model instead of separate Profile model.
     """
     class Meta:
-        model = Profile
+        model = User
         fields = [
-            'phone', 'address', 'city', 'state', 'postal_code', 'country',
-            'date_of_birth', 'profile_picture', 'bio', 'is_verified', 'is_active'
+            'first_name', 'last_name', 'email', 'phone',
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),

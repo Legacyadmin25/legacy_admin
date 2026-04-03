@@ -68,10 +68,7 @@ class RoleBasedModelBackend(ModelBackend):
             return True
             
         # Check if the user has the permission through their groups
-        if hasattr(user_obj, 'profile'):
-            return user_obj.profile.has_permission(perm)
-            
-        return False
+        return user_obj.has_permission(perm)
     
     def has_module_perms(self, user_obj, app_label):
         """
@@ -89,8 +86,5 @@ class RoleBasedModelBackend(ModelBackend):
             return True
             
         # Check if the user has any permissions for the app
-        if hasattr(user_obj, 'profile'):
-            permissions = user_obj.profile.get_permissions()
-            return any(perm.startswith(f'{app_label}.') for perm in permissions)
-            
-        return False
+        permissions = user_obj.get_permissions()
+        return any(perm.content_type.app_label == app_label for perm in permissions)

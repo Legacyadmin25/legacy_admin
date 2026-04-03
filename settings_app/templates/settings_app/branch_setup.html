@@ -28,8 +28,31 @@
             {{ form.name.errors }}
           </div>
           <div>
-            <label class="block font-semibold mb-1">Branch Code</label>
-            {% render_field form.code class="w-full px-4 py-2 border rounded" %}
+            <label class="block font-semibold mb-1">Bank & Branch Code</label>
+            <div class="flex gap-2">
+              <select id="bankSelect" class="w-3/4 px-4 py-2 border rounded" onchange="updateBranchCode()">
+                <option value="">-- Select Bank --</option>
+                <option value="632005">ABSA</option>
+                <option value="250655">FNB</option>
+                <option value="198765">Nedbank</option>
+                <option value="051001">Standard Bank</option>
+                <option value="470010">Capitec Bank</option>
+                <option value="580105">Investec Bank</option>
+                <option value="678910">Tyme Bank</option>
+                <option value="460005">SA Post Bank</option>
+                <option value="261251">Rand Merchant Bank (RMB)</option>
+                <option value="222026">RMB Private Bank</option>
+                <option value="430000">African Bank</option>
+                <option value="679000">Discovery Bank</option>
+                <option value="683000">Sasfin Bank</option>
+                <option value="410506">Bank of Athens</option>
+                <option value="462005">Bidvest Bank</option>
+                <option value="730020">Standard Chartered Bank</option>
+                <option value="570126">HBZ Bank Limited</option>
+                <option value="587000">HSBC Bank</option>
+              </select>
+              {% render_field form.code id="branchCode" class="w-1/4 px-4 py-2 border rounded" %}
+            </div>
             {{ form.code.errors }}
           </div>
           <div>
@@ -168,4 +191,30 @@
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateBranchCode() {
+    const bankSelect = document.getElementById('bankSelect');
+    const branchCode = document.getElementById('branchCode');
+    branchCode.value = bankSelect.value;
+}
+
+// Set the branch code from the bank select on page load if a bank is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const bankSelect = document.getElementById('bankSelect');
+    const branchCode = document.getElementById('branchCode');
+    
+    // If branch code already has a value, try to select the corresponding bank
+    if (branchCode.value) {
+        for (let i = 0; i < bankSelect.options.length; i++) {
+            if (bankSelect.options[i].value === branchCode.value) {
+                bankSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

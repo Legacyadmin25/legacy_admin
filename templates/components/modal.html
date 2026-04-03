@@ -1,0 +1,119 @@
+{% comment %}
+  Reusable Modal Component
+  
+  Usage:
+  {% include 'components/modal.html' with 
+    modal_id='my-modal'
+    modal_title='Modal Title'
+    modal_content='<div>Your content here</div>' 
+    modal_footer='<button data-micromodal-close>Close</button>'
+  %}
+{% endcomment %}
+
+<div class="modal micromodal-slide" id="{{ modal_id }}" aria-hidden="true">
+  <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+    <div class="modal__container bg-white rounded-lg shadow-lg w-full max-w-3xl mx-auto" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
+      <header class="modal__header p-4 border-b">
+        <h2 class="modal__title text-xl font-semibold" id="{{ modal_id }}-title">
+          {{ modal_title }}
+        </h2>
+        <button class="modal__close text-gray-500 hover:text-gray-700" aria-label="Close modal" data-micromodal-close>
+          <i class="fas fa-times"></i>
+        </button>
+      </header>
+      
+      <main class="modal__content p-4" id="{{ modal_id }}-content">
+        {{ modal_content|safe }}
+      </main>
+      
+      {% if modal_footer %}
+      <footer class="modal__footer p-4 border-t flex justify-end space-x-2">
+        {{ modal_footer|safe }}
+      </footer>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal {
+    display: none;
+  }
+  
+  .modal.is-open {
+    display: block;
+  }
+  
+  .modal__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .modal__container {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .micromodal-slide {
+    display: none;
+  }
+  
+  .micromodal-slide.is-open {
+    display: block;
+  }
+  
+  .micromodal-slide[aria-hidden="false"] .modal__overlay {
+    animation: mmfadeIn .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+  }
+  
+  .micromodal-slide[aria-hidden="false"] .modal__container {
+    animation: mmslideIn .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+  }
+  
+  .micromodal-slide[aria-hidden="true"] .modal__overlay {
+    animation: mmfadeOut .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+  }
+  
+  .micromodal-slide[aria-hidden="true"] .modal__container {
+    animation: mmslideOut .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+  }
+  
+  .micromodal-slide .modal__container,
+  .micromodal-slide .modal__overlay {
+    will-change: transform;
+  }
+  
+  @keyframes mmfadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes mmfadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  @keyframes mmslideIn {
+    from { transform: translateY(15%); }
+    to { transform: translateY(0); }
+  }
+  
+  @keyframes mmslideOut {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10%); }
+  }
+</style>

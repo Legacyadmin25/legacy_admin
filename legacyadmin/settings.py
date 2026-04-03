@@ -1,17 +1,39 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from decouple import config, Csv
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv = lambda: None  # Decouple handles this automatically
 
 # ─── Base directory ───────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
-SECRET_KEY = 'django-insecure-=$7w@h(o6j9$m645o06z)w0@i#0g(q4e9+x)4_m$v49j6$m*m'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# Load from environment, with sensible defaults for development
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+DEBUG = config('DEBUG', default='False', cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+# ─── HTTPS & SECURITY HEADERS ─────────────────────────────────────────────────
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default='False', cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default='False', cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default='False', cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default='0', cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default='False', cast=bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default='False', cast=bool)
+
+# ─── FIELD ENCRYPTION KEY FOR PII (CRITICAL: CHANGE THIS!) ────────────────────
+# Generate a new key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key())"
+# Store in .env as: FIELD_ENCRYPTION_KEY=<generated-key>
+FIELD_ENCRYPTION_KEY = config('FIELD_ENCRYPTION_KEY', default='dev-key-only-change-in-production')
+# Note: In production, ensure a proper key is set in .env
+
+# When going to production, in .env set:
+# DEBUG=False
+# SECURE_SSL_REDIRECT=True
+# SESSION_COOKIE_SECURE=True
+# CSRF_COOKIE_SECURE=True
+# SECURE_HSTS_SECONDS=31536000
 
 # ─── Installed apps ──────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -28,6 +50,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'widget_tweaks',
+    'encrypted_model_fields',  # For PII encryption
     
     # Local Apps - Accounts must come first as it defines the custom user model
     'accounts.apps.AccountsConfig',
@@ -48,6 +71,7 @@ INSTALLED_APPS = [
     'branches',
     'members.communications',
     'reports_ai',  # For AI Reporting
+    'audit',  # For audit logging
 ]
 
 # ─── Middleware (WhiteNoise right after SecurityMiddleware) ────────────────────
@@ -60,6 +84,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Audit logging middleware - captures request context for audit trail
+    'audit.middleware.AuditContextMiddleware',
+    # Custom middleware for auto-save functionality
+    'members.middleware.AutoSaveSessionMiddleware',
+    'members.middleware.AgentDetectionMiddleware',
 ]
 
 ROOT_URLCONF = 'legacyadmin.urls'
@@ -92,10 +121,22 @@ WSGI_APPLICATION = 'legacyadmin.wsgi.application'
 # ─── Database ────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': BASE_DIR / 'db.sqlite3' if config('DB_ENGINE', default='django.db.backends.sqlite3') == 'django.db.backends.sqlite3' else config('DB_NAME', default='legacyadmin'),
+        'USER': config('DB_USER', default=''),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
+        'PORT': config('DB_PORT', default=''),
     }
 }
+
+# For production with PostgreSQL, set in .env:
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=legacyadmin
+# DB_USER=postgres
+# DB_PASSWORD=<secure-password>
+# DB_HOST=your-db-host.com
+# DB_PORT=5432
 
 # ─── Custom User Model ──────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'accounts.User'
@@ -114,6 +155,7 @@ TIME_ZONE = 'Africa/Johannesburg'
 USE_I18N = True
 USE_TZ = True
 
+
 # ─── Static files ─────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -127,27 +169,32 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ─── OpenAI API Key for AI Reporting ─────
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-# ─── Authentication redirects ─────────────────────────────────────────────────
-LOGIN_URL           = 'login'
-LOGOUT_REDIRECT_URL = 'login'
-LOGIN_REDIRECT_URL  = '/'    # after successful login, go to /
+# ─── OpenAI API Key for AI Reporting ──────────────────────────────────────────
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 
 # ─── Custom settings ──────────────────────────────────────────────────────────
-EASYPAY_URL             = "https://www.easypay.co.za/api/v1/payment/create"
-EASYPAY_API_KEY         = "your-easypay-api-key"
-EASY_PAY_RECEIVER_ID    = "5047"
-EASY_PAY_ACCOUNT_LENGTH = 12
-EASY_PAY_OUTPUT_DIR     = "/path/to/output/"
-EASYPAY_API_VERSION     = "1.0"
-EASYPAY_PROCESS         = "Legacy Admin"
+EASYPAY_URL             = config('EASYPAY_URL', default="https://www.easypay.co.za/api/v1/payment/create")
+EASYPAY_API_KEY         = config('EASYPAY_API_KEY', default='')
+EASY_PAY_RECEIVER_ID    = config('EASY_PAY_RECEIVER_ID', default="5047")
+EASY_PAY_ACCOUNT_LENGTH = config('EASY_PAY_ACCOUNT_LENGTH', default='12', cast=int)
+EASY_PAY_OUTPUT_DIR     = config('EASY_PAY_OUTPUT_DIR', default="/tmp/")
+EASYPAY_API_VERSION     = config('EASYPAY_API_VERSION', default="1.0")
+EASYPAY_PROCESS         = config('EASYPAY_PROCESS', default="Legacy Admin")
 
-SMS_API_KEY    = "your-sms-api-key"
-SMS_API_SECRET = "your-sms-api-secret"
+# ─── SMS Configuration ────────────────────────────────────────────────────────
+SMS_API_KEY    = config('SMS_API_KEY', default='')
+SMS_API_SECRET = config('SMS_API_SECRET', default='')
+BULKSMS_USERNAME = config('BULKSMS_USERNAME', default='')
+BULKSMS_PASSWORD = config('BULKSMS_PASSWORD', default='')
 
-STRIPE_TEST_PUBLIC_KEY = 'your-public-key'
+# ─── Stripe (for future use) ──────────────────────────────────────────────────
+STRIPE_TEST_PUBLIC_KEY = config('STRIPE_TEST_PUBLIC_KEY', default='')
+STRIPE_TEST_SECRET_KEY = config('STRIPE_TEST_SECRET_KEY', default='')
+
+# ─── Twilio (for WhatsApp) ────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+TWILIO_PHONE_NUMBER = config('TWILIO_PHONE_NUMBER', default='')
 STRIPE_TEST_SECRET_KEY = 'your-secret-key'
 
 # Django Admin Interface Customization (For branding)
@@ -168,21 +215,11 @@ CMS_INSTALLED_APPS = [
 # ─── Default primary key field type ───────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ─── Authentication Backends ────────────────────────────────────────────────
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'accounts.backends.RoleBasedModelBackend',
-]
-
 # Ensure the accounts app is first in INSTALLED_APPS
 if 'accounts.apps.AccountsConfig' in INSTALLED_APPS:
     INSTALLED_APPS.remove('accounts.apps.AccountsConfig')
 INSTALLED_APPS.insert(0, 'accounts.apps.AccountsConfig')
 
-# ─── Login/Logout URLs ──────────────────────────────────────────────────────
-LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'accounts:profile'
-LOGOUT_REDIRECT_URL = 'accounts:login'
 
 # ─── Session Settings ───────────────────────────────────────────────────────
 SESSION_COOKIE_AGE = 3600  # 1 hour
@@ -207,5 +244,30 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 # Set a default model if not specified in environment
 DEFAULT_OPENAI_MODEL = os.getenv('DEFAULT_OPENAI_MODEL', 'gpt-3.5-turbo')
 
-# Use the namespaced login URL for authentication redirects
-LOGIN_URL = 'accounts:login'
+# ─── Authentication redirects ─────────────────────────────────────────────────
+# Always use literal URL paths for login/logout so Django never tries to reverse() them:
+LOGIN_URL           = '/accounts/login/'
+LOGIN_REDIRECT_URL  = '/'                # after a successful login
+LOGOUT_REDIRECT_URL = '/accounts/login/'  # after logging out
+
+# ─── Audit Logging Configuration ──────────────────────────────────────────────
+# List of models to exclude from automatic audit logging
+AUDIT_EXCLUDED_MODELS = [
+    'audit.AuditLog',           # Don't log audit logs themselves (avoid recursion)
+    'audit.DataAccess',         # Don't log data access logs
+    'admin.LogEntry',           # Don't log Django admin actions
+    'sessions.Session',         # Don't log session changes
+]
+
+# List of sensitive models that should have all actions logged
+AUDIT_SENSITIVE_MODELS = [
+    'auth.User',                # Track all user changes (passwords, permissions)
+    'members.Member',           # Track member information changes
+    'members.Policy',           # Track policy status and premium changes
+    'claims.Claim',             # Track claim creation, status changes, approval
+    'payments.Payment',         # Track payment creation and status changes
+]
+
+# Audit log retention (days) - old logs beyond this period can be archived
+AUDIT_LOG_RETENTION_DAYS = 365  # Keep 1 year of audit logs
+

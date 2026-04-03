@@ -20,10 +20,11 @@ def generate_easypay_number(account_ref: str) -> str:
     """
     Builds a valid EasyPay number:
       9 + RECEIVER_ID + zero-padded account_ref (12 digits) + Luhn check digit
+    - The check digit is calculated over the entire string including the leading 9.
+    Example: policy 6730 → 950470000000067302
     """
     receiver = settings.EASY_PAY_RECEIVER_ID
-    # Left-pad account_ref to 12 digits now
     acct = account_ref.zfill(settings.EASY_PAY_ACCOUNT_LENGTH)
-    base = f"{receiver}{acct}"
+    base = f"9{receiver}{acct}"
     check = calculate_luhn(base)
-    return f"9{base}{check}"
+    return f"{base}{check}"

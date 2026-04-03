@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background-color: #f9fafb;
+            padding: 30px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .success-box {
+            background-color: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .reference-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #0ea5e9;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .reference-box strong {
+            color: #0369a1;
+        }
+        .details {
+            background-color: white;
+            padding: 15px;
+            border-radius: 3px;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .footer {
+            background-color: #f3f4f6;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-radius: 0 0 5px 5px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #1e3a8a;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✓ Application Approved</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong>{{ first_name }}</strong>,</p>
+
+            <p>Great news! Your policy application has been <strong>APPROVED</strong>.</p>
+
+            <div class="success-box">
+                <strong>Your application has been reviewed and approved by our team.</strong>
+                A detailed policy document is attached for your records.
+            </div>
+
+            <div class="reference-box">
+                <div><strong>Reference Number:</strong> {{ reference_number }}</div>
+                <div style="margin-top: 5px; font-size: 12px;">
+                    Please keep this number for future reference and inquiries.
+                </div>
+            </div>
+
+            <div class="details">
+                <div class="detail-row">
+                    <div class="detail-label">Plan Name:</div>
+                    <div class="detail-value">{{ plan_name }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Status:</div>
+                    <div class="detail-value"><span style="color: #10b981; font-weight: bold;">APPROVED</span></div>
+                </div>
+            </div>
+
+            <p><strong>What happens next?</strong></p>
+            <ul style="margin: 15px 0; padding-left: 20px;">
+                <li>Your policy document is attached below</li>
+                <li>Coverage becomes effective after admin finalization</li>
+                <li>Your debit order (if applicable) will be processed on the scheduled date</li>
+                <li>You'll receive a confirmation once your policy is active</li>
+            </ul>
+
+            <p>
+                If you have any questions or need assistance, please don't hesitate to 
+                <a href="mailto:support@{{ company_name|lower|slugify }}.co.za">contact our support team</a> 
+                with your reference number.
+            </p>
+
+            <p style="margin-top: 30px;">
+                Thank you for choosing {{ company_name }}!
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                This is an automated email. Please do not reply directly.<br>
+                Reference: {{ reference_number }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

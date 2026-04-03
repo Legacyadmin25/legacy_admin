@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .content {
+            background-color: #f9fafb;
+            padding: 30px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .policy-info {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 3px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .info-value {
+            color: #333;
+            text-align: right;
+        }
+        .document-notice {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .footer {
+            background-color: #f3f4f6;
+            padding: 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            border-radius: 0 0 5px 5px;
+        }
+        .important {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Your Policy Document</h1>
+            <p>Please see attached for your complete policy details</p>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong>{{ first_name }}</strong>,</p>
+
+            <p>
+                Your policy application has been <strong>APPROVED</strong> and your complete 
+                policy document is <strong>attached as a PDF file</strong> below.
+            </p>
+
+            <div class="policy-info">
+                <div class="info-row">
+                    <div class="info-label">Reference Number:</div>
+                    <div class="info-value">{{ reference_number }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Policy Number:</div>
+                    <div class="info-value">{{ policy_number }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Plan:</div>
+                    <div class="info-value">{{ plan_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Monthly Premium:</div>
+                    <div class="info-value"><strong>R{{ premium }}</strong></div>
+                </div>
+            </div>
+
+            <div class="document-notice">
+                <strong>📎 Attached Document:</strong><br>
+                Your complete policy document (Policy_{{ reference_number }}.pdf) is attached to this email. 
+                Please download and keep it safe for your records.
+            </div>
+
+            <h3 style="color: #1e3a8a; margin-top: 25px;">What to do next:</h3>
+            <ol style="margin: 15px 0; padding-left: 20px;">
+                <li><strong>Download the attached PDF</strong> - Save it to your computer</li>
+                <li><strong>Review all details</strong> - Ensure all information is correct</li>
+                <li><strong>Authorize debit order</strong> (if applicable) - Premium will start on the scheduled date</li>
+                <li><strong>Contact us</strong> if you have any questions or corrections needed</li>
+            </ol>
+
+            <div class="important">
+                <strong>⚠️ Important:</strong> Keep your policy document safe. You'll need your reference number 
+                ({{ reference_number }}) for any future claims or inquiries.
+            </div>
+
+            <p style="margin-top: 25px;">
+                Thank you for choosing <strong>{{ company_name }}</strong> for your insurance needs.
+                We're here to support you!
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                This is an automated email. If you didn't request this document, please contact us immediately.<br>
+                Reference: {{ reference_number }} | Email sent: {{ .now|date:"d F Y" }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

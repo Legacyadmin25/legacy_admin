@@ -27,6 +27,34 @@
   <!-- Google Fonts: Inter -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   
+  <!-- HTMX for AJAX interactions -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  
+  <!-- Chart.js for data visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Notyf for toast notifications -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  
+  <!-- SortableJS for drag-and-drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  
+  <!-- MicroModal for modal dialogs -->
+  <script src="https://cdn.jsdelivr.net/npm/micromodal@0.4.10/dist/micromodal.min.js"></script>
+  
+  <!-- Tippy.js for tooltips -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy.css">
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy-bundle.umd.min.js"></script>
+  
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Tippy.js for tooltips -->
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://unpkg.com/tippy.js@6"></script>
+  
   <style>
     /* Base Typography */
     body {
@@ -104,6 +132,13 @@
         {% endif %}
         
         {% if request.user.is_superuser %}
+        <!-- Enhanced Admin Dashboard -->
+        <li>
+          <a href="{% url 'dashboard:admin_dashboard' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Enhanced Dashboard">
+            <i class="fa-solid fa-tachometer-alt mr-2"></i> Enhanced Dashboard
+          </a>
+        </li>
+        
         <!-- Members Menu -->
         <li>
           <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['members'] = !open['members']" aria-label="Toggle Members Menu">
@@ -291,11 +326,6 @@
                 </a>
               </li>
               <li>
-                <a href="{% url 'settings:manage_rights' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Manage Rights">
-                  <i class="fa-solid fa-users mr-2"></i> Manage Rights
-                </a>
-              </li>
-              <li>
 <a href="{% url 'settings:underwriter' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Underwriter Setup">
                   <i class="fa-solid fa-cogs mr-2"></i> Underwriter Setup
                 </a>
@@ -343,6 +373,68 @@
 
   <!-- UI Style Guide JavaScript -->
   <script src="{% static 'js/ui_style_guide.js' %}"></script>
+  
+  <!-- Initialize Frontend Libraries -->
+  <script>
+    // Initialize Notyf (toast notifications)
+    window.notyf = new Notyf({
+      duration: 5000,
+      position: { x: 'right', y: 'top' },
+      types: [
+        {
+          type: 'success',
+          background: '#10B981',
+          icon: {
+            className: 'fas fa-check-circle',
+            tagName: 'i'
+          }
+        },
+        {
+          type: 'error',
+          background: '#EF4444',
+          icon: {
+            className: 'fas fa-exclamation-circle',
+            tagName: 'i'
+          }
+        }
+      ]
+    });
+
+    // Initialize MicroModal for dialogs
+    MicroModal.init({
+      onShow: modal => console.log(`${modal.id} is shown`),
+      onClose: modal => console.log(`${modal.id} is hidden`),
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableFocus: false,
+      disableScroll: true,
+      awaitOpenAnimation: false,
+      awaitCloseAnimation: false
+    });
+
+    // Initialize Tippy.js for tooltips
+    document.addEventListener('DOMContentLoaded', () => {
+      tippy('[data-tippy-content]', {
+        placement: 'top',
+        arrow: true,
+        theme: 'light-border',
+        animation: 'scale'
+      });
+    });
+
+    // Display Django messages as toasts
+    document.addEventListener('DOMContentLoaded', () => {
+      const messages = document.querySelectorAll('.message');
+      messages.forEach(message => {
+        const messageType = message.dataset.messageType || 'success';
+        const messageText = message.textContent.trim();
+        if (messageText) {
+          window.notyf[messageType === 'error' ? 'error' : 'success'](messageText);
+        }
+        message.remove(); // Remove the original message
+      });
+    });
+  </script>
   
   {% block extra_js %}{% endblock %}
 </body>

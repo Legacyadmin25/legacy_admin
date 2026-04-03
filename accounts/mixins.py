@@ -355,9 +355,14 @@ class RoleBasedDashboardMixin:
     def get_branch_owner_context(self, user):
         """Get context data for Branch Owner role."""
         from schemes.models import Branch
+        from settings_app.models import UserRole
         
-        # Get branches this user owns
-        branches = user.profile.branches.all() if hasattr(user, 'profile') else Branch.objects.none()
+        # Get branches this user owns through UserRole
+        try:
+            user_role = user.role
+            branches = Branch.objects.filter(id=user_role.branch.id) if user_role.branch else Branch.objects.none()
+        except (AttributeError, UserRole.DoesNotExist):
+            branches = Branch.objects.none()
         
         # Get branch statistics
         branch_stats = []
@@ -380,9 +385,14 @@ class RoleBasedDashboardMixin:
     def get_scheme_manager_context(self, user):
         """Get context data for Scheme Manager role."""
         from schemes.models import Scheme
+        from settings_app.models import UserRole
         
-        # Get schemes this user manages
-        schemes = user.profile.schemes.all() if hasattr(user, 'profile') else Scheme.objects.none()
+        # Get schemes this user manages through UserRole
+        try:
+            user_role = user.role
+            schemes = Scheme.objects.filter(id=user_role.scheme.id) if user_role.scheme else Scheme.objects.none()
+        except (AttributeError, UserRole.DoesNotExist):
+            schemes = Scheme.objects.none()
         
         # Get scheme statistics
         scheme_stats = []
@@ -460,3 +470,41 @@ class RoleBasedDashboardMixin:
             'start_date': last_month.strftime('%Y-%m-%d'),
             'end_date': today.strftime('%Y-%m-%d'),
         }
+
+
+class MultiTenantMixin:
+    """
+    Mixin for class-based views that need to filter querysets by user scope.
+    
+    Automatically filters Member, Policy, Payment, Claim, and other multi-tenant models
+    based on the user's accessible branches and schemes.
+    """
+    
+    def get_queryset(self):
+        """Override get_queryset to apply multi-tenancy filtering."""
+        from config.permissions import filter_by_user_scope
+        
+        queryset = super().get_queryset()
+        
+        # Get the model class from the view
+        if hasattr(self, 'model') and self.model:
+            model_class = self.model
+        else:
+            # Try to infer from queryset
+            try:
+                model_class = queryset.model
+            except AttributeError:
+                # Can't determine model, return as-is
+                return queryset
+        
+        # Apply multi-tenancy filtering
+        return filter_by_user_scope(queryset, self.request.user, model_class)
+    
+    def get_context_data(self, **kwargs):
+        """Add user scope information to context."""
+        from config.permissions import get_user_schemes, get_user_branches
+        
+        context = super().get_context_data(**kwargs)
+        context['user_schemes'] = get_user_schemes(self.request.user)
+        context['user_branches'] = get_user_branches(self.request.user)
+        return context

@@ -228,41 +228,15 @@ def payment_list(request):
     Show a list of all payments with filtering, pagination, and export options.
     Enhanced with AI summary, role-based restrictions, and improved UI.
     """
-    # Apply role-based restrictions
-    if request.user.is_superuser:
-        # Superusers can see all payments
-        base_payments = Payment.objects.select_related('member', 'policy', 'created_by').order_by('-date')
-    elif request.user.groups.filter(name="Branch Owner").exists():
-        # Branch owners can only see payments from their branch
-        try:
-            branch = request.user.branchuser.branch
-            base_payments = Payment.objects.select_related('member', 'policy', 'created_by').filter(
-                Q(policy__plan__scheme__branch=branch) |
-                Q(member__policies__plan__scheme__branch=branch)
-            ).distinct().order_by('-date')
-        except:
-            # Fallback if branch relationship not found
-            base_payments = Payment.objects.select_related('member', 'policy', 'created_by').filter(
-                created_by=request.user
-            ).order_by('-date')
-    elif request.user.groups.filter(name="Scheme Admin").exists():
-        # Scheme admins can only see payments from their scheme
-        try:
-            scheme = request.user.schemeuser.scheme
-            base_payments = Payment.objects.select_related('member', 'policy', 'created_by').filter(
-                Q(policy__plan__scheme=scheme) |
-                Q(member__policies__plan__scheme=scheme)
-            ).distinct().order_by('-date')
-        except:
-            # Fallback if scheme relationship not found
-            base_payments = Payment.objects.select_related('member', 'policy', 'created_by').filter(
-                created_by=request.user
-            ).order_by('-date')
-    else:
-        # Regular users can only see payments they created
-        base_payments = Payment.objects.select_related('member', 'policy', 'created_by').filter(
-            created_by=request.user
-        ).order_by('-date')
+    from config.permissions import filter_by_user_scope
+    from payments.models import Payment
+    
+    # Start with all payments and apply multi-tenancy filtering
+    base_payments = filter_by_user_scope(
+        Payment.objects.select_related('member', 'policy', 'created_by').order_by('-date'),
+        request.user,
+        Payment
+    )
     
     # Initialize filter form
     filter_form = PaymentFilterForm(request.GET)

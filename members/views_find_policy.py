@@ -4,7 +4,7 @@ from django.db.models import Q, Count
 from django.urls import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-from settings_app.models import Branch, Agent, UserRole
+from settings_app.models import Branch, Agent
 from schemes.models import Scheme, Plan
 from members.models import Policy, Member
 
@@ -43,22 +43,34 @@ def find_policy(request):
         'member__dependents', 'member__beneficiaries'
     )
     
-    # Get user role for filtering
-    try:
-        user_role = request.user.role.role_type
-        user_branch = request.user.role.branch
-        user_scheme = request.user.role.scheme
-    except (UserRole.DoesNotExist, AttributeError):
-        user_role = None
-        user_branch = None
-        user_scheme = None
+    # Get user role for filtering (using Group-based access)
+    # Check if user has specialized role via Groups, otherwise None
+    user_role = None
+    user_branch = None
+    user_scheme = None
+    
+    # Check user's groups to determine their role
+    user_groups = set(request.user.groups.values_list('name', flat=True))
+    
+    # For users with specialized roles, check if they have a scoped assignment
+    if 'Scheme Manager' in user_groups or 'BranchOwner' in user_groups:
+        try:
+            # Try to get the domain-specific role with branch/scheme scoping
+            user_role_obj = request.user.role
+            user_role = user_role_obj.role_type
+            user_branch = user_role_obj.branch
+            user_scheme = user_role_obj.scheme
+        except AttributeError:
+            # User is in group but not assigned to specific branch/scheme
+            # This is OK - they'll just have no filtering applied
+            pass
     
     # Apply role-based filtering
     if user_role == 'scheme_manager' and user_scheme:
         policies = policies.filter(scheme=user_scheme)
     elif user_role == 'branch_owner' and user_branch:
         policies = policies.filter(scheme__branch=user_branch)
-    elif user_role not in ['internal_admin', 'compliance_auditor']:
+    elif 'Internal Admin' not in user_groups and 'Compliance Auditor' not in user_groups:
         # For regular users or agents, only show their own policies
         if hasattr(request.user, 'agent'):
             policies = policies.filter(agent=request.user.agent)
@@ -86,16 +98,16 @@ def find_policy(request):
             policies = policies.filter(is_trial=True)
     
     # Apply branch filter if selected and user has permission
-    if branch_id and branch_id.isdigit() and user_role in ['internal_admin', 'compliance_auditor']:
+    if branch_id and branch_id.isdigit() and ('Internal Admin' in user_groups or 'Compliance Auditor' in user_groups):
         policies = policies.filter(scheme__branch_id=branch_id)
     
     # Apply scheme filter if selected and user has permission
     if scheme_id and scheme_id.isdigit():
         # Check if user has permission to view this scheme
-        if user_role in ['internal_admin', 'compliance_auditor'] or \
-           (user_role == 'branch_owner' and user_branch and \
+        if 'Internal Admin' in user_groups or 'Compliance Auditor' in user_groups or \
+           ('BranchOwner' in user_groups and user_branch and \
             Scheme.objects.filter(id=scheme_id, branch=user_branch).exists()) or \
-           (user_role == 'scheme_manager' and user_scheme and user_scheme.id == int(scheme_id)):
+           ('Scheme Manager' in user_groups and user_scheme and user_scheme.id == int(scheme_id)):
             policies = policies.filter(scheme_id=scheme_id)
     
     # Apply agent filter if selected

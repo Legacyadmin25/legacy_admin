@@ -1,12 +1,12 @@
-# settings_app/models.py (FULL corrected and expanded version)
+# settings_app/models.py
 
-from django.db import models
 from django.conf import settings
+from django.db import models
 from django.utils import timezone
+from django.core import signing
+from django.urls import reverse
 from django.contrib.auth import get_user_model
-
-# Get the custom User model
-User = get_user_model()
+from encrypted_model_fields.fields import EncryptedCharField
 
 # ─── SCHEME ─────────────────────────────────────────────────────────────
 
@@ -75,8 +75,8 @@ class Agent(models.Model):
     surname = models.CharField(max_length=100)
     contact_number = models.CharField(max_length=10)
     email = models.EmailField()
-    id_number = models.CharField(max_length=13, blank=True, null=True)
-    passport_number = models.CharField(max_length=50, blank=True, null=True)
+    id_number = EncryptedCharField(max_length=13, blank=True, null=True)  # 🔒 ENCRYPTED
+    passport_number = EncryptedCharField(max_length=50, blank=True, null=True)  # 🔒 ENCRYPTED
     commission_percentage = models.FloatField(blank=True, null=True)
     commission_rand_value = models.DecimalField(
         max_digits=10,
@@ -137,9 +137,12 @@ class Agent(models.Model):
         return domain + self.get_diy_url()
 
     def save(self, *args, **kwargs):
+        # First save the agent to get a primary key
+        super().save(*args, **kwargs)
+        
+        # Only then generate a DIY token if needed
         if not self.diy_token:
             self.generate_diy_token()
-        super().save(*args, **kwargs)
 
 
 
@@ -152,6 +155,7 @@ class Underwriter(models.Model):
     contact_person = models.CharField(max_length=255)
     contact_number = models.CharField(max_length=20)
     email = models.EmailField()
+    is_active = models.BooleanField(default=True, help_text="Designates whether this underwriter is active.")
     address1 = models.CharField(max_length=255, blank=True, null=True)
     address2 = models.CharField(max_length=255, blank=True, null=True)
     address3 = models.CharField(max_length=255, blank=True, null=True)
