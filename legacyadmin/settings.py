@@ -121,18 +121,14 @@ WSGI_APPLICATION = 'legacyadmin.wsgi.application'
 # ─── Database ────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': BASE_DIR / 'db.sqlite3' if config('DB_ENGINE', default='django.db.backends.sqlite3') == 'django.db.backends.sqlite3' else config('DB_NAME', default='legacyadmin'),
-        'USER': config('DB_USER', default=''),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default=''),
-        'PORT': config('DB_PORT', default=''),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'your_cpanel_db_name',
+        'USER': 'your_cpanel_db_user',
+        'PASSWORD': 'your_db_password',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
-
-# For production with PostgreSQL, set in .env:
-# DB_ENGINE=django.db.backends.postgresql
-# DB_NAME=legacyadmin
 # DB_USER=postgres
 # DB_PASSWORD=<secure-password>
 # DB_HOST=your-db-host.com
