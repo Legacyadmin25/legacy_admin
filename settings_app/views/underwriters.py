@@ -22,6 +22,11 @@ class UnderwriterListView(LoginRequiredMixin, ListView):
     template_name = 'settings_app/underwriter_setup.html'
     context_object_name = 'underwriters'
     paginate_by = 10  
+
+    def get_template_names(self):
+        if self.request.headers.get('HX-Request') == 'true':
+            return ['settings_app/partials/underwriter_table.html']
+        return [self.template_name]
     
     def get_queryset(self):
         queryset = Underwriter.objects.all()
