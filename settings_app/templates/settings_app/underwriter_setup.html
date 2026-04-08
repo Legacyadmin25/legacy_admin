@@ -1,6 +1,38 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
 
+{% block extra_css %}
+<style>
+  .modal {
+    display: none;
+  }
+
+  .modal.is-open,
+  .modal[aria-hidden="false"] {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .modal__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal__container {
+    width: 100%;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+ </style>
+{% endblock %}
+
 {% block content %}
 <div class="w-full px-6 py-8">
 
