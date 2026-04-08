@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from django.views.static import serve
 from dashboard.views import index as dashboard_home
 from .health import health_check, readiness_probe, liveness_probe
 from .metrics import metrics_view
@@ -52,8 +53,8 @@ urlpatterns = [
     path('reports/', include(('reports.urls', 'reports'), namespace='reports')),
 ]
 
-# Serve media in development
-from django.conf import settings
-from django.conf.urls.static import static
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve uploaded media files. Shared hosting does not provide a separate media
+# alias, so Django needs to expose MEDIA_URL in production as well.
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
