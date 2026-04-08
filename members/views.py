@@ -1,5 +1,4 @@
 import json
-from weasyprint import HTML
 from django.shortcuts import render, redirect, get_object_or_404, Http404
 from django.urls import reverse
 from django.db.models import Q, Sum
@@ -28,6 +27,16 @@ from members.utils import luhn_check, validate_sa_id as validate_id_number
 from utils.easypay import generate_easypay_number
 from schemes.models import Scheme
 from schemes.models import Plan
+
+
+def _require_weasyprint_html():
+    try:
+        from weasyprint import HTML
+    except ImportError as exc:
+        raise RuntimeError(
+            'WeasyPrint is not installed or its system dependencies are unavailable.'
+        ) from exc
+    return HTML
 
 # Define the step range for the application process
 STEP_RANGE = range(1, 10)  # Steps 1-9

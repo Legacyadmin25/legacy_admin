@@ -5,9 +5,18 @@ from io import BytesIO
 from django.template.loader import get_template
 from django.http import HttpResponse
 from django.conf import settings
-from weasyprint import HTML, CSS
 from django.core.files.base import ContentFile
 from django.db.models import Sum
+
+
+def _get_weasyprint():
+    try:
+        from weasyprint import HTML, CSS
+    except ImportError as exc:
+        raise RuntimeError(
+            'WeasyPrint is not installed or its system dependencies are unavailable.'
+        ) from exc
+    return HTML, CSS
 
 def generate_policy_document(policy):
     """
@@ -67,6 +76,7 @@ def generate_policy_document(policy):
     # Render template
     template = get_template('members/pdf/policy_document.html')
     html_string = template.render(context)
+    HTML, CSS = _get_weasyprint()
     
     # Generate PDF using WeasyPrint
     pdf_file = BytesIO()

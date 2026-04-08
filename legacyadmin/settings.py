@@ -1,31 +1,55 @@
 import os
 from pathlib import Path
-from decouple import config, Csv
 
-# Load environment variables from .env file
-load_dotenv = lambda: None  # Decouple handles this automatically
+# cPanel injects environment variables directly. Locally, `.env` values can be
+# provided by the shell or the active process environment.
+
+
+def env(name, default=None):
+    return os.getenv(name, default)
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_int(name, default=0):
+    value = os.getenv(name)
+    if value is None or value == '':
+        return default
+    return int(value)
+
+
+def env_csv(name, default=''):
+    value = os.getenv(name, default)
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
 
 # ─── Base directory ───────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
 # Load from environment, with sensible defaults for development
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
-DEBUG = config('DEBUG', default='False', cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+SECRET_KEY = env('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
+DEBUG = env_bool('DEBUG', False)
+ALLOWED_HOSTS = env_csv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
 # ─── HTTPS & SECURITY HEADERS ─────────────────────────────────────────────────
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default='False', cast=bool)
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default='False', cast=bool)
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default='False', cast=bool)
-SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default='0', cast=int)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default='False', cast=bool)
-SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default='False', cast=bool)
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', False)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', False)
+SECURE_HSTS_SECONDS = env_int('SECURE_HSTS_SECONDS', 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
+SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', False)
 
 # ─── FIELD ENCRYPTION KEY FOR PII (CRITICAL: CHANGE THIS!) ────────────────────
 # Generate a new key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key())"
 # Store in .env as: FIELD_ENCRYPTION_KEY=<generated-key>
-FIELD_ENCRYPTION_KEY = config('FIELD_ENCRYPTION_KEY', default='dev-key-only-change-in-production')
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY', 'dev-key-only-change-in-production')
 # Note: In production, ensure a proper key is set in .env
 
 # When going to production, in .env set:
@@ -121,12 +145,12 @@ WSGI_APPLICATION = 'legacyadmin.wsgi.application'
 # ─── Database ────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'your_cpanel_db_name',
-        'USER': 'your_cpanel_db_user',
-        'PASSWORD': 'your_db_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': env('DB_ENGINE', 'django.db.backends.mysql'),
+        'NAME': env('DB_NAME', 'your_cpanel_db_name'),
+        'USER': env('DB_USER', 'your_cpanel_db_user'),
+        'PASSWORD': env('DB_PASSWORD', 'your_db_password'),
+        'HOST': env('DB_HOST', 'localhost'),
+        'PORT': env('DB_PORT', '3306'),
     }
 }
 # DB_USER=postgres
@@ -166,32 +190,32 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # ─── OpenAI API Key for AI Reporting ──────────────────────────────────────────
-OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+OPENAI_API_KEY = env('OPENAI_API_KEY', '')
 
 # ─── Custom settings ──────────────────────────────────────────────────────────
-EASYPAY_URL             = config('EASYPAY_URL', default="https://www.easypay.co.za/api/v1/payment/create")
-EASYPAY_API_KEY         = config('EASYPAY_API_KEY', default='')
-EASY_PAY_RECEIVER_ID    = config('EASY_PAY_RECEIVER_ID', default="5047")
-EASY_PAY_ACCOUNT_LENGTH = config('EASY_PAY_ACCOUNT_LENGTH', default='12', cast=int)
-EASY_PAY_OUTPUT_DIR     = config('EASY_PAY_OUTPUT_DIR', default="/tmp/")
-EASYPAY_API_VERSION     = config('EASYPAY_API_VERSION', default="1.0")
-EASYPAY_PROCESS         = config('EASYPAY_PROCESS', default="Legacy Admin")
+EASYPAY_URL = env('EASYPAY_URL', 'https://www.easypay.co.za/api/v1/payment/create')
+EASYPAY_API_KEY = env('EASYPAY_API_KEY', '')
+EASY_PAY_RECEIVER_ID = env('EASY_PAY_RECEIVER_ID', '5047')
+EASY_PAY_ACCOUNT_LENGTH = env_int('EASY_PAY_ACCOUNT_LENGTH', 12)
+EASY_PAY_OUTPUT_DIR = env('EASY_PAY_OUTPUT_DIR', '/tmp/')
+EASYPAY_API_VERSION = env('EASYPAY_API_VERSION', '1.0')
+EASYPAY_PROCESS = env('EASYPAY_PROCESS', 'Legacy Admin')
 
 # ─── SMS Configuration ────────────────────────────────────────────────────────
-SMS_API_KEY    = config('SMS_API_KEY', default='')
-SMS_API_SECRET = config('SMS_API_SECRET', default='')
-BULKSMS_USERNAME = config('BULKSMS_USERNAME', default='')
-BULKSMS_PASSWORD = config('BULKSMS_PASSWORD', default='')
+SMS_API_KEY = env('SMS_API_KEY', '')
+SMS_API_SECRET = env('SMS_API_SECRET', '')
+BULKSMS_API_TOKEN = env('BULKSMS_API_TOKEN', '')
+BULKSMS_USERNAME = env('BULKSMS_USERNAME', '')
+BULKSMS_PASSWORD = env('BULKSMS_PASSWORD', '')
 
 # ─── Stripe (for future use) ──────────────────────────────────────────────────
-STRIPE_TEST_PUBLIC_KEY = config('STRIPE_TEST_PUBLIC_KEY', default='')
-STRIPE_TEST_SECRET_KEY = config('STRIPE_TEST_SECRET_KEY', default='')
+STRIPE_TEST_PUBLIC_KEY = env('STRIPE_TEST_PUBLIC_KEY', '')
+STRIPE_TEST_SECRET_KEY = env('STRIPE_TEST_SECRET_KEY', '')
 
 # ─── Twilio (for WhatsApp) ────────────────────────────────────────────────────
-TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
-TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
-TWILIO_PHONE_NUMBER = config('TWILIO_PHONE_NUMBER', default='')
-STRIPE_TEST_SECRET_KEY = 'your-secret-key'
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', '')
 
 # Django Admin Interface Customization (For branding)
 DJANGO_ADMIN_INTERFACE = {
@@ -226,19 +250,19 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # ─── Email settings for PDF attachments and notifications
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.example.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@example.com'
-EMAIL_HOST_PASSWORD = 'your-password'
-DEFAULT_FROM_EMAIL = 'noreply@example.com'
+EMAIL_BACKEND = env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', 'localhost')
+EMAIL_PORT = env_int('EMAIL_PORT', 587)
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'noreply@legacyadmin.co.za')
 
 # ─── OpenAI API Configuration ───────────────────────────────────────────────
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_API_KEY = env('OPENAI_API_KEY', '')
 
 # Set a default model if not specified in environment
-DEFAULT_OPENAI_MODEL = os.getenv('DEFAULT_OPENAI_MODEL', 'gpt-3.5-turbo')
+DEFAULT_OPENAI_MODEL = env('DEFAULT_OPENAI_MODEL', 'gpt-4o')
 
 # ─── Authentication redirects ─────────────────────────────────────────────────
 # Always use literal URL paths for login/logout so Django never tries to reverse() them:

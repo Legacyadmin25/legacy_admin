@@ -7,11 +7,20 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.utils import timezone
-from weasyprint import HTML, CSS
 
 from payments.models import Payment, PaymentReceipt
 
 logger = logging.getLogger(__name__)
+
+
+def _get_weasyprint():
+    try:
+        from weasyprint import HTML, CSS
+    except ImportError as exc:
+        raise RuntimeError(
+            'WeasyPrint is not installed or its system dependencies are unavailable.'
+        ) from exc
+    return HTML, CSS
 
 def generate_payment_receipt_pdf(payment):
     """
@@ -44,6 +53,7 @@ def generate_payment_receipt_pdf(payment):
     # Render HTML template
     template = get_template('payments/pdf/payment_receipt.html')
     html_string = template.render(context)
+    HTML, CSS = _get_weasyprint()
     
     # Create PDF
     pdf_file = BytesIO()

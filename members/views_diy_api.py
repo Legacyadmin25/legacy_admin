@@ -10,8 +10,6 @@ import random
 import string
 import datetime
 import re
-import pytesseract
-from PIL import Image
 import io
 import base64
 import openai
@@ -21,9 +19,20 @@ from .models_diy import DIYApplication, DIYApplicant
 # Configure OpenAI API key
 openai.api_key = settings.OPENAI_API_KEY
 
-# Configure Tesseract path if needed
-if hasattr(settings, 'TESSERACT_CMD'):
-    pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
+
+def _get_ocr_dependencies():
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError as exc:
+        raise RuntimeError(
+            'OCR dependencies are not installed on this server.'
+        ) from exc
+
+    if hasattr(settings, 'TESSERACT_CMD'):
+        pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
+
+    return pytesseract, Image
 
 
 @require_POST
@@ -31,6 +40,8 @@ if hasattr(settings, 'TESSERACT_CMD'):
 def process_id_document(request):
     """Process an ID document using OCR to extract information"""
     try:
+        pytesseract, Image = _get_ocr_dependencies()
+
         # Get the uploaded image
         image_file = request.FILES.get('image')
         if not image_file:
@@ -53,7 +64,8 @@ def process_id_document(request):
         }
         
         return JsonResponse({'success': True, 'data': result})
-    
+    except RuntimeError as exc:
+        return JsonResponse({'error': str(exc)}, status=503)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
