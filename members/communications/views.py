@@ -12,6 +12,6 @@ def sms_sending(request):
         # TODO: handle sending logic here
 
         messages.success(request, f'SMS sent to {cellphone}')
-        return redirect('messaging:sms_sending')
+        return redirect('settings:sms_sending')
 
-    return render(request, 'messaging/sms_sending.html', {'form': form})
+    return render(request, 'communications/sms_sending.html', {'form': form})
