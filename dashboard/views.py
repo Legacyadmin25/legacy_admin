@@ -1,6 +1,6 @@
 # dashboard/views.py
 
-from datetime import date
+from datetime import date, datetime, time
 import calendar
 from collections import OrderedDict
 from branches.models import Branch
@@ -24,6 +24,24 @@ from schemes.models import Plan, Scheme
 from settings_app.models import Agent, Underwriter
 from reports.models import Report
 from config.permissions import filter_by_user_scope, get_user_schemes, get_user_branches
+
+
+def get_active_policies_queryset(queryset=None):
+    if queryset is None:
+        queryset = Policy.objects.all()
+
+    today = timezone.now().date()
+    return queryset.exclude(lapse_warning='lapsed').filter(
+        Q(cover_date__isnull=True) | Q(cover_date__gte=today)
+    )
+
+
+def normalize_activity_date(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, time.min)
+    return datetime.min
 
 
 # ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
@@ -310,7 +328,7 @@ def admin_dashboard(request):
     inactive_plans = total_plans - active_plans
     
     total_policies = Policy.objects.count()
-    active_policies = Policy.objects.filter(is_active=True).count()
+    active_policies = get_active_policies_queryset().count()
     inactive_policies = total_policies - active_policies
     
     total_members = Member.objects.count()
@@ -336,30 +354,30 @@ def admin_dashboard(request):
         
         # Get premium sum for this month
         month_policies = Policy.objects.filter(
-            created__year=year,
-            created__month=month
+            created_at__year=year,
+            created_at__month=month
         )
-        monthly_premium = sum(policy.premium or 0 for policy in month_policies)
+        monthly_premium = sum(policy.premium_amount or 0 for policy in month_policies)
         premium_data.append(monthly_premium)
         
         # Count policies created this month
         policy_counts.append(month_policies.count())
     
     # Recent activity - new policies, plan changes, etc.
-    recent_policies = Policy.objects.order_by('-created')[:10]
-    recent_plans = Plan.objects.order_by('-modified_date')[:10]
+    recent_policies = Policy.objects.select_related('member', 'plan').order_by('-created_at')[:10]
+    recent_plans = Plan.objects.select_related('scheme').order_by('-modified')[:10]
     
     # Combine and sort by date
     recent_activities = [
-        {'type': 'policy', 'item': policy, 'date': policy.created, 'action': 'created'}
+        {'type': 'policy', 'item': policy, 'date': policy.created_at, 'action': 'created'}
         for policy in recent_policies
     ] + [
-        {'type': 'plan', 'item': plan, 'date': plan.modified_date, 'action': 'modified'}
+        {'type': 'plan', 'item': plan, 'date': plan.modified, 'action': 'modified'}
         for plan in recent_plans
     ]
     
     # Sort by date (newest first) and limit to 10
-    recent_activities.sort(key=lambda x: x['date'], reverse=True)
+    recent_activities.sort(key=lambda x: normalize_activity_date(x['date']), reverse=True)
     recent_activities = recent_activities[:10]
     
     context = {
@@ -372,9 +390,9 @@ def admin_dashboard(request):
         'total_members': total_members,
         'total_agents': total_agents,
         'total_underwriters': total_underwriters,
-        'months_json': months,
-        'premium_data_json': premium_data,
-        'policy_counts_json': policy_counts,
+        'months_json': json.dumps(months, cls=DjangoJSONEncoder),
+        'premium_data_json': json.dumps(premium_data, cls=DjangoJSONEncoder),
+        'policy_counts_json': json.dumps(policy_counts, cls=DjangoJSONEncoder),
         'recent_activities': recent_activities,
     }
     
@@ -423,7 +441,7 @@ def export_dashboard_excel(request):
     
     # Policies data
     total_policies = Policy.objects.count()
-    active_policies = Policy.objects.filter(is_active=True).count()
+    active_policies = get_active_policies_queryset().count()
     inactive_policies = total_policies - active_policies
     
     ws.cell(row=row, column=1, value="Policies")
