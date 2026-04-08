@@ -62,6 +62,7 @@ def convert_application_to_policy(application, reviewed_by=None):
                 scheme=application.scheme,
                 plan=application.plan,
                 payment_method=application.payment_method,
+                underwritten_by=application.enrollment_link.agent if application.enrollment_link and application.enrollment_link.agent else None,
                 is_complete=True,
                 created_at=timezone.now(),
                 updated_at=timezone.now(),

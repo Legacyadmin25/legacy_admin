@@ -79,6 +79,49 @@
           <div class="lg:col-span-2">
             <label class="block font-semibold">Select Branch</label>
             {% render_field form.branch class="w-full px-4 py-2 border rounded" %}
+            {% if form.branch.errors %}
+              <p class="text-sm text-red-600 mt-1">{{ form.branch.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-lg font-semibold">Scheme Assignment</h2>
+        {{ form.assigned_schemes.errors }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for checkbox in form.assigned_schemes %}
+            <label class="flex items-center space-x-2">
+              {{ checkbox.tag }}
+              <span class="text-sm text-gray-800">{{ checkbox.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="space-y-4 border rounded-lg p-4 bg-green-50/40">
+        <h2 class="text-lg font-semibold">Client Signup Link</h2>
+        <p class="text-sm text-gray-600">
+          Generate a public enrollment link that keeps the client under the selected branch and scheme. If this user has a linked agent record and the scheme matches, the final policy will attach to that agent automatically.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="lg:col-span-2 flex items-start gap-3">
+            {% render_field form.generate_enrollment_link class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded" %}
+            <div>
+              <label class="block font-semibold">Generate signup link after saving</label>
+              <p class="text-sm text-gray-600">Turn this on when you want the system to create a shareable policy enrollment link for this user.</p>
+            </div>
+          </div>
+          <div class="lg:col-span-2">
+            <label class="block font-semibold">Signup Link Scheme</label>
+            {% render_field form.enrollment_scheme class="w-full px-4 py-2 border rounded" %}
+            {% if form.enrollment_scheme.errors %}
+              <p class="text-sm text-red-600 mt-1">{{ form.enrollment_scheme.errors.0 }}</p>
+            {% endif %}
+            {% if form.enrollment_scheme.help_text %}
+              <p class="text-sm text-gray-500 mt-1">{{ form.enrollment_scheme.help_text }}</p>
+            {% endif %}
           </div>
         </div>
       </section>
@@ -111,6 +154,35 @@
     </form>
   </div>
 
+  {% if generated_enrollment_url or latest_enrollment_url %}
+  <div class="bg-white p-6 rounded-lg shadow mt-8">
+    <h2 class="text-xl font-bold mb-4">Client Signup Link</h2>
+    {% if generated_enrollment_url %}
+      <p class="text-sm text-green-700 mb-3">A new signup link was generated for this user.</p>
+    {% else %}
+      <p class="text-sm text-gray-600 mb-3">Latest available signup link for this user.</p>
+    {% endif %}
+
+    {% with active_link=generated_enrollment_link|default:latest_enrollment_link active_url=generated_enrollment_url|default:latest_enrollment_url %}
+    <div class="space-y-4">
+      <div>
+        <label class="block font-semibold mb-1">Shareable Link</label>
+        <div class="flex flex-col md:flex-row gap-3">
+          <input id="generatedEnrollmentLink" type="text" readonly value="{{ active_url }}" class="w-full px-4 py-2 border rounded bg-gray-50">
+          <button type="button" id="copyEnrollmentLink" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Copy Link</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
+        <div><span class="font-semibold">Branch:</span> {{ active_link.branch.name }}</div>
+        <div><span class="font-semibold">Scheme:</span> {{ active_link.scheme.name }}</div>
+        <div><span class="font-semibold">Linked Agent:</span> {{ active_link.agent.full_name|default:"Not attached" }}</div>
+      </div>
+    </div>
+    {% endwith %}
+  </div>
+  {% endif %}
+
   <!-- Existing Users -->
   <div class="bg-white p-6 rounded-lg shadow mt-8">
     <h2 class="text-xl font-bold mb-4">Existing Users</h2>
@@ -120,6 +192,7 @@
           <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Username</th>
           <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Name</th>
           <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Branch</th>
+          <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Schemes</th>
           <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Active</th>
           <th class="px-6 py-2 text-left font-medium text-gray-500 uppercase">Joined</th>
           <th class="px-6 py-2 text-right font-medium text-gray-500 uppercase">Actions</th>
@@ -130,7 +203,14 @@
         <tr>
           <td class="px-6 py-2">{{ u.username }}</td>
           <td class="px-6 py-2">{{ u.first_name }} {{ u.last_name }}</td>
-          <td class="px-6 py-2">{{ u.userprofile.branch.name|default:"—" }}</td>
+          <td class="px-6 py-2">{{ u.branch.name|default:u.userprofile.branch.name|default:"—" }}</td>
+          <td class="px-6 py-2">
+            {% for scheme in u.assigned_schemes.all %}
+              <span class="inline-block px-2 py-1 mb-1 mr-1 rounded bg-gray-100 text-xs text-gray-700">{{ scheme.name }}</span>
+            {% empty %}
+              <span class="text-gray-400">—</span>
+            {% endfor %}
+          </td>
           <td class="px-6 py-2">
             {% if u.is_active %}
               <span class="text-green-600 font-semibold">Yes</span>
@@ -146,7 +226,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="px-6 py-4 text-center text-gray-500">No users yet.</td>
+          <td colspan="7" class="px-6 py-4 text-center text-gray-500">No users yet.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -154,4 +234,34 @@
   </div>
 
 </div>
+
+{% if generated_enrollment_url or latest_enrollment_url %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const copyButton = document.getElementById('copyEnrollmentLink');
+    const linkField = document.getElementById('generatedEnrollmentLink');
+
+    if (!copyButton || !linkField) {
+      return;
+    }
+
+    copyButton.addEventListener('click', async function () {
+      try {
+        await navigator.clipboard.writeText(linkField.value);
+        copyButton.textContent = 'Copied';
+        window.setTimeout(function () {
+          copyButton.textContent = 'Copy Link';
+        }, 1500);
+      } catch (error) {
+        linkField.select();
+        document.execCommand('copy');
+        copyButton.textContent = 'Copied';
+        window.setTimeout(function () {
+          copyButton.textContent = 'Copy Link';
+        }, 1500);
+      }
+    });
+  });
+</script>
+{% endif %}
 {% endblock %}

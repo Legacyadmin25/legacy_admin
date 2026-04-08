@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from settings_app.models import UserProfile, Branch
+from django.urls import reverse, reverse_lazy
+from settings_app.models import UserProfile, Branch as LegacyBranch
 from settings_app.forms import UserSetupForm
 from django.http import HttpResponse
 from io import TextIOWrapper
@@ -12,10 +12,76 @@ import csv
 from django.contrib.auth.decorators import login_required  # <-- Add this import
 from django.contrib.auth.models import Group  # <-- Add this import
 from settings_app.models import UserImportLog  # <-- Add this import
+from branches.models import Branch
+from members.models_public_enrollment import EnrollmentLink
+
+User = get_user_model()
+
+
+def _match_legacy_branch(branch):
+    if not branch:
+        return None
+
+    if branch.code:
+        legacy_branch = LegacyBranch.objects.filter(code=branch.code).first()
+        if legacy_branch:
+            return legacy_branch
+
+    return LegacyBranch.objects.filter(name__iexact=branch.name).first()
+
+
+class UserEnrollmentLinkMixin:
+    def _get_latest_enrollment_link(self, user):
+        agent = getattr(user, 'agent', None)
+        if not agent:
+            return None
+        return agent.enrollment_links.select_related('scheme', 'branch', 'agent').order_by('-created_at').first()
+
+    def _build_enrollment_link_context(self, user=None):
+        context = {}
+        generated_link_id = self.request.GET.get('generated_link')
+        if generated_link_id:
+            link = EnrollmentLink.objects.select_related('scheme', 'branch', 'agent').filter(pk=generated_link_id).first()
+            if link:
+                context['generated_enrollment_link'] = link
+                context['generated_enrollment_url'] = link.get_apply_url(self.request)
+
+        if user and 'generated_enrollment_link' not in context:
+            latest_link = self._get_latest_enrollment_link(user)
+            if latest_link:
+                context['latest_enrollment_link'] = latest_link
+                context['latest_enrollment_url'] = latest_link.get_apply_url(self.request)
+
+        return context
+
+    def _maybe_create_enrollment_link(self, user, form):
+        if not form.cleaned_data.get('generate_enrollment_link'):
+            return None
+
+        scheme = form.cleaned_data.get('enrollment_scheme')
+        branch = form.cleaned_data.get('branch')
+        agent = getattr(user, 'agent', None)
+
+        if agent and agent.scheme_id and agent.scheme_id != scheme.id:
+            messages.warning(
+                self.request,
+                'Signup link created without attaching the linked agent because the selected scheme does not match the agent record.'
+            )
+            agent = None
+
+        link = EnrollmentLink.objects.create(
+            scheme=scheme,
+            branch=branch,
+            agent=agent,
+            created_by=self.request.user,
+        )
+
+        messages.success(self.request, 'Client signup link generated successfully.')
+        return link
 
 
 # ─── User List View ────────────────────────────────────────────────────────
-class UserListView(LoginRequiredMixin, ListView):
+class UserListView(UserEnrollmentLinkMixin, LoginRequiredMixin, ListView):
     model = User
     template_name = 'settings_app/user_setup.html'
     context_object_name = 'users'
@@ -24,11 +90,15 @@ class UserListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = UserSetupForm()
+        ctx.update(self._build_enrollment_link_context())
         return ctx
+
+    def get_queryset(self):
+        return User.objects.all().select_related('branch').prefetch_related('assigned_schemes', 'groups')
 
 
 # ─── User Create View ───────────────────────────────────────────────────────
-class UserCreateView(LoginRequiredMixin, CreateView):
+class UserCreateView(UserEnrollmentLinkMixin, LoginRequiredMixin, CreateView):
     model = User
     form_class = UserSetupForm
     template_name = 'settings_app/user_setup.html'
@@ -39,9 +109,16 @@ class UserCreateView(LoginRequiredMixin, CreateView):
         ctx['editing'] = False
         return ctx
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        link = self._maybe_create_enrollment_link(self.object, form)
+        if link:
+            return redirect(f"{reverse('settings:user_edit', args=[self.object.pk])}?generated_link={link.pk}")
+        return response
+
 
 # ─── User Update View ───────────────────────────────────────────────────────
-class UserUpdateView(LoginRequiredMixin, UpdateView):
+class UserUpdateView(UserEnrollmentLinkMixin, LoginRequiredMixin, UpdateView):
     model = User
     form_class = UserSetupForm
     template_name = 'settings_app/user_setup.html'
@@ -50,7 +127,15 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['editing'] = True
+        ctx.update(self._build_enrollment_link_context(self.object))
         return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        link = self._maybe_create_enrollment_link(self.object, form)
+        if link:
+            return redirect(f"{reverse('settings:user_edit', args=[self.object.pk])}?generated_link={link.pk}")
+        return response
 
 
 # ─── User Delete View ───────────────────────────────────────────────────────
@@ -110,7 +195,7 @@ def import_users_view(request):
                 branch_name = row.get('branch_name', '').strip()
                 branch = Branch.objects.filter(name__iexact=branch_name).first()
                 profile, _ = UserProfile.objects.get_or_create(user=user)
-                profile.branch           = branch
+                profile.branch           = _match_legacy_branch(branch)
                 profile.id_number        = row.get('id_number', '').strip()
                 profile.cell_no          = row.get('cell_no', '').strip()
                 profile.physical_address = row.get('physical_address', '').strip()
@@ -119,6 +204,9 @@ def import_users_view(request):
                 profile.province         = row.get('province', '').strip()
                 profile.code             = row.get('code', '').strip()
                 profile.save()
+
+                user.branch = branch
+                user.save(update_fields=['branch'])
 
                 context['success'] += 1
 
