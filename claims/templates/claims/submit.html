@@ -15,7 +15,7 @@
     
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
 
-    {% if user|has_group:"Agent,Scheme Manager,Admin" %}
+    {% if user.is_superuser or user.is_staff or user|has_group:"Claims Officer" or user|has_group:"Agent" %}
     <form method="post" enctype="multipart/form-data" class="space-y-6" id="claimForm">
         {% csrf_token %}
         
@@ -189,7 +189,7 @@
             </div>
             <div class="ml-3">
                 <p class="text-sm text-yellow-700">
-                    You don't have permission to submit claims. Only Agents, Scheme Managers, and Administrators can submit claims.
+                    You don't have permission to submit claims. Only superusers, staff, Claims Officers, and Agents can submit claims.
                 </p>
             </div>
         </div>
