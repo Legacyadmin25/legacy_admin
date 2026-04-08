@@ -121,7 +121,7 @@ class AuditLog(models.Model):
         
         # Get content type and object ID if instance is provided
         content_type = None
-        object_id = None
+        object_id = ''
         object_repr = ''
         
         if instance:
