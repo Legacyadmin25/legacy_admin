@@ -12,7 +12,6 @@ from members.models import Member, Policy, Dependent, Beneficiary
 from members.models_public_enrollment import PublicApplication
 from branches.models import Bank
 from payments.models import Payment
-from members.policy_documents import send_policy_document_email, send_approval_notification
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +92,7 @@ def convert_application_to_policy(application, reviewed_by=None):
             
             # Send policy document (PDF) to applicant
             try:
+                from members.policy_documents import send_policy_document_email
                 send_policy_document_email(application)
             except Exception as e:
                 logger.error(f"Failed to send policy document email: {str(e)}")

@@ -4,14 +4,22 @@ Generates PDF policy documents and sends via email to clients
 """
 
 import io
+import importlib
 import logging
 from datetime import datetime
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
-from xhtml2pdf import pisa
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _get_pisa():
+    try:
+        module = importlib.import_module('xhtml2pdf')
+    except ImportError as exc:
+        raise RuntimeError('xhtml2pdf is required to generate policy PDFs') from exc
+    return module.pisa
 
 
 def generate_policy_pdf(application):
@@ -25,6 +33,8 @@ def generate_policy_pdf(application):
         bytes: PDF file content
     """
     try:
+        pisa = _get_pisa()
+
         # Prepare context data
         context = {
             'application': application,

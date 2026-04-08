@@ -1,11 +1,17 @@
 import os
-import io
 from django.views import View
 from django.http import HttpResponse, Http404
 from django.template.loader import get_template
-from xhtml2pdf import pisa
 from django.conf import settings
 from .models_diy import DIYApplication
+
+
+def _get_pisa():
+    try:
+        from xhtml2pdf import pisa
+    except ImportError:
+        return None
+    return pisa
 
 class GeneratePDFView(View):
     """
@@ -13,6 +19,10 @@ class GeneratePDFView(View):
     """
     def get(self, request, *args, **kwargs):
         application_id = request.GET.get('application_id')
+
+        pisa = _get_pisa()
+        if pisa is None:
+            return HttpResponse('PDF generation is not available on this server', status=503)
         
         if not application_id:
             return HttpResponse('Application ID is required', status=400)

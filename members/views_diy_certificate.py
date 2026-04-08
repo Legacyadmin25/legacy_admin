@@ -1,11 +1,8 @@
 import os
 import io
 from django.views import View
-from django.http import HttpResponse, Http404, HttpResponseForbidden
+from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.template.loader import get_template
-from xhtml2pdf import pisa
-from django.conf import settings
 from .models_diy import DIYApplication
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator

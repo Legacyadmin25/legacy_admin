@@ -4,6 +4,7 @@ crispy-bootstrap5==2025.4
 django-braces==1.17.0
 django-crispy-forms==2.4
 django-encrypted-model-fields==0.6.5
+django-import-export==4.3.7
 django-localflavor==4.0
 django-widget-tweaks==1.5.0
 numpy==2.2.5
@@ -11,10 +12,12 @@ openai==1.6.1
 openpyxl==3.1.5
 pandas==2.2.3
 Pillow==11.2.1
+prometheus-client==0.22.1
 PyMySQL==1.1.1
 pytesseract==0.3.10
 python-dotenv==1.0.0
 python-stdnum==2.0
+redis==6.0.0
 requests==2.32.3
 WeasyPrint==65.1
 whitenoise==6.9.0
