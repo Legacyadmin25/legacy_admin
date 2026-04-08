@@ -92,7 +92,7 @@ from django.contrib.auth.models import Group
 User = get_user_model()
 
 # Constants
-DEFAULT_REDIRECT_URL = reverse_lazy('accounts:profile')
+DEFAULT_REDIRECT_URL = reverse_lazy('accounts:account:profile_update')
 LOGIN_URL = reverse_lazy('accounts:login')
 
 class RoleBasedLoginView(LoginView):
@@ -128,22 +128,22 @@ class RoleBasedLoginView(LoginView):
         if primary_group == 'Internal Admin':
             return reverse('accounts:dashboard:superuser_dashboard')
         elif primary_group == 'Administrator':
-            return reverse('accounts:admin_dashboard')
+            return reverse('accounts:dashboard:admin_dashboard')
         elif primary_group == 'BranchOwner':
-            return reverse('accounts:branch_dashboard')
+            return reverse('accounts:dashboard:branch_dashboard')
         elif primary_group == 'SchemeManager':
-            return reverse('accounts:scheme_dashboard')
+            return reverse('accounts:dashboard:scheme_dashboard')
         elif primary_group == 'Finance Officer':
-            return reverse('accounts:finance_dashboard')
+            return reverse('accounts:dashboard:finance_dashboard')
         elif primary_group == 'Claims Officer':
-            return reverse('accounts:claims_dashboard')
+            return reverse('accounts:dashboard:claims_dashboard')
         elif primary_group == 'Agent':
-            return reverse('accounts:agent_dashboard')
+            return reverse('accounts:dashboard:agent_dashboard')
         elif primary_group == 'Compliance Auditor':
-            return reverse('accounts:compliance_dashboard')
+            return reverse('accounts:dashboard:compliance_dashboard')
         
         # Default fallback
-        return reverse('accounts:profile')
+        return reverse('accounts:account:profile_update')
     
     def form_valid(self, form):
         """
@@ -179,7 +179,7 @@ class UserRegistrationView(FormView):
         Redirect to the home page if user is already authenticated.
         """
         if request.user.is_authenticated:
-            return redirect('accounts:profile')
+            return redirect('accounts:account:profile_update')
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -228,7 +228,7 @@ class EmailVerificationView(View):
                     extra_tags='alert-success'
                 )
                 
-                return redirect('accounts:profile')
+                return redirect('accounts:account:profile_update')
             
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             pass
@@ -274,7 +274,7 @@ class ProfileUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = User
     form_class = ProfileUpdateForm
     template_name = 'accounts/profile/update.html'
-    success_url = reverse_lazy('accounts:profile')
+    success_url = reverse_lazy('accounts:account:profile_update')
     success_message = 'Your profile has been updated successfully.'
     
     def get_object(self, queryset=None):
@@ -298,7 +298,7 @@ class EmailChangeView(LoginRequiredMixin, SuccessMessageMixin, FormView):
     """
     template_name = 'accounts/profile/email_change.html'
     form_class = EmailChangeForm
-    success_url = reverse_lazy('accounts:profile')
+    success_url = reverse_lazy('accounts:account:profile_update')
     success_message = 'Your email address has been updated successfully.'
     
     def get_form_kwargs(self):
@@ -948,7 +948,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def get_success_url(self):
-        return reverse_lazy('accounts:profile_update')
+        return reverse_lazy('accounts:account:profile_update')
         
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
