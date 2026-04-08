@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 import uuid
@@ -21,7 +22,7 @@ class IncompleteApplication(models.Model):
     last_activity = models.DateTimeField(default=timezone.now)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     session_key = models.CharField(max_length=40, blank=True, null=True)
-    user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     
     class Meta:
         ordering = ['-updated_at']
