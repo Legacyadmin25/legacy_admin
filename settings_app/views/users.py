@@ -38,6 +38,13 @@ def _get_linked_agent(user):
         return None
 
 
+def _sync_profile_fields(profile, values):
+    profile_field_names = {field.name for field in profile._meta.fields}
+    for field_name, value in values.items():
+        if field_name in profile_field_names:
+            setattr(profile, field_name, value)
+
+
 class UserEnrollmentLinkMixin:
     def _get_latest_enrollment_link(self, user):
         agent = _get_linked_agent(user)
@@ -203,14 +210,16 @@ def import_users_view(request):
                 branch_name = row.get('branch_name', '').strip()
                 branch = Branch.objects.filter(name__iexact=branch_name).first()
                 profile, _ = UserProfile.objects.get_or_create(user=user)
-                profile.branch           = _match_legacy_branch(branch)
-                profile.id_number        = row.get('id_number', '').strip()
-                profile.cell_no          = row.get('cell_no', '').strip()
-                profile.physical_address = row.get('physical_address', '').strip()
-                profile.street           = row.get('street', '').strip()
-                profile.town             = row.get('town', '').strip()
-                profile.province         = row.get('province', '').strip()
-                profile.code             = row.get('code', '').strip()
+                _sync_profile_fields(profile, {
+                    'branch': _match_legacy_branch(branch),
+                    'id_number': row.get('id_number', '').strip(),
+                    'cell_no': row.get('cell_no', '').strip(),
+                    'physical_address': row.get('physical_address', '').strip(),
+                    'street': row.get('street', '').strip(),
+                    'town': row.get('town', '').strip(),
+                    'province': row.get('province', '').strip(),
+                    'code': row.get('code', '').strip(),
+                })
                 profile.save()
 
                 user.branch = branch

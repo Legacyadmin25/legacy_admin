@@ -364,6 +364,13 @@ class UserSetupForm(forms.ModelForm):
 
         return LegacyBranch.objects.filter(name__iexact=enrollment_branch.name).first()
 
+    @staticmethod
+    def _sync_profile_fields(profile, values):
+        profile_field_names = {field.name for field in profile._meta.fields}
+        for field_name, value in values.items():
+            if field_name in profile_field_names:
+                setattr(profile, field_name, value)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -389,13 +396,8 @@ class UserSetupForm(forms.ModelForm):
                 profile = self.instance.userprofile
                 if not self.fields['branch'].initial:
                     self.fields['branch'].initial = self._match_enrollment_branch(profile.branch)
-                self.fields['id_number'].initial        = profile.id_number
-                self.fields['cell_no'].initial          = profile.cell_no
-                self.fields['physical_address'].initial = profile.physical_address
-                self.fields['street'].initial           = profile.street
-                self.fields['town'].initial             = profile.town
-                self.fields['province'].initial         = profile.province
-                self.fields['code'].initial             = profile.code
+                for field_name in ('id_number', 'cell_no', 'physical_address', 'street', 'town', 'province', 'code'):
+                    self.fields[field_name].initial = getattr(profile, field_name, '')
             except UserProfile.DoesNotExist:
                 pass
 
@@ -478,14 +480,16 @@ class UserSetupForm(forms.ModelForm):
             user.assigned_schemes.set([assigned_scheme] if assigned_scheme else [])
 
             profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.branch           = self._match_legacy_branch(self.cleaned_data['branch'])
-            profile.id_number        = self.cleaned_data['id_number']
-            profile.cell_no          = self.cleaned_data['cell_no']
-            profile.physical_address = self.cleaned_data['physical_address']
-            profile.street           = self.cleaned_data['street']
-            profile.town             = self.cleaned_data['town']
-            profile.province         = self.cleaned_data['province']
-            profile.code             = self.cleaned_data['code']
+            self._sync_profile_fields(profile, {
+                'branch': self._match_legacy_branch(self.cleaned_data['branch']),
+                'id_number': self.cleaned_data['id_number'],
+                'cell_no': self.cleaned_data['cell_no'],
+                'physical_address': self.cleaned_data['physical_address'],
+                'street': self.cleaned_data['street'],
+                'town': self.cleaned_data['town'],
+                'province': self.cleaned_data['province'],
+                'code': self.cleaned_data['code'],
+            })
             profile.save()
 
         return user
