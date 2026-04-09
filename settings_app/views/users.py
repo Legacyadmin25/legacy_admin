@@ -45,6 +45,19 @@ def _sync_profile_fields(profile, values):
             setattr(profile, field_name, value)
 
 
+def _get_user_branch_name(user):
+    if getattr(user, 'branch', None):
+        return user.branch.name
+
+    try:
+        profile = user.userprofile
+    except (AttributeError, ObjectDoesNotExist):
+        return None
+
+    branch = getattr(profile, 'branch', None)
+    return getattr(branch, 'name', None)
+
+
 class UserEnrollmentLinkMixin:
     def _get_latest_enrollment_link(self, user):
         agent = _get_linked_agent(user)
@@ -105,11 +118,13 @@ class UserListView(UserEnrollmentLinkMixin, LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = UserSetupForm()
+        for user in ctx['users']:
+            user.branch_display_name = _get_user_branch_name(user)
         ctx.update(self._build_enrollment_link_context())
         return ctx
 
     def get_queryset(self):
-        return User.objects.all().select_related('branch').prefetch_related('assigned_schemes', 'groups')
+        return User.objects.all().select_related('branch').prefetch_related('assigned_schemes', 'groups').order_by('username')
 
 
 # ─── User Create View ───────────────────────────────────────────────────────
@@ -142,6 +157,10 @@ class UserUpdateView(UserEnrollmentLinkMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['editing'] = True
+        users = User.objects.all().select_related('branch').prefetch_related('assigned_schemes', 'groups').order_by('username')
+        for user in users:
+            user.branch_display_name = _get_user_branch_name(user)
+        ctx['users'] = users
         ctx.update(self._build_enrollment_link_context(self.object))
         return ctx
 
