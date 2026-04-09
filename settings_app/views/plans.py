@@ -35,12 +35,19 @@ class PlanListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('scheme')
+        selected_scheme = self.request.GET.get('scheme')
+        if selected_scheme:
+            queryset = queryset.filter(scheme_id=selected_scheme)
+        else:
+            queryset = queryset.none()
         return queryset.order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['active_plans_count'] = Plan.objects.filter(is_active=True).count()
         context['total_plans'] = Plan.objects.count()
+        context['schemes'] = Scheme.objects.order_by('name')
+        context['selected_scheme'] = self.request.GET.get('scheme', '')
         return context
 
 # [Previous functions and classes remain the same until PlanCreateView]
@@ -49,7 +56,7 @@ class PlanCreateView(LoginRequiredMixin, View):
     """View for creating a new plan with member tiers"""
     
     def get(self, request):
-        form = PlanForm(initial={
+        initial_data = {
             'main_cover': 0,
             'main_premium': 0,
             'main_age_from': 0,
@@ -65,7 +72,12 @@ class PlanCreateView(LoginRequiredMixin, View):
             'loyalty_programme': 0,
             'other_fees': 0,
             'is_active': True
-        })
+        }
+        selected_scheme = request.GET.get('scheme')
+        if selected_scheme:
+            initial_data['scheme'] = selected_scheme
+
+        form = PlanForm(initial=initial_data)
         
         # Initialize the formset with the prefix
         formset = PlanMemberTierFormSet(
