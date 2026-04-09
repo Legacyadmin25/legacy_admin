@@ -519,11 +519,11 @@ class GroupSelectForm(forms.Form):
 
 # ─── Plan Form ──────────────────────────────────────────────────────────
 class PlanForm(forms.ModelForm):
-    # Override the underwriter field to use a ModelChoiceField
-    underwriter = forms.ModelChoiceField(
-        queryset=Underwriter.objects.all().order_by('name'),
+    # Store the underwriter name directly on the plan model.
+    underwriter = forms.ChoiceField(
+        choices=[],
         label="Underwriter",
-        empty_label="— Select Underwriter —",
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-2 border rounded focus:ring',
         })
@@ -534,6 +534,19 @@ class PlanForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        underwriter_choices = [('', '— Select Underwriter —')]
+        underwriter_choices.extend(
+            (underwriter.name, underwriter.name)
+            for underwriter in Underwriter.objects.order_by('name')
+        )
+
+        current_underwriter = getattr(self.instance, 'underwriter', '') if self.instance else ''
+        if current_underwriter and all(value != current_underwriter for value, _ in underwriter_choices):
+            underwriter_choices.append((current_underwriter, current_underwriter))
+
+        self.fields['underwriter'].choices = underwriter_choices
+        self.fields['underwriter'].initial = current_underwriter
 
         # These values are derived from the main plan fields rendered in the UI.
         for field_name in ('premium', 'min_age', 'max_age'):
