@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from settings_app.utils.validation import is_strong_password
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -403,7 +403,10 @@ class UserSetupForm(forms.ModelForm):
             self.fields['security_groups'].initial = self.instance.groups.all()
             self.fields['is_active'].initial = self.instance.is_active
 
-            agent = getattr(self.instance, 'agent', None)
+            try:
+                agent = self.instance.agent
+            except (AttributeError, ObjectDoesNotExist):
+                agent = None
             if agent and agent.scheme:
                 self.fields['enrollment_scheme'].initial = agent.scheme
             elif self.instance.assigned_schemes.count() == 1:

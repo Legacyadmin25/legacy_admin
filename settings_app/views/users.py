@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
+from django.core.exceptions import ObjectDoesNotExist
 from settings_app.models import UserProfile, Branch as LegacyBranch
 from settings_app.forms import UserSetupForm
 from django.http import HttpResponse
@@ -30,9 +31,16 @@ def _match_legacy_branch(branch):
     return LegacyBranch.objects.filter(name__iexact=branch.name).first()
 
 
+def _get_linked_agent(user):
+    try:
+        return user.agent
+    except (AttributeError, ObjectDoesNotExist):
+        return None
+
+
 class UserEnrollmentLinkMixin:
     def _get_latest_enrollment_link(self, user):
-        agent = getattr(user, 'agent', None)
+        agent = _get_linked_agent(user)
         if not agent:
             return None
         return agent.enrollment_links.select_related('scheme', 'branch', 'agent').order_by('-created_at').first()
@@ -60,7 +68,7 @@ class UserEnrollmentLinkMixin:
 
         scheme = form.cleaned_data.get('enrollment_scheme')
         branch = form.cleaned_data.get('branch')
-        agent = getattr(user, 'agent', None)
+        agent = _get_linked_agent(user)
 
         if agent and agent.scheme_id and agent.scheme_id != scheme.id:
             messages.warning(

@@ -5,6 +5,8 @@ This module defines the permissions associated with each role in the system.
 It serves as a single source of truth for role-based access control throughout the application.
 """
 
+from django.core.exceptions import ObjectDoesNotExist
+
 CANONICAL_ROLE_HIERARCHY = [
     "Superuser",
     "Administrator",
@@ -88,6 +90,13 @@ def user_has_role(user, *role_names):
     return any(group_name in canonical_targets for group_name in get_canonical_group_names(user))
 
 
+def get_linked_agent(user):
+    try:
+        return user.agent
+    except (AttributeError, ObjectDoesNotExist):
+        return None
+
+
 def is_read_only_user(user):
     return user_has_role(user, "Compliance Auditor")
 
@@ -100,7 +109,8 @@ def can_manage_agent_signup_links(user, agent=None):
     if user.is_superuser or user_has_role(user, "Administrator"):
         return True
     if user_has_role(user, "Agent"):
-        return bool(getattr(user, 'agent', None)) and (agent is None or getattr(user, 'agent', None) == agent)
+        linked_agent = get_linked_agent(user)
+        return bool(linked_agent) and (agent is None or linked_agent == agent)
     if agent is None:
         return user_has_role(user, "Branch Owner", "Scheme Manager")
     if user_has_role(user, "Branch Owner"):
