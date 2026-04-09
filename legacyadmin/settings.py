@@ -299,7 +299,7 @@ OPENAI_API_KEY = env('OPENAI_API_KEY', '')
 DEFAULT_OPENAI_MODEL = env('DEFAULT_OPENAI_MODEL', 'gpt-4o')
 
 # Visible marker to confirm which deployment/build is serving the UI
-DEPLOYMENT_MARKER = env('DEPLOYMENT_MARKER', 'workspace-reporthub-20260409')
+DEPLOYMENT_MARKER = env('DEPLOYMENT_MARKER', 'release-2026-04-09-reporthub-r1')
 
 # ─── Authentication redirects ─────────────────────────────────────────────────
 # Always use literal URL paths for login/logout so Django never tries to reverse() them:
