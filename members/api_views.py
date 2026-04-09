@@ -40,7 +40,7 @@ def search_suggestions(request):
     elif user_role not in ['internal_admin', 'compliance_auditor']:
         # For regular users or agents, only show their own policies
         if hasattr(user, 'agent'):
-            policies_qs = policies_qs.filter(agent=user.agent)
+            policies_qs = policies_qs.filter(underwritten_by=user.agent)
         else:
             policies_qs = policies_qs.none()
     

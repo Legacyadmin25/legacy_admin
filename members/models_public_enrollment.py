@@ -6,6 +6,8 @@ Separate from admin-created policies for tracking and approval workflow
 from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator
+from django.conf import settings
+from django.urls import reverse
 from encrypted_model_fields.fields import EncryptedCharField
 import uuid
 import secrets
@@ -67,6 +69,8 @@ class EnrollmentLink(models.Model):
         null=True,
         related_name='created_enrollment_links'
     )
+    short_url = models.URLField(blank=True)
+    short_url_provider = models.CharField(max_length=20, blank=True)
     
     # Tracking
     times_used = models.IntegerField(default=0, help_text="Number of times link was accessed")
@@ -97,7 +101,23 @@ class EnrollmentLink(models.Model):
         base_url = f"/apply/{self.token}/"
         if request:
             return request.build_absolute_uri(base_url)
+        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+        if site_url:
+            return f"{site_url}{base_url}"
         return base_url
+
+    def get_share_url(self, request=None):
+        """Return the preferred shareable URL for this link."""
+        return self.short_url or self.get_apply_url(request)
+
+    def get_internal_short_url(self, request=None):
+        short_path = reverse('public_enrollment:short_link', args=[self.pk])
+        if request:
+            return request.build_absolute_uri(short_path)
+        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+        if site_url:
+            return f"{site_url}{short_path}"
+        return short_path
 
 
 class PublicApplication(models.Model):

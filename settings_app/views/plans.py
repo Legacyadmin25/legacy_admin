@@ -12,7 +12,7 @@ from django.db import transaction
 from django.forms import forms
 from schemes.models import Plan as SchemePlan, Scheme
 from settings_app.models import PlanMemberTier, Underwriter
-from settings_app.forms import PlanForm, PlanMemberTierFormSet
+from settings_app.forms import PlanForm, PlanImportForm, PlanMemberTierFormSet
 from decimal import Decimal
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -312,8 +312,11 @@ def clone_plan(request, pk):
         manager_fee=source_plan.manager_fee,
         loyalty_programme=source_plan.loyalty_programme,
         other_fees=source_plan.other_fees,
+        premium=source_plan.main_premium,
+        min_age=source_plan.main_age_from,
+        max_age=source_plan.main_age_to,
         is_active=True,
-        created_by=request.user
+        is_diy_visible=source_plan.is_diy_visible
     )
     
     # Clone the tiers
@@ -347,15 +350,15 @@ def export_plans_csv(request):
         'spouses_allowed', 'children_allowed', 'extended_allowed',
         'admin_fee', 'cash_payout', 'agent_commission', 'office_fee', 
         'scheme_fee', 'manager_fee', 'loyalty_programme', 'other_fees',
-        'is_active', 'created_at'
+        'is_active'
     ])
 
-    plans = Plan.objects.all().select_related('scheme', 'underwriter')
+    plans = Plan.objects.all().select_related('scheme')
     for plan in plans:
         writer.writerow([
             plan.name, plan.description, plan.policy_type, 
             plan.scheme.name if plan.scheme else '', 
-            plan.underwriter.name if plan.underwriter else '',
+            plan.underwriter or '',
             plan.main_cover, plan.main_premium, 
             plan.main_uw_cover, plan.main_uw_premium,
             plan.main_age_from, plan.main_age_to, 
@@ -364,8 +367,7 @@ def export_plans_csv(request):
             plan.admin_fee, plan.cash_payout, plan.agent_commission, 
             plan.office_fee, plan.scheme_fee, plan.manager_fee,
             plan.loyalty_programme, plan.other_fees,
-            'Yes' if plan.is_active else 'No', 
-            plan.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            'Yes' if plan.is_active else 'No'
         ])
 
     return response
@@ -389,7 +391,7 @@ def plan_template_download(request):
     
     # Add sample row
     writer.writerow([
-        'Sample Plan', 'This is a sample plan', 'funeral', 'Sample Underwriter',
+        'Sample Plan', 'This is a sample plan', 'service', 'Sample Underwriter',
         '10000', '100', '10000', '80', '18', '65', '6', '2',
         '1', '4', '0', '10', '10', '20', '5', '5', '5', '5', '0', 'Yes'
     ])
@@ -399,6 +401,8 @@ def plan_template_download(request):
 
 def plan_import(request):
     """Import plans from a CSV file"""
+    valid_policy_types = {choice[0] for choice in Plan.POLICY_TYPE_CHOICES}
+
     if request.method == 'POST':
         form = PlanImportForm(request.POST, request.FILES)
         if form.is_valid():
@@ -420,18 +424,25 @@ def plan_import(request):
             
             for i, row in enumerate(reader, start=1):
                 try:
+                    raw_policy_type = (row.get('policy_type') or 'service').strip().lower()
+                    policy_type = raw_policy_type if raw_policy_type in valid_policy_types else 'service'
+                    main_premium = Decimal(row.get('main_premium', 0) or 0)
+                    main_age_from = int(row.get('main_age_from', 0) or 0)
+                    main_age_to = int(row.get('main_age_to', 99) or 99)
+
                     # Create plan instance but don't save yet
                     plan = Plan(
                         scheme=scheme,
                         name=row.get('name', f'Imported Plan {i}'),
                         description=row.get('description', ''),
-                        policy_type=row.get('policy_type', 'funeral'),
+                        policy_type=policy_type,
+                        underwriter=(row.get('underwriter') or '').strip(),
                         main_cover=Decimal(row.get('main_cover', 0) or 0),
-                        main_premium=Decimal(row.get('main_premium', 0) or 0),
+                        main_premium=main_premium,
                         main_uw_cover=Decimal(row.get('main_uw_cover', 0) or 0),
                         main_uw_premium=Decimal(row.get('main_uw_premium', 0) or 0),
-                        main_age_from=int(row.get('main_age_from', 0) or 0),
-                        main_age_to=int(row.get('main_age_to', 99) or 99),
+                        main_age_from=main_age_from,
+                        main_age_to=main_age_to,
                         waiting_period=int(row.get('waiting_period', 6) or 6),
                         lapse_period=int(row.get('lapse_period', 2) or 2),
                         spouses_allowed=int(row.get('spouses_allowed', 0) or 0),
@@ -445,18 +456,12 @@ def plan_import(request):
                         manager_fee=Decimal(row.get('manager_fee', 0) or 0),
                         loyalty_programme=Decimal(row.get('loyalty_programme', 0) or 0),
                         other_fees=Decimal(row.get('other_fees', 0) or 0),
-                        is_active=row.get('is_active', 'Yes').lower() in ['yes', 'true', '1'],
-                        created_by=request.user
+                        premium=main_premium,
+                        min_age=main_age_from,
+                        max_age=main_age_to,
+                        is_active=row.get('is_active', 'Yes').lower() in ['yes', 'true', '1']
                     )
-                    
-                    # Handle the underwriter if provided
-                    underwriter_name = row.get('underwriter')
-                    if underwriter_name:
-                        underwriter, created = Underwriter.objects.get_or_create(
-                            name=underwriter_name
-                        )
-                        plan.underwriter = underwriter
-                    
+
                     # Save the plan
                     plan.save()
                     plans_created += 1

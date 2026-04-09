@@ -5,8 +5,13 @@ from django.db.utils import OperationalError
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.conf import settings
-from redis.exceptions import RedisError
-import redis
+
+try:
+    from redis.exceptions import RedisError
+    import redis
+except ImportError:
+    RedisError = Exception
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +51,7 @@ def health_check(request):
         logger.error(f"Health check failed: Database error - {str(e)}")
     
     # Check Redis connectivity if used
-    if hasattr(settings, 'REDIS_URL') and settings.REDIS_URL:
+    if hasattr(settings, 'REDIS_URL') and settings.REDIS_URL and redis is not None:
         try:
             r = redis.from_url(settings.REDIS_URL)
             r.ping()
@@ -57,6 +62,11 @@ def health_check(request):
             }
             health_status["status"] = "error"
             logger.error(f"Health check failed: Redis error - {str(e)}")
+    elif hasattr(settings, 'REDIS_URL') and settings.REDIS_URL and redis is None:
+        health_status["components"]["redis"] = {
+            "status": "skipped",
+            "message": "redis package not installed in this environment"
+        }
     
     # Add response time
     health_status["response_time_ms"] = int((time.time() - start_time) * 1000)

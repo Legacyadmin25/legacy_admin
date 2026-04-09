@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from settings_app.models import UserProfile, Branch as LegacyBranch
 from settings_app.forms import UserSetupForm
 from django.http import HttpResponse
@@ -15,6 +16,7 @@ from django.contrib.auth.models import Group  # <-- Add this import
 from settings_app.models import UserImportLog  # <-- Add this import
 from branches.models import Branch
 from members.models_public_enrollment import EnrollmentLink
+from members.utils_short_links import maybe_shorten_url
 
 User = get_user_model()
 
@@ -60,6 +62,16 @@ def _get_user_branch_name(user):
 
 class UserEnrollmentLinkMixin:
     def _get_latest_enrollment_link(self, user):
+        try:
+            profile = user.userprofile
+        except (AttributeError, ObjectDoesNotExist):
+            profile = None
+
+        if profile and profile.latest_enrollment_link_id:
+            return EnrollmentLink.objects.select_related('scheme', 'branch', 'agent').filter(
+                pk=profile.latest_enrollment_link_id
+            ).first()
+
         agent = _get_linked_agent(user)
         if not agent:
             return None
@@ -77,13 +89,13 @@ class UserEnrollmentLinkMixin:
             link = EnrollmentLink.objects.select_related('scheme', 'branch', 'agent').filter(pk=generated_link_id).first()
             if link:
                 context['generated_enrollment_link'] = link
-                context['generated_enrollment_url'] = link.get_apply_url(self.request)
+                context['generated_enrollment_url'] = link.get_share_url(self.request)
 
-        if user and 'generated_enrollment_link' not in context:
+        if user and not context['generated_enrollment_link']:
             latest_link = self._get_latest_enrollment_link(user)
             if latest_link:
                 context['latest_enrollment_link'] = latest_link
-                context['latest_enrollment_url'] = latest_link.get_apply_url(self.request)
+                context['latest_enrollment_url'] = latest_link.get_share_url(self.request)
 
         return context
 
@@ -109,7 +121,29 @@ class UserEnrollmentLinkMixin:
             created_by=self.request.user,
         )
 
-        messages.success(self.request, 'Client signup link generated successfully.')
+        if form.cleaned_data.get('shorten_enrollment_link'):
+            if getattr(settings, 'BITLY_ACCESS_TOKEN', '') or getattr(settings, 'TINYURL_API_TOKEN', ''):
+                short_url, provider = maybe_shorten_url(link.get_apply_url(self.request))
+            else:
+                short_url, provider = link.get_internal_short_url(self.request), 'internal'
+            if short_url:
+                link.short_url = short_url
+                link.short_url_provider = provider or ''
+                link.save(update_fields=['short_url', 'short_url_provider'])
+            else:
+                messages.warning(
+                    self.request,
+                    'A shortened signup link could not be created, so the standard link was kept.'
+                )
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        _sync_profile_fields(profile, {'latest_enrollment_link': link})
+        profile.save()
+
+        if link.short_url:
+            messages.success(self.request, 'Client signup link generated successfully with a shorter share URL.')
+        else:
+            messages.success(self.request, 'Client signup link generated successfully.')
         return link
 
 

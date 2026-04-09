@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q, Sum, Count
+from django.db.models import Avg, Q, Sum, Count
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
@@ -17,7 +17,7 @@ from django.views.generic import DetailView, UpdateView, DeleteView, ListView
 import calendar
 
 from members.models import Member, Policy
-from payments.models import Payment, PaymentReceipt, PaymentImport, ImportRecord
+from payments.models import Payment, PaymentAllocation, PaymentReceipt, PaymentImport, ImportRecord
 from .forms import PaymentForm, PaymentReceiptForm, PaymentFilterForm, PaymentImportForm
 from .utils import (
     update_policy_status, 
@@ -61,7 +61,17 @@ def policy_payment(request):
         else:
             # Try to load their policy
             try:
-                policy = Policy.objects.get(member=member)
+                policy_queryset = Policy.objects.filter(member=member).select_related(
+                    'plan', 'scheme', 'underwritten_by'
+                )
+                policy = policy_queryset.filter(
+                    Q(policy_number__icontains=query)
+                    | Q(unique_policy_number__icontains=query)
+                    | Q(membership_number__icontains=query)
+                ).first() or policy_queryset.order_by('-created_at', '-id').first()
+
+                if not policy:
+                    raise Policy.DoesNotExist
                 
                 # Calculate outstanding balance
                 outstanding_balance = calculate_outstanding_balance(policy)
@@ -95,7 +105,7 @@ def policy_payment(request):
                 error_message = "No policy found for that member."
             else:
                 # Load existing payments with pagination
-                all_payments = Payment.objects.filter(member=member).order_by('-date')
+                all_payments = Payment.objects.filter(member=member).prefetch_related('allocations').order_by('-date', '-id')
                 paginator = Paginator(all_payments, 25)  # Show 25 payments per page
                 page_number = request.GET.get('page', 1)
                 payment_history = paginator.get_page(page_number)
@@ -109,6 +119,7 @@ def policy_payment(request):
                             amount = payment_form.cleaned_data['amount']
                             date = payment_form.cleaned_data['date']
                             method = payment_form.cleaned_data['payment_method']
+                            coverage_month = payment_form.cleaned_data['coverage_month']
                             
                             # Check for recent duplicate payments (same amount, date, and method)
                             recent_duplicates = Payment.objects.filter(
@@ -141,10 +152,16 @@ def policy_payment(request):
                                 amount=amount,
                                 date=date,
                                 payment_method=method,
-                                status='COMPLETED',
+                                status=payment_form.cleaned_data['status'],
+                                reference_number=payment_form.cleaned_data.get('reference_number', ''),
                                 notes=payment_form.cleaned_data.get('notes', ''),
                                 created_by=request.user,
                                 ip_address=request.META.get('REMOTE_ADDR', '')
+                            )
+                            payment.create_default_allocation(
+                                coverage_month=coverage_month,
+                                created_by=request.user,
+                                notes=payment.notes,
                             )
                             
                             # Auto-generate receipt
@@ -159,11 +176,14 @@ def policy_payment(request):
                             # Update policy status based on payment
                             update_policy_status(policy)
                             
-                            success_message = f"Payment of R{payment.amount} recorded successfully."
+                            success_message = (
+                                f"Payment of R{payment.amount} recorded successfully and allocated to "
+                                f"{coverage_month.strftime('%B %Y')}."
+                            )
                             show_receipt_modal = True
                             
                             # Reset forms for new entry
-                            payment_form = PaymentForm(prefix='payment')
+                            payment_form = PaymentForm(prefix='payment', initial={'date': timezone.now().date()})
                             
                     elif 'send_receipt' in request.POST:
                         receipt_id = request.POST.get('receipt_id')
@@ -195,7 +215,14 @@ def policy_payment(request):
                             error_message = "Receipt not found."
                 else:
                     # GET: initialize form with today's date
-                    payment_form = PaymentForm(prefix='payment', initial={'date': timezone.now().date()})
+                    payment_form = PaymentForm(
+                        prefix='payment',
+                        initial={
+                            'date': timezone.now().date(),
+                            'status': 'COMPLETED',
+                            'coverage_month': timezone.now().date().replace(day=1),
+                        }
+                    )
 
     # Prepare filter form for payment history
     filter_form = PaymentFilterForm(request.GET)

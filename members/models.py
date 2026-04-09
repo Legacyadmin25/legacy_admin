@@ -126,6 +126,11 @@ class Policy(models.Model):
     ]
     lapse_warning = models.CharField(max_length=10, choices=LAPSE_WARNING_CHOICES, default='none')
 
+    @property
+    def agent(self):
+        """Compatibility alias for legacy code paths that still reference policy.agent."""
+        return self.underwritten_by
+
     def save(self, *args, **kwargs):
         # Set timestamps
         now = timezone.now()
@@ -288,3 +293,6 @@ class DiySignupLog(models.Model):
 
     def __str__(self):
         return f"{self.agent} – {self.completed_at:%Y-%m-%d %H:%M}"
+
+
+from .models_public_enrollment import EnrollmentLink, PublicApplication  # noqa: E402,F401

@@ -5,10 +5,13 @@ Separate namespace for public self-service enrollment
 
 from django.urls import path
 from . import views_public_enrollment
+from .views_short_links import enrollment_short_redirect
 
 app_name = 'public_enrollment'
 
 urlpatterns = [
+     path('s/<int:link_id>/', enrollment_short_redirect, name='short_link'),
+
     # Entry point - validated token
     path('<str:token>/', 
          views_public_enrollment.PublicEnrollmentStartView.as_view(), 

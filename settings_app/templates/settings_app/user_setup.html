@@ -98,6 +98,45 @@
         </div>
       </section>
 
+      <section class="space-y-4 border rounded-lg p-4 bg-blue-50/40">
+        <h2 class="text-lg font-semibold">Agent Profile</h2>
+        <p class="text-sm text-gray-600">
+          Use this section when the user should also operate as an agent. The system will update the linked agent record from this screen so you do not need to capture the same person twice.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="lg:col-span-2 flex items-start gap-3">
+            {% render_field form.is_agent_profile class="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded" %}
+            <div>
+              <label class="block font-semibold">Create or update linked agent profile</label>
+              <p class="text-sm text-gray-600">Shared details like name, email, phone and address will sync from this user record.</p>
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold">Agent Scheme</label>
+            {% render_field form.agent_scheme class="w-full px-4 py-2 border rounded" %}
+            {% if form.agent_scheme.errors %}
+              <p class="text-sm text-red-600 mt-1">{{ form.agent_scheme.errors.0 }}</p>
+            {% endif %}
+            {% if form.agent_scheme.help_text %}
+              <p class="text-sm text-gray-500 mt-1">{{ form.agent_scheme.help_text }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block font-semibold">Agent Commission %</label>
+            {% render_field form.agent_commission_percentage class="w-full px-4 py-2 border rounded" %}
+          </div>
+          <div>
+            <label class="block font-semibold">Agent Commission Amount</label>
+            {% render_field form.agent_commission_rand_value class="w-full px-4 py-2 border rounded" %}
+          </div>
+          <div class="lg:col-span-2">
+            <label class="block font-semibold">Agent Notes</label>
+            {% render_field form.agent_notes class="w-full px-4 py-2 border rounded" %}
+          </div>
+        </div>
+      </section>
+
       <section class="space-y-4 border rounded-lg p-4 bg-green-50/40">
         <h2 class="text-lg font-semibold">Client Signup Link</h2>
         <p class="text-sm text-gray-600">
@@ -110,6 +149,13 @@
             <div>
               <label class="block font-semibold">Generate signup link after saving</label>
               <p class="text-sm text-gray-600">Turn this on when you want the system to create a shareable policy enrollment link for this user.</p>
+            </div>
+          </div>
+          <div class="lg:col-span-2 flex items-start gap-3">
+            {% render_field form.shorten_enrollment_link class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded" %}
+            <div>
+              <label class="block font-semibold">Shorten the share link</label>
+              <p class="text-sm text-gray-600">Use a fast internal short link by default, or a configured external provider if one is available.</p>
             </div>
           </div>
           <div class="lg:col-span-2">
@@ -131,7 +177,7 @@
         {{ form.security_groups.errors }}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {% for checkbox in form.security_groups %}
-            <label class="flex items-center space-x-2">
+            <label class="flex items-center space-x-2"{% if checkbox.choice_label == 'Agent' %} data-agent-group-option="true"{% endif %}>
               {{ checkbox.tag }}
               <span class="text-sm text-gray-800">{{ checkbox.choice_label }}</span>
             </label>
@@ -170,6 +216,9 @@
           <input id="generatedEnrollmentLink" type="text" readonly value="{{ active_url }}" class="w-full px-4 py-2 border rounded bg-gray-50">
           <button type="button" id="copyEnrollmentLink" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Copy Link</button>
         </div>
+        {% if active_link.short_url %}
+          <p class="text-sm text-gray-500 mt-1">Shortened via {{ active_link.short_url_provider|upper|default:"short link service" }}.</p>
+        {% endif %}
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
@@ -269,6 +318,9 @@
     const branchField = document.getElementById('id_branch');
     const assignedSchemeField = document.getElementById('id_assigned_scheme');
     const enrollmentSchemeField = document.getElementById('id_enrollment_scheme');
+    const agentSchemeField = document.getElementById('id_agent_scheme');
+    const agentProfileField = document.getElementById('id_is_agent_profile');
+    const agentGroupInput = document.querySelector('[data-agent-group-option="true"] input[type="checkbox"]');
 
     function filterSchemeOptions(selectElement, branchId) {
       if (!selectElement) {
@@ -313,11 +365,27 @@
       const branchId = branchField ? branchField.value : '';
       filterSchemeOptions(assignedSchemeField, branchId);
       filterSchemeOptions(enrollmentSchemeField, branchId);
+      filterSchemeOptions(agentSchemeField, branchId);
+    }
+
+    function syncAgentProfileCheckbox() {
+      if (!agentGroupInput || !agentProfileField) {
+        return;
+      }
+
+      if (agentGroupInput.checked) {
+        agentProfileField.checked = true;
+      }
     }
 
     if (branchField) {
       branchField.addEventListener('change', syncSchemeDropdowns);
       syncSchemeDropdowns();
+    }
+
+    if (agentGroupInput) {
+      agentGroupInput.addEventListener('change', syncAgentProfileCheckbox);
+      syncAgentProfileCheckbox();
     }
   });
 </script>

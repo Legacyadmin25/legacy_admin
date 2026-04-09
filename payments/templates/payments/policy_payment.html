@@ -60,10 +60,12 @@
       {% if payment_history %}
         <ul class="divide-y divide-gray-100">
           {% for payment in payment_history %}
-            <li class="py-2 flex justify-between">
+            <li class="py-3 grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
               <span>Amount: <span class="font-medium">R{{ payment.amount }}</span></span>
               <span>Date: {{ payment.date|date:"d M Y" }}</span>
-              <span>Method: {{ payment.payment_method }}</span>
+              <span>Method: {{ payment.get_payment_method_display }}</span>
+              <span>Cover Month: {% if payment.coverage_month %}{{ payment.coverage_month|date:"M Y" }}{% else %}-{% endif %}</span>
+              <span>Status: {{ payment.get_status_display }}</span>
             </li>
           {% endfor %}
         </ul>
@@ -89,10 +91,31 @@
             {{ payment_form.payment_method }}
             {% if payment_form.payment_method.errors %}<p class="text-red-600 text-xs">{{ payment_form.payment_method.errors.0 }}</p>{% endif %}
           </div>
-          <div class="md:col-span-2">
+          <div>
             <label for="id_payment-date" class="block text-sm font-medium text-gray-700">Date</label>
             {{ payment_form.date }}
             {% if payment_form.date.errors %}<p class="text-red-600 text-xs">{{ payment_form.date.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ payment_form.coverage_month.id_for_label }}" class="block text-sm font-medium text-gray-700">Cover Month</label>
+            {{ payment_form.coverage_month }}
+            <p class="text-xs text-gray-500 mt-1">Allocate this premium to the month the client should have cover for.</p>
+            {% if payment_form.coverage_month.errors %}<p class="text-red-600 text-xs">{{ payment_form.coverage_month.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ payment_form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">Status</label>
+            {{ payment_form.status }}
+            {% if payment_form.status.errors %}<p class="text-red-600 text-xs">{{ payment_form.status.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ payment_form.reference_number.id_for_label }}" class="block text-sm font-medium text-gray-700">Reference</label>
+            {{ payment_form.reference_number }}
+            {% if payment_form.reference_number.errors %}<p class="text-red-600 text-xs">{{ payment_form.reference_number.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="md:col-span-2">
+            <label for="{{ payment_form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">Notes</label>
+            {{ payment_form.notes }}
+            {% if payment_form.notes.errors %}<p class="text-red-600 text-xs">{{ payment_form.notes.errors.0 }}</p>{% endif %}
           </div>
         </div>
         <button type="submit" name="submit_payment" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Make Payment</button>

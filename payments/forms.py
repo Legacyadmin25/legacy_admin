@@ -1,10 +1,17 @@
-from django import forms
+from datetime import date
+
 from django import forms
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from .models import Payment, PaymentReceipt, PaymentImport, ImportRecord
 
 class PaymentForm(forms.ModelForm):
+    coverage_month = forms.DateField(
+        required=True,
+        input_formats=['%Y-%m', '%Y-%m-%d'],
+        widget=forms.DateInput(attrs={'type': 'month', 'class': 'form-control'})
+    )
+
     class Meta:
         model = Payment
         fields = ['amount', 'date', 'payment_method', 'status', 'reference_number', 'notes']
@@ -16,6 +23,12 @@ class PaymentForm(forms.ModelForm):
             'reference_number': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        initial_month = timezone.now().date().replace(day=1)
+        self.fields['coverage_month'].initial = self.initial.get('coverage_month', initial_month)
+        self.fields['status'].initial = self.initial.get('status', 'COMPLETED')
     
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
@@ -28,6 +41,12 @@ class PaymentForm(forms.ModelForm):
         if date and date > timezone.now().date():
             raise ValidationError("Payment date cannot be in the future.")
         return date
+
+    def clean_coverage_month(self):
+        coverage_month = self.cleaned_data.get('coverage_month')
+        if not coverage_month:
+            raise ValidationError('Select the cover month this payment must be allocated to.')
+        return coverage_month.replace(day=1)
 
 class PaymentReceiptForm(forms.ModelForm):
     class Meta:

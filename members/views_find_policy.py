@@ -73,7 +73,7 @@ def find_policy(request):
     elif 'Internal Admin' not in user_groups and 'Compliance Auditor' not in user_groups:
         # For regular users or agents, only show their own policies
         if hasattr(request.user, 'agent'):
-            policies = policies.filter(agent=request.user.agent)
+            policies = policies.filter(underwritten_by=request.user.agent)
         else:
             policies = policies.none()
     
@@ -112,7 +112,7 @@ def find_policy(request):
     
     # Apply agent filter if selected
     if agent_id and agent_id.isdigit():
-        policies = policies.filter(agent_id=agent_id)
+        policies = policies.filter(underwritten_by_id=agent_id)
     
     # Apply date range filters
     if date_from:

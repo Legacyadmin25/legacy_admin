@@ -245,15 +245,13 @@ class AgentDetailView(LoginRequiredMixin, AgentAccessMixin, DetailView):
         context['average_cover'] = round(avg_cover, 2)
         
         # Generate DIY link
-        base_url = self.request.build_absolute_uri('/').rstrip('/')
-        
         # Create a token if one doesn't exist
         if not agent.diy_token:
             agent.diy_token = str(uuid.uuid4())
             agent.diy_token_created = timezone.now()
             agent.save()
             
-        diy_link = f"{base_url}/apply/{agent.diy_token}/"
+        diy_link = agent.get_short_diy_link(self.request)
         context['diy_link'] = diy_link
         
         # Get policy statistics by month (last 6 months)

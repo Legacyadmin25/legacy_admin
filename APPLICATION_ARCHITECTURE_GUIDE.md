@@ -324,11 +324,10 @@ BRANCHES (Bank Branches)
    - Payment summary statistics
    - Outstanding balances
 
-4. **AI-Powered Reports** (`reports_ai/views.py`)
-   - Natural language query processing
-   - Chat-based report generation
-   - Saved reports for repeated queries
-   - Example: "Show me commissions for agents in March 2024"
+4. **Operational Reports** (`reports/views.py`)
+   - Payment allocation reports with admin and scheme-facing modes
+   - All members report grouped by scheme and policy/member data
+   - Amendments report for imported and audited policy/member changes
 
 ---
 
@@ -351,7 +350,7 @@ BRANCHES (Bank Branches)
 - ✅ BulkSMS integration (SMS notifications)
 - ✅ Twilio integration (WhatsApp, SMS)
 - ✅ EasyPay integration (payment collection)
-- ✅ OpenAI integration (AI-powered reports)
+- ✅ Operational reporting for payments, members, and amendments
 - ✅ AWS S3 (document storage)
 - ✅ Email (policy documents, receipts)
 
@@ -528,27 +527,26 @@ Dashboard → Reports → Select Report Type
 - Status filter (completed/pending/failed)
 - Shows: All payments, totals, outstanding
 
-### AI-Powered Reports
+### Operational Reports
 
-**1. Go to AI Reports**
+**1. Go to Reports**
 ```
-Dashboard → Reports → AI Report Builder
+Dashboard → Reports
 ```
 
-**2. Natural Language Query**
+**2. Use the report menu**
 ```
-Examples:
-- "Show me all active policies for Chegutu scheme"
-- "Agent commissions for March 2024"
-- "Members with overdue payments"
-- "Top 10 agents by premium collected"
+- Payment Report: Admin
+- Payment Report: Scheme
+- All Members Report
+- Amendments Report
 ```
 
 **3. System:**
-- Parses query with OpenAI
-- Generates SQL/ORM query
-- Returns filtered data with summary
-- Option to save report for future use
+- Uses allocation-backed payment reporting
+- Separates admin and scheme-facing payment views
+- Groups policy/member data in the all-members report
+- Tracks import and audit-driven amendments
 
 ---
 
@@ -567,7 +565,6 @@ Examples:
 #### Phase 2: Integration (PHASE 8 - IN PROGRESS)
 - [ ] Secure all API keys (BulkSMS, OpenAI, EasyPay)
 - [ ] Test SMS sending
-- [ ] Test OpenAI API
 - [ ] Test payment processing flow
 
 #### Phase 3: Compliance (NEEDED)
@@ -619,7 +616,9 @@ POST /payments/policy_payment/        # Record payment
 GET  /payments/                       # Payment history
 POST /claims/submit_claim/            # Submit claim
 GET  /reports/full_policy_report/     # Generate report
-POST /reports_ai/process_query/       # AI report query
+GET  /reports/payment_allocation_report/   # Allocation-backed payment reports
+GET  /reports/all_members_report/          # Grouped policy/member report
+GET  /reports/amendments_report/           # Policy/member amendments report
 ```
 
 ---

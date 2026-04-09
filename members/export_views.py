@@ -30,7 +30,7 @@ def export_search_results(request):
     
     # Start with base queryset with all related objects for performance
     policies = Policy.objects.select_related(
-        'member', 'plan', 'scheme', 'agent'
+        'member', 'plan', 'scheme', 'underwritten_by'
     )
     
     # Get user role for filtering
@@ -51,7 +51,7 @@ def export_search_results(request):
     elif user_role not in ['internal_admin', 'compliance_auditor']:
         # For regular users or agents, only show their own policies
         if hasattr(request.user, 'agent'):
-            policies = policies.filter(agent=request.user.agent)
+            policies = policies.filter(underwritten_by=request.user.agent)
         else:
             policies = policies.none()
     
@@ -85,7 +85,7 @@ def export_search_results(request):
     
     # Apply agent filter if selected
     if agent_id and agent_id.isdigit():
-        policies = policies.filter(agent_id=agent_id)
+        policies = policies.filter(underwritten_by_id=agent_id)
     
     # Apply date range filters
     if date_from:
@@ -143,7 +143,7 @@ def export_search_results(request):
                 f"R{policy.premium}" if policy.premium else 'R0.00',
                 f"R{policy.cover_amount}" if policy.cover_amount else 'R0.00',
                 'Active' if policy.is_active else ('Trial' if policy.is_trial else 'Lapsed'),
-                policy.agent.full_name if policy.agent else '',
+                policy.underwritten_by.full_name if policy.underwritten_by else '',
                 policy.start_date.strftime('%Y-%m-%d') if policy.start_date else '',
                 policy.get_payment_method_display() if hasattr(policy, 'get_payment_method_display') else policy.payment_method or ''
             ])
@@ -172,7 +172,7 @@ def export_search_results(request):
             worksheet.write(row_num, 6, f"R{policy.premium}" if policy.premium else 'R0.00')
             worksheet.write(row_num, 7, f"R{policy.cover_amount}" if policy.cover_amount else 'R0.00')
             worksheet.write(row_num, 8, 'Active' if policy.is_active else ('Trial' if policy.is_trial else 'Lapsed'))
-            worksheet.write(row_num, 9, policy.agent.full_name if policy.agent else '')
+            worksheet.write(row_num, 9, policy.underwritten_by.full_name if policy.underwritten_by else '')
             worksheet.write(row_num, 10, policy.start_date.strftime('%Y-%m-%d') if policy.start_date else '')
             worksheet.write(row_num, 11, policy.get_payment_method_display() if hasattr(policy, 'get_payment_method_display') else policy.payment_method or '')
         

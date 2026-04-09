@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from decimal import Decimal
 from settings_app.utils.validation import is_strong_password
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
@@ -321,6 +322,44 @@ class UserSetupForm(forms.ModelForm):
         label="Generate client signup link after saving"
     )
 
+    shorten_enrollment_link = forms.BooleanField(
+        required=False,
+        label="Use a shorter share link"
+    )
+
+    is_agent_profile = forms.BooleanField(
+        required=False,
+        label="Create or update linked agent profile"
+    )
+
+    agent_scheme = forms.ModelChoiceField(
+        queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
+        widget=SchemeBranchSelect,
+        empty_label="Use assigned scheme",
+        required=False,
+        label="Agent Scheme"
+    )
+
+    agent_commission_percentage = forms.DecimalField(
+        required=False,
+        max_digits=5,
+        decimal_places=2,
+        label="Agent Commission %"
+    )
+
+    agent_commission_rand_value = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        label="Agent Commission Amount"
+    )
+
+    agent_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3}),
+        label="Agent Notes"
+    )
+
     enrollment_scheme = forms.ModelChoiceField(
         queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
         widget=SchemeBranchSelect,
@@ -386,6 +425,9 @@ class UserSetupForm(forms.ModelForm):
 
         self.fields['enrollment_scheme'].help_text = "The generated client signup link will open this scheme's enrollment flow."
         self.fields['generate_enrollment_link'].help_text = "Use the selected branch and scheme to generate a public enrollment link for this user or agent."
+        self.fields['shorten_enrollment_link'].help_text = "Creates a shorter link through Bitly or TinyURL to make sharing easier."
+        self.fields['is_agent_profile'].help_text = "Turn this on to keep the linked agent record in sync from this screen."
+        self.fields['agent_scheme'].help_text = "If left blank, the assigned scheme will be used for the linked agent profile."
 
         # Prefill profile fields on edit
         if self.instance and self.instance.pk:
@@ -414,12 +456,20 @@ class UserSetupForm(forms.ModelForm):
             elif self.instance.assigned_schemes.count() == 1:
                 self.fields['enrollment_scheme'].initial = self.instance.assigned_schemes.first()
 
+            if agent:
+                self.fields['is_agent_profile'].initial = True
+                self.fields['agent_scheme'].initial = agent.scheme
+                self.fields['agent_commission_percentage'].initial = agent.commission_percentage
+                self.fields['agent_commission_rand_value'].initial = agent.commission_rand_value
+                self.fields['agent_notes'].initial = agent.notes
+
         if not selected_branch_id and self.fields['branch'].initial:
             selected_branch_id = str(self.fields['branch'].initial.pk)
 
         for field_name, default_placeholder in (
             ('assigned_scheme', 'Select a scheme'),
             ('enrollment_scheme', 'Select scheme for signup link'),
+            ('agent_scheme', 'Select scheme for linked agent'),
         ):
             widget = self.fields[field_name].widget
             widget.attrs['data-default-placeholder'] = default_placeholder
@@ -445,6 +495,21 @@ class UserSetupForm(forms.ModelForm):
         assigned_scheme = cleaned_data.get('assigned_scheme')
         generate_enrollment_link = cleaned_data.get('generate_enrollment_link')
         enrollment_scheme = cleaned_data.get('enrollment_scheme')
+        is_agent_profile = cleaned_data.get('is_agent_profile')
+        agent_scheme = cleaned_data.get('agent_scheme')
+        selected_groups = cleaned_data.get('security_groups') or []
+
+        if not is_agent_profile and any(group.name == 'Agent' for group in selected_groups):
+            is_agent_profile = True
+            cleaned_data['is_agent_profile'] = True
+
+        if is_agent_profile:
+            agent_group = Group.objects.filter(name='Agent').first()
+            if agent_group and all(group.pk != agent_group.pk for group in selected_groups):
+                cleaned_data['security_groups'] = Group.objects.filter(
+                    pk__in=[group.pk for group in selected_groups] + [agent_group.pk]
+                )
+                selected_groups = cleaned_data['security_groups']
 
         if password and confirm and password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
@@ -462,7 +527,49 @@ class UserSetupForm(forms.ModelForm):
         if enrollment_scheme and branch and enrollment_scheme.branch_id != branch.id:
             self.add_error('enrollment_scheme', 'Selected signup scheme does not belong to the selected branch.')
 
+        if is_agent_profile and not agent_scheme:
+            if assigned_scheme:
+                cleaned_data['agent_scheme'] = assigned_scheme
+                agent_scheme = assigned_scheme
+            else:
+                self.add_error('agent_scheme', 'Select the scheme to use for the linked agent profile.')
+
+        if agent_scheme and branch and agent_scheme.branch_id != branch.id:
+            self.add_error('agent_scheme', 'Selected agent scheme does not belong to the selected branch.')
+
         return cleaned_data
+
+    def _sync_agent_profile(self, user):
+        should_manage_agent = self.cleaned_data.get('is_agent_profile') or any(
+            group.name == 'Agent' for group in self.cleaned_data.get('security_groups', [])
+        )
+
+        try:
+            existing_agent = user.agent
+        except (AttributeError, ObjectDoesNotExist):
+            existing_agent = None
+
+        if not should_manage_agent and not existing_agent:
+            return
+
+        agent = existing_agent or Agent(user=user)
+        id_or_passport = (self.cleaned_data.get('id_number') or '').strip()
+        agent.user = user
+        agent.scheme = self.cleaned_data.get('agent_scheme') or self.cleaned_data.get('assigned_scheme')
+        agent.full_name = self.cleaned_data.get('first_name', '').strip()
+        agent.surname = self.cleaned_data.get('last_name', '').strip()
+        agent.contact_number = self.cleaned_data.get('cell_no', '').strip()
+        agent.email = self.cleaned_data.get('email', '').strip()
+        agent.id_number = id_or_passport if id_or_passport.isdigit() and len(id_or_passport) == 13 else None
+        agent.passport_number = id_or_passport if id_or_passport and agent.id_number is None else None
+        agent.address1 = self.cleaned_data.get('physical_address', '').strip()
+        agent.address2 = self.cleaned_data.get('street', '').strip()
+        agent.address3 = self.cleaned_data.get('town', '').strip() or self.cleaned_data.get('province', '').strip()
+        agent.code = self.cleaned_data.get('code', '').strip()
+        agent.commission_percentage = self.cleaned_data.get('agent_commission_percentage')
+        agent.commission_rand_value = self.cleaned_data.get('agent_commission_rand_value')
+        agent.notes = self.cleaned_data.get('agent_notes', '').strip()
+        agent.save()
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -491,6 +598,7 @@ class UserSetupForm(forms.ModelForm):
                 'code': self.cleaned_data['code'],
             })
             profile.save()
+            self._sync_agent_profile(user)
 
         return user
 

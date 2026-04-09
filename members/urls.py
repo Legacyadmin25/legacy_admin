@@ -17,6 +17,7 @@ from .export_views import export_search_results
 from .views_ai_search import ai_search_assistant
 from .views_ai_summary import generate_policy_summary
 from .views_ai import get_payment_ai_summary
+from .views_short_links import diy_short_redirect
 
 # Import the DIY URLs
 from .urls_diy import urlpatterns as diy_urls
@@ -30,6 +31,8 @@ from django.views.generic import TemplateView
 app_name = 'members'
 
 urlpatterns = [
+    path('s/<int:agent_id>/', diy_short_redirect, name='diy_short'),
+
     # DIY Application with Auto-save
     path('diy/autosave/', include('members.urls_diy_autosave')),
     # Policy creation steps (steps 1 to 9) - New multi-step flow

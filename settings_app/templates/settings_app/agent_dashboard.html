@@ -58,7 +58,7 @@
                 type="text" 
                 id="agent-link" 
                 readonly
-                value="{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                value="{{ diy_share_url }}" 
                 class="flex-1 min-w-0 block w-full px-3 py-3 rounded-l-md border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
               <button 
                 onclick="copyToClipboard('agent-link')"
@@ -71,9 +71,9 @@
           <!-- QR Code Section -->
           <div class="pt-4 border-t border-gray-200">
             <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <div class="bg-white p-2 border rounded-lg shadow-sm">
+              <div id="qrcode" class="bg-white p-2 border rounded-lg shadow-sm">
                 <img 
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token|urlencode %}"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ diy_share_url|urlencode }}"
                   alt="QR Code"
                   class="w-40 h-40">
               </div>
@@ -93,7 +93,7 @@
                     Download QR Code
                   </button>
                   <a 
-                    href="{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                    href="{{ diy_share_url }}" 
                     target="_blank"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -113,7 +113,7 @@
             <div class="flex space-x-3">
               <!-- WhatsApp -->
               <a 
-                href="https://wa.me/?text={{ 'Sign up for insurance using my referral link: '|urlencode }}{{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}" 
+                href="https://wa.me/?text={{ 'Sign up for insurance using my referral link: '|urlencode }}{{ diy_share_url|urlencode }}" 
                 target="_blank"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                 <svg class="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@
               
               <!-- Email -->
               <a 
-                href="mailto:?subject=Sign up for insurance&body=Hi, I'd like to invite you to sign up for insurance using my referral link: {{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}"
+                href="mailto:?subject=Sign up for insurance&body=Hi, I'd like to invite you to sign up for insurance using my referral link: {{ diy_share_url }}"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                 <svg class="h-5 w-5 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>

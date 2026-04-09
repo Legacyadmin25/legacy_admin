@@ -136,6 +136,15 @@ class Agent(models.Model):
         domain = getattr(settings, "SITE_URL", "https://yourdomain.com")
         return domain + self.get_diy_url()
 
+    def get_short_diy_link(self, request=None):
+        if not self.pk:
+            return None
+        short_path = reverse('members:diy_short', args=[self.pk])
+        if request:
+            return request.build_absolute_uri(short_path)
+        domain = getattr(settings, "SITE_URL", "https://yourdomain.com").rstrip('/')
+        return f"{domain}{short_path}"
+
     def save(self, *args, **kwargs):
         # First save the agent to get a primary key
         super().save(*args, **kwargs)
@@ -338,6 +347,13 @@ class UserRole(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True)
+    latest_enrollment_link = models.ForeignKey(
+        'members.EnrollmentLink',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='user_profiles',
+    )
     is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
