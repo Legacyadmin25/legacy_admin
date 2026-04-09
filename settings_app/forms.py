@@ -526,10 +526,6 @@ class PlanForm(forms.ModelForm):
         empty_label="— Select Underwriter —",
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-2 border rounded focus:ring',
-            'hx-get': '/settings/underwriter/api/details',
-            'hx-trigger': 'change',
-            'hx-target': '#underwriter-details',
-            'x-on:change': 'underwriterChanged($event.target.value)'
         })
     )
     # Set default values for waiting period and lapse period
