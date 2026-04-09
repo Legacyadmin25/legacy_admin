@@ -313,7 +313,7 @@ class UserSetupForm(forms.ModelForm):
         queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
         widget=SchemeBranchSelect,
         required=False,
-        empty_label="Select a scheme",
+        empty_label="Select branch first",
         label="Assigned Scheme"
     )
 
@@ -325,7 +325,7 @@ class UserSetupForm(forms.ModelForm):
     enrollment_scheme = forms.ModelChoiceField(
         queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
         widget=SchemeBranchSelect,
-        empty_label="Select scheme for signup link",
+        empty_label="Select branch first",
         required=False,
         label="Signup Link Scheme"
     )
@@ -368,6 +368,10 @@ class UserSetupForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        selected_branch_id = None
+        if self.is_bound:
+            selected_branch_id = self.data.get('branch') or None
+
         self.fields['enrollment_scheme'].help_text = "The generated client signup link will open this scheme's enrollment flow."
         self.fields['generate_enrollment_link'].help_text = "Use the selected branch and scheme to generate a public enrollment link for this user or agent."
 
@@ -399,6 +403,21 @@ class UserSetupForm(forms.ModelForm):
                 self.fields['enrollment_scheme'].initial = agent.scheme
             elif self.instance.assigned_schemes.count() == 1:
                 self.fields['enrollment_scheme'].initial = self.instance.assigned_schemes.first()
+
+        if not selected_branch_id and self.fields['branch'].initial:
+            selected_branch_id = str(self.fields['branch'].initial.pk)
+
+        for field_name, default_placeholder in (
+            ('assigned_scheme', 'Select a scheme'),
+            ('enrollment_scheme', 'Select scheme for signup link'),
+        ):
+            widget = self.fields[field_name].widget
+            widget.attrs['data-default-placeholder'] = default_placeholder
+            widget.attrs['data-branch-placeholder'] = 'Select branch first'
+            if not selected_branch_id:
+                widget.attrs['disabled'] = 'disabled'
+            elif 'disabled' in widget.attrs:
+                del widget.attrs['disabled']
 
     def clean_password(self):
         password = self.cleaned_data.get('password')

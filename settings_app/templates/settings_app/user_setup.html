@@ -278,9 +278,21 @@
       const currentValue = selectElement.value;
       let hasCurrentValue = false;
 
+      selectElement.disabled = !branchId;
+
+      if (!branchId && currentValue) {
+        selectElement.value = '';
+      }
+
+      if (selectElement.options.length > 0) {
+        selectElement.options[0].text = branchId
+          ? (selectElement.dataset.defaultPlaceholder || 'Select a scheme')
+          : (selectElement.dataset.branchPlaceholder || 'Select branch first');
+      }
+
       Array.from(selectElement.options).forEach(function (option) {
         const optionBranchId = option.dataset.branchId;
-        const shouldShow = !optionBranchId || !branchId || optionBranchId === branchId;
+        const shouldShow = !optionBranchId || (Boolean(branchId) && optionBranchId === branchId);
         option.hidden = !shouldShow;
 
         if (!shouldShow && option.selected) {
