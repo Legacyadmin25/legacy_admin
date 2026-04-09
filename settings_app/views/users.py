@@ -66,7 +66,12 @@ class UserEnrollmentLinkMixin:
         return agent.enrollment_links.select_related('scheme', 'branch', 'agent').order_by('-created_at').first()
 
     def _build_enrollment_link_context(self, user=None):
-        context = {}
+        context = {
+            'generated_enrollment_link': None,
+            'generated_enrollment_url': None,
+            'latest_enrollment_link': None,
+            'latest_enrollment_url': None,
+        }
         generated_link_id = self.request.GET.get('generated_link')
         if generated_link_id:
             link = EnrollmentLink.objects.select_related('scheme', 'branch', 'agent').filter(pk=generated_link_id).first()
