@@ -4,6 +4,7 @@ import io
 import csv
 from urllib.parse import urlencode
 
+from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
@@ -29,7 +30,6 @@ from config.permissions import (
 )
 from branches.models import Branch
 from members.models import Policy
-from payments.models import PaymentAllocation
 from schemes.models import Scheme
 from import_data.models import PolicyAmendmentRowLog
 from audit.models import AuditLog
@@ -45,6 +45,10 @@ def parse_month_param(value):
         except ValueError:
             continue
     return None
+
+
+def payment_allocation_model():
+    return apps.get_model('payments', 'PaymentAllocation')
 
 
 def apply_policy_filters(queryset, filter_scheme, filter_status):
@@ -633,8 +637,9 @@ def payment_allocation_report(request):
     filter_agent = request.GET.get('agent', '').strip()
     search_term = request.GET.get('search', '').strip()
     cover_month = parse_month_param(request.GET.get('cover_month')) or timezone.now().date().replace(day=1)
+    payment_allocation = payment_allocation_model()
 
-    allocations = PaymentAllocation.objects.select_related(
+    allocations = payment_allocation.objects.select_related(
         'payment', 'member', 'policy', 'scheme', 'branch', 'plan', 'agent'
     ).filter(
         payment__status='COMPLETED',

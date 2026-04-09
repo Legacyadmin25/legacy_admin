@@ -11,8 +11,6 @@ from .users import (
     user_template_download,
 )
 
-from .agent_dashboard import AgentDashboardView
-
 from .branches import (
     BranchListView,
     BranchCreateView,

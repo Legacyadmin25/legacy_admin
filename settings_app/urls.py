@@ -19,6 +19,7 @@ from .views.api import suggest_tiers
 from .views.ai_privacy_test import (
     ai_privacy_dashboard, update_ai_consent, test_redact_pii, test_ai_insight
 )
+from .views.agent_dashboard import AgentDashboardView
 from members.communications.views import sms_sending
 
 app_name = 'settings'
@@ -51,7 +52,7 @@ urlpatterns = [
     path('scheme-setup/documents/<int:pk>/delete/', views.delete_scheme_document, name='scheme_doc_delete'),
 
     # Agent Dashboard
-    path('agent-dashboard/', views.AgentDashboardView.as_view(), name='agent_dashboard'),
+    path('agent-dashboard/', AgentDashboardView.as_view(), name='agent_dashboard'),
     
     # Agent Setup
     path('agent-setup/', views.agent_setup, name='agent'),

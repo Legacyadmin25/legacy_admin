@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.db.models import Sum
@@ -6,7 +7,6 @@ from datetime import datetime, time, timedelta
 
 from members.models import Policy
 from members.models_public_enrollment import PublicApplication
-from payments.models import PaymentAllocation
 from ..models import Agent
 
 
@@ -29,6 +29,10 @@ def _get_active_agent_policies(agent):
         cover_date__gte=today
     )
 
+
+def _payment_allocation_model():
+    return apps.get_model('payments', 'PaymentAllocation')
+
 class AgentDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'settings_app/agent_dashboard.html'
     
@@ -40,6 +44,7 @@ class AgentDashboardView(LoginRequiredMixin, TemplateView):
             agent = Agent.objects.select_related('scheme').get(user=self.request.user)
             context['agent'] = agent
             current_month = timezone.now().date().replace(day=1)
+            payment_allocation_model = _payment_allocation_model()
 
             policy_queryset = Policy.objects.filter(underwritten_by=agent).select_related('member', 'plan', 'scheme')
             active_policies_queryset = _get_active_agent_policies(agent).select_related('member', 'plan', 'scheme').distinct()
@@ -48,7 +53,7 @@ class AgentDashboardView(LoginRequiredMixin, TemplateView):
             ).exclude(status='draft').select_related('plan', 'scheme', 'converted_policy', 'converted_member')
             direct_policy_referrals = policy_queryset.filter(source_application__isnull=True).values('member_id').distinct().count()
             application_referrals = public_application_queryset.count()
-            commission_total = PaymentAllocation.objects.filter(
+            commission_total = payment_allocation_model.objects.filter(
                 agent=agent,
                 payment__status='COMPLETED',
                 allocation_status='ALLOCATED',
@@ -70,7 +75,7 @@ class AgentDashboardView(LoginRequiredMixin, TemplateView):
                         'timestamp': timestamp,
                     })
 
-            for allocation in PaymentAllocation.objects.filter(
+            for allocation in payment_allocation_model.objects.filter(
                 agent=agent,
                 payment__status='COMPLETED',
                 allocation_status='ALLOCATED',
