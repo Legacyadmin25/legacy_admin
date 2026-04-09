@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import FormView, TemplateView
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponseForbidden, JsonResponse, HttpResponseBadRequest
 from django.contrib import messages
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -32,6 +32,12 @@ from settings_app.models import Agent
 from members.communications.sms_sender import send_otp_sms, send_bulk_sms
 
 logger = logging.getLogger(__name__)
+
+
+def invalid_enrollment_session_response():
+    return HttpResponseForbidden(
+        'This application session is no longer valid. Please reopen your signup link and start again.'
+    )
 
 
 class PublicEnrollmentStartView(View):
@@ -110,7 +116,7 @@ class Step1PersonalDetailsView(FormView):
     def dispatch(self, request, *args, **kwargs):
         # Verify enrollment session
         if 'enrollment_token' not in request.session:
-            return redirect('public_enrollment:start')
+            return invalid_enrollment_session_response()
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
