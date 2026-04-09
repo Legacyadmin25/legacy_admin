@@ -531,6 +531,22 @@ class PlanForm(forms.ModelForm):
     # Set default values for waiting period and lapse period
     waiting_period = forms.IntegerField(initial=6, help_text="Months before cover starts")
     lapse_period = forms.IntegerField(initial=2, help_text="Months before lapse")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # These values are derived from the main plan fields rendered in the UI.
+        for field_name in ('premium', 'min_age', 'max_age'):
+            self.fields[field_name].required = False
+
+        if self.instance and self.instance.pk:
+            self.fields['premium'].initial = self.instance.premium
+            self.fields['min_age'].initial = self.instance.min_age
+            self.fields['max_age'].initial = self.instance.max_age
+        else:
+            self.fields['premium'].initial = 0
+            self.fields['min_age'].initial = 0
+            self.fields['max_age'].initial = 100
     
     class Meta:
         model = SchemePlan
@@ -576,6 +592,14 @@ class PlanForm(forms.ModelForm):
         cleaned = super().clean()
         name = cleaned.get("name")
         scheme = cleaned.get("scheme")
+
+        if cleaned.get('premium') in (None, ''):
+            cleaned['premium'] = cleaned.get('main_premium') or 0
+        if cleaned.get('min_age') in (None, ''):
+            cleaned['min_age'] = cleaned.get('main_age_from') if cleaned.get('main_age_from') is not None else 0
+        if cleaned.get('max_age') in (None, ''):
+            cleaned['max_age'] = cleaned.get('main_age_to') if cleaned.get('main_age_to') is not None else 100
+
         if name and scheme:
             qs = Plan.objects.filter(name=name, scheme=scheme)
             if self.instance.pk:
@@ -584,6 +608,21 @@ class PlanForm(forms.ModelForm):
                 raise forms.ValidationError("A plan with this name already exists under the selected scheme.")
 
         return cleaned
+
+    def save(self, commit=True):
+        plan = super().save(commit=False)
+        plan.premium = self.cleaned_data.get('premium') or self.cleaned_data.get('main_premium') or 0
+        plan.min_age = self.cleaned_data.get('min_age')
+        if plan.min_age in (None, ''):
+            plan.min_age = self.cleaned_data.get('main_age_from') or 0
+        plan.max_age = self.cleaned_data.get('max_age')
+        if plan.max_age in (None, ''):
+            plan.max_age = self.cleaned_data.get('main_age_to') or 100
+
+        if commit:
+            plan.save()
+            self.save_m2m()
+        return plan
 
 
 
