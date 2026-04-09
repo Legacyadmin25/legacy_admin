@@ -111,6 +111,14 @@
 
   <!-- Sidebar -->
   <aside class="flex flex-col w-64 bg-gray-800 text-white flex-shrink-0">
+    <div class="border-b border-gray-700 px-4 py-3">
+      <div class="text-sm font-semibold text-white">{{ settings.site_name }}</div>
+      <div class="mt-1 rounded bg-emerald-500/15 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-200">
+        Build {{ deployment_marker }}
+      </div>
+      <div class="mt-1 text-[11px] text-gray-400">Host {{ request.get_host }}</div>
+    </div>
+
     <div class="md:hidden flex items-center justify-between p-4 border-b border-gray-700">
       <h2 class="text-lg font-semibold">{{ settings.site_name }}</h2>
       <button @click="open = false" aria-label="Close Sidebar">
@@ -127,6 +135,14 @@
         <li>
           <a href="{% url 'settings:agent_dashboard' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Agent Dashboard">
             <i class="fa-solid fa-chart-line mr-2"></i> Agent Dashboard
+          </a>
+        </li>
+        {% endif %}
+
+        {% if not request.user.is_superuser and can_view_reports %}
+        <li>
+          <a href="{% url 'reports:generate_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Open Reports">
+            <i class="fa-solid fa-chart-line mr-2"></i> Reports
           </a>
         </li>
         {% endif %}
@@ -218,21 +234,9 @@
 
           <!-- Reports -->
           <li>
-            <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['reports'] = !open['reports']" aria-label="Toggle Reports Menu">
+            <a href="{% url 'reports:generate_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Open Reports">
               <i class="fa-solid fa-chart-line mr-2"></i> Reports
             </a>
-            <ul class="ml-4 space-y-2" x-bind:class="{ 'hidden': !open['reports'] }">
-              <li>
-                <a href="{% url 'reports:plan_fee_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="View Plan Fee Report">
-                  <i class="fa-solid fa-file-invoice mr-2"></i> Plan Fee Report
-                </a>
-              </li>
-              <li>
-                <a href="{% url 'reports:full_policy_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="View Full Policy Report">
-                  <i class="fa-solid fa-file-invoice mr-2"></i> Full Policy Report
-                </a>
-              </li>
-            </ul>
           </li>
 
           <!-- Imports -->

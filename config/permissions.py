@@ -119,6 +119,26 @@ def can_manage_agent_signup_links(user, agent=None):
         return user.assigned_schemes.filter(id=agent.scheme_id).exists()
     return False
 
+
+def can_view_all_members_report(user):
+    if user.is_superuser:
+        return True
+    return user_has_role(user, 'Administrator', 'Branch Owner', 'Scheme Manager')
+
+
+def can_view_payment_allocation_report(user, report_version='admin'):
+    if user.is_superuser:
+        return True
+    if report_version == 'scheme':
+        return user_has_role(user, 'Administrator', 'Branch Owner', 'Scheme Manager')
+    return user_has_role(user, 'Administrator', 'Branch Owner')
+
+
+def can_view_amendments_report(user):
+    if user.is_superuser:
+        return True
+    return user_has_role(user, 'Administrator', 'Branch Owner')
+
 # Permission helpers
 def has_permission(user, permission):
     """

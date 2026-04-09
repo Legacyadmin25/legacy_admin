@@ -31,6 +31,21 @@ def env_csv(name, default=''):
 
 # ─── Base directory ───────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
+DEV_FIELD_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+
+
+def should_use_local_sqlite():
+    engine = env('DB_ENGINE', '').strip()
+    name = env('DB_NAME', '').strip()
+    placeholder_names = {'', 'your_cpanel_db_name', 'legacyadmin'}
+
+    if not engine:
+        return True
+    if engine == 'django.db.backends.sqlite3':
+        return True
+    if engine == 'django.db.backends.mysql' and name in placeholder_names:
+        return True
+    return False
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
 # Load from environment, with sensible defaults for development
@@ -49,7 +64,7 @@ SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', False)
 # ─── FIELD ENCRYPTION KEY FOR PII (CRITICAL: CHANGE THIS!) ────────────────────
 # Generate a new key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key())"
 # Store in .env as: FIELD_ENCRYPTION_KEY=<generated-key>
-FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY', 'dev-key-only-change-in-production')
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY', DEV_FIELD_ENCRYPTION_KEY)
 # Note: In production, ensure a proper key is set in .env
 
 # When going to production, in .env set:
@@ -94,7 +109,6 @@ INSTALLED_APPS = [
     'claims',
     'branches',
     'members.communications',
-    'reports_ai',  # For AI Reporting
     'audit',  # For audit logging
 ]
 
@@ -143,16 +157,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'legacyadmin.wsgi.application'
 
 # ─── Database ────────────────────────────────────────────────────────────────
-DATABASES = {
-    'default': {
-        'ENGINE': env('DB_ENGINE', 'django.db.backends.mysql'),
-        'NAME': env('DB_NAME', 'your_cpanel_db_name'),
-        'USER': env('DB_USER', 'your_cpanel_db_user'),
-        'PASSWORD': env('DB_PASSWORD', 'your_db_password'),
-        'HOST': env('DB_HOST', 'localhost'),
-        'PORT': env('DB_PORT', '3306'),
+if should_use_local_sqlite():
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': env('SQLITE_DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': env('DB_ENGINE', 'django.db.backends.mysql'),
+            'NAME': env('DB_NAME', 'your_cpanel_db_name'),
+            'USER': env('DB_USER', 'your_cpanel_db_user'),
+            'PASSWORD': env('DB_PASSWORD', 'your_db_password'),
+            'HOST': env('DB_HOST', 'localhost'),
+            'PORT': env('DB_PORT', '3306'),
+        }
+    }
 # DB_USER=postgres
 # DB_PASSWORD=<secure-password>
 # DB_HOST=your-db-host.com
@@ -183,7 +205,12 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
     BASE_DIR / 'theme' / 'static',
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+USE_MANIFEST_STATICFILES = env_bool('USE_MANIFEST_STATICFILES', not should_use_local_sqlite())
+STATICFILES_STORAGE = (
+    'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    if USE_MANIFEST_STATICFILES
+    else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+)
 
 # ─── Media files ──────────────────────────────────────────────────────────────
 MEDIA_URL = '/media/'
@@ -257,12 +284,22 @@ EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'noreply@legacyadmin.co.za')
+SITE_URL = env('SITE_URL', 'http://localhost:8000')
+
+# Optional short-link integration for enrollment links
+SHORT_LINK_TIMEOUT = env_int('SHORT_LINK_TIMEOUT', 10)
+BITLY_ACCESS_TOKEN = env('BITLY_ACCESS_TOKEN', '')
+TINYURL_API_TOKEN = env('TINYURL_API_TOKEN', '')
+REDIS_URL = env('REDIS_URL', '')
 
 # ─── OpenAI API Configuration ───────────────────────────────────────────────
 OPENAI_API_KEY = env('OPENAI_API_KEY', '')
 
 # Set a default model if not specified in environment
 DEFAULT_OPENAI_MODEL = env('DEFAULT_OPENAI_MODEL', 'gpt-4o')
+
+# Visible marker to confirm which deployment/build is serving the UI
+DEPLOYMENT_MARKER = env('DEPLOYMENT_MARKER', 'workspace-reporthub-20260409')
 
 # ─── Authentication redirects ─────────────────────────────────────────────────
 # Always use literal URL paths for login/logout so Django never tries to reverse() them:

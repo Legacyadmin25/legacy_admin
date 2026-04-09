@@ -4,7 +4,16 @@ Context processors for the accounts app.
 This module provides context processors that add useful variables to the template context.
 """
 
-from config.permissions import get_primary_group, get_user_permissions, has_permission, is_read_only_user, user_has_role
+from config.permissions import (
+    can_view_all_members_report,
+    can_view_amendments_report,
+    can_view_payment_allocation_report,
+    get_primary_group,
+    get_user_permissions,
+    has_permission,
+    is_read_only_user,
+    user_has_role,
+)
 
 
 def user_permissions(request):
@@ -32,4 +41,8 @@ def user_permissions(request):
         'can_manage_roles': is_admin,
         'can_view_reports': has_permission(user, 'view_reports'),
         'can_manage_settings': has_permission(user, 'manage_settings'),
+        'can_view_all_members_report': can_view_all_members_report(user),
+        'can_view_payment_admin_report': can_view_payment_allocation_report(user, 'admin'),
+        'can_view_payment_scheme_report': can_view_payment_allocation_report(user, 'scheme'),
+        'can_view_amendments_report': can_view_amendments_report(user),
     }

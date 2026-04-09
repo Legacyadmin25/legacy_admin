@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Amendments Report</h1>
+      <p class="mt-1 text-sm text-gray-600">Track policy and member changes after initial signup, from amendment imports and audited updates.</p>
+    </div>
+    <a href="{{ report_hub_url }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Change Filters</a>
+  </div>
+
+  <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div class="flex flex-wrap gap-2 text-sm">
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Branch: {{ filter_branch|default:'All' }}</span>
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Scheme: {{ filter_scheme|default:'All' }}</span>
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">From: {{ start_date|default:'Any' }}</span>
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">To: {{ end_date|default:'Any' }}</span>
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Source: {{ source|default:'All' }}</span>
+      <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Search: {{ search_term|default:'Any' }}</span>
+    </div>
+  </section>
+
+  <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 text-gray-700">
+        <tr>
+          <th class="px-3 py-3 text-left">Date</th>
+          <th class="px-3 py-3 text-left">Source</th>
+          <th class="px-3 py-3 text-left">Scheme</th>
+          <th class="px-3 py-3 text-left">Policy No.</th>
+          <th class="px-3 py-3 text-left">Membership No.</th>
+          <th class="px-3 py-3 text-left">Client</th>
+          <th class="px-3 py-3 text-left">Entity</th>
+          <th class="px-3 py-3 text-left">Field</th>
+          <th class="px-3 py-3 text-left">Old Value</th>
+          <th class="px-3 py-3 text-left">New Value</th>
+          <th class="px-3 py-3 text-left">Changed By</th>
+          <th class="px-3 py-3 text-left">Reference</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for entry in entries %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-3">{{ entry.date }}</td>
+            <td class="px-3 py-3">{{ entry.source }}</td>
+            <td class="px-3 py-3">{{ entry.scheme }}</td>
+            <td class="px-3 py-3">{{ entry.policy_number }}</td>
+            <td class="px-3 py-3">{{ entry.membership_number }}</td>
+            <td class="px-3 py-3">{{ entry.client }}</td>
+            <td class="px-3 py-3">{{ entry.entity }}</td>
+            <td class="px-3 py-3">{{ entry.field }}</td>
+            <td class="px-3 py-3">{{ entry.old_value }}</td>
+            <td class="px-3 py-3">{{ entry.new_value }}</td>
+            <td class="px-3 py-3">{{ entry.changed_by }}</td>
+            <td class="px-3 py-3">{{ entry.reference }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="12" class="px-3 py-6 text-center text-gray-500">No amendment activity found for the selected filters.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <section class="rounded-lg border border-emerald-200 overflow-hidden bg-white shadow-sm">
+    <div class="bg-emerald-500 px-4 py-3 text-sm font-semibold text-white">Export Report</div>
+    <div class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Report Export Type</label>
+        <div class="flex flex-wrap gap-2">
+          <a href="?branch={{ filter_branch }}&scheme={{ filter_scheme }}&search={{ search_term }}&start_date={{ start_date }}&end_date={{ end_date }}&source={{ source }}&export=excel" class="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Excel</a>
+          <a href="?branch={{ filter_branch }}&scheme={{ filter_scheme }}&search={{ search_term }}&start_date={{ start_date }}&end_date={{ end_date }}&source={{ source }}&export=csv" class="inline-flex items-center rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">CSV</a>
+          <a href="?branch={{ filter_branch }}&scheme={{ filter_scheme }}&search={{ search_term }}&start_date={{ start_date }}&end_date={{ end_date }}&source={{ source }}&export=pdf" class="inline-flex items-center rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">PDF</a>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Send Email</label>
+        <input type="email" placeholder="Email delivery can be added next" class="w-full rounded-md border bg-gray-50 px-3 py-2 text-gray-400" disabled>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -29,6 +29,10 @@ def current_scheme(request):
     return context
 
 def settings_context(request):
+    from django.conf import settings as django_settings
     from .models import Settings
     settings = Settings.load()
-    return {'settings': settings}
+    return {
+        'settings': settings,
+        'deployment_marker': getattr(django_settings, 'DEPLOYMENT_MARKER', ''),
+    }

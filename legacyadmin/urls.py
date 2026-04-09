@@ -30,9 +30,6 @@ urlpatterns = [
     # Dashboard
     path('dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),
 
-    # AI Reports
-    path('reports/ai/', include(('reports_ai.urls', 'reports_ai'), namespace='reports_ai')),
-
     # Public Enrollment (No auth required)
     path('apply/', include(('members.urls_public_enrollment', 'public_enrollment'), namespace='public_enrollment')),
     
