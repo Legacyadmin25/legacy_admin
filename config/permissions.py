@@ -5,17 +5,109 @@ This module defines the permissions associated with each role in the system.
 It serves as a single source of truth for role-based access control throughout the application.
 """
 
-ROLE_PERMISSIONS = {
-    "Internal Admin": ["all"],
-    "Superuser": ["admin", "view_all", "settings"],
-    "Administrator": ["dashboard_access", "view_reports", "manage_users"],
-    "BranchOwner": ["dashboard_access", "view_branch", "payments", "reminders"],
-    "SchemeManager": ["dashboard_access", "view_scheme", "payments", "claims", "reports"],
-    "Finance Officer": ["dashboard_access", "payments", "receipts", "exports"],
-    "Claims Officer": ["dashboard_access", "claims", "claims_approve", "documents"],
-    "Agent": ["dashboard_access", "policy_create", "client_referral", "view_own"],
-    "Compliance Auditor": ["dashboard_access", "read_only"]
+CANONICAL_ROLE_HIERARCHY = [
+    "Superuser",
+    "Administrator",
+    "Compliance Auditor",
+    "Finance Officer",
+    "Claims Officer",
+    "Branch Owner",
+    "Scheme Manager",
+    "Internal Admin",
+    "Agent",
+]
+
+ROLE_ALIASES = {
+    "Super Users": "Superuser",
+    "Superuser": "Superuser",
+    "Admin": "Administrator",
+    "Administrator": "Administrator",
+    "BranchOwner": "Branch Owner",
+    "Branch Owner": "Branch Owner",
+    "SchemeManager": "Scheme Manager",
+    "Scheme Manager": "Scheme Manager",
+    "Scheme Admin": "Scheme Manager",
+    "Claims": "Claims Officer",
+    "Claims Officer": "Claims Officer",
+    "Finance": "Finance Officer",
+    "Finance Team": "Finance Officer",
+    "Finance Officer": "Finance Officer",
+    "Data Capturer": "Internal Admin",
+    "Internal Admin": "Internal Admin",
+    "Compliance Auditor": "Compliance Auditor",
+    "Agent": "Agent",
 }
+
+ROLE_PERMISSIONS = {
+    "Superuser": ["all"],
+    "Administrator": [
+        "dashboard_access", "view_all", "manage_users", "manage_settings", "manage_agents",
+        "manage_schemes", "manage_branches", "manage_policies", "manage_payments",
+        "view_reports", "manage_claims", "manage_documents", "generate_agent_signup_links"
+    ],
+    "Branch Owner": [
+        "dashboard_access", "view_branch", "manage_branch", "manage_agents", "manage_schemes",
+        "manage_policies", "manage_payments", "view_reports", "generate_agent_signup_links"
+    ],
+    "Scheme Manager": [
+        "dashboard_access", "view_scheme", "manage_agents", "manage_policies", "manage_payments",
+        "view_reports", "manage_claims", "manage_documents", "generate_agent_signup_links"
+    ],
+    "Internal Admin": [
+        "dashboard_access", "view_scheme", "manage_policies", "manage_payments", "manage_documents"
+    ],
+    "Finance Officer": [
+        "dashboard_access", "view_all", "manage_payments", "view_reports", "receipts", "exports"
+    ],
+    "Claims Officer": [
+        "dashboard_access", "view_all", "manage_claims", "manage_documents"
+    ],
+    "Compliance Auditor": [
+        "dashboard_access", "view_all", "view_reports", "read_only"
+    ],
+    "Agent": [
+        "view_own", "own_diy_link"
+    ],
+}
+
+
+def normalize_role_name(role_name):
+    return ROLE_ALIASES.get(role_name, role_name)
+
+
+def get_canonical_group_names(user):
+    if user.is_superuser:
+        return ["Superuser"]
+    return [normalize_role_name(group.name) for group in user.groups.all()]
+
+
+def user_has_role(user, *role_names):
+    canonical_targets = {normalize_role_name(role_name) for role_name in role_names}
+    if "Superuser" in canonical_targets and user.is_superuser:
+        return True
+    return any(group_name in canonical_targets for group_name in get_canonical_group_names(user))
+
+
+def is_read_only_user(user):
+    return user_has_role(user, "Compliance Auditor")
+
+
+def can_manage_agents(user):
+    return user.is_superuser or user_has_role(user, "Administrator", "Branch Owner", "Scheme Manager")
+
+
+def can_manage_agent_signup_links(user, agent=None):
+    if user.is_superuser or user_has_role(user, "Administrator"):
+        return True
+    if user_has_role(user, "Agent"):
+        return bool(getattr(user, 'agent', None)) and (agent is None or getattr(user, 'agent', None) == agent)
+    if agent is None:
+        return user_has_role(user, "Branch Owner", "Scheme Manager")
+    if user_has_role(user, "Branch Owner"):
+        return bool(user.branch_id) and bool(agent.scheme_id) and agent.scheme.branch_id == user.branch_id
+    if user_has_role(user, "Scheme Manager"):
+        return user.assigned_schemes.filter(id=agent.scheme_id).exists()
+    return False
 
 # Permission helpers
 def has_permission(user, permission):
@@ -34,7 +126,7 @@ def has_permission(user, permission):
         return True
         
     # Get user's groups
-    user_groups = [group.name for group in user.groups.all()]
+    user_groups = get_canonical_group_names(user)
     
     # Check if user has the permission through any of their groups
     for group_name in user_groups:
@@ -59,7 +151,7 @@ def get_user_permissions(user):
         return ["all"]
         
     # Get user's groups
-    user_groups = [group.name for group in user.groups.all()]
+    user_groups = get_canonical_group_names(user)
     
     # Collect all permissions from user's groups
     permissions = []
@@ -84,20 +176,8 @@ def get_primary_group(user):
     if user.is_superuser:
         return "Superuser"
         
-    # Define group hierarchy (highest priority first)
-    group_hierarchy = [
-        "Internal Admin",
-        "Administrator",
-        "BranchOwner",
-        "SchemeManager",
-        "Finance Officer",
-        "Claims Officer",
-        "Agent",
-        "Compliance Auditor"
-    ]
-    
-    # Get user's groups
-    user_groups = [group.name for group in user.groups.all()]
+    group_hierarchy = CANONICAL_ROLE_HIERARCHY
+    user_groups = get_canonical_group_names(user)
     
     # Find the highest priority group
     for group_name in group_hierarchy:
@@ -118,26 +198,7 @@ def get_user_schemes(user):
     Returns:
         QuerySet: Scheme objects the user can access
     """
-    from schemes.models import Scheme
-    from settings_app.models import UserRole
-    
-    # Superusers and internal admins see all schemes
-    if user.is_superuser or user.groups.filter(name__in=['Superuser', 'Internal Admin']).exists():
-        return Scheme.objects.all()
-    
-    # Check if user has a scoped UserRole
-    try:
-        user_role = user.role
-        if user_role.scheme:
-            return Scheme.objects.filter(id=user_role.scheme.id)
-        if user_role.branch:
-            # If assigned to branch, show all schemes in that branch
-            return Scheme.objects.filter(branch=user_role.branch)
-    except (AttributeError, UserRole.DoesNotExist):
-        pass
-    
-    # Default: user can't see any schemes
-    return Scheme.objects.none()
+    return get_user_accessible_schemes(user)
 
 
 def get_user_branches(user):
@@ -150,23 +211,7 @@ def get_user_branches(user):
     Returns:
         QuerySet: Branch objects the user can access
     """
-    from branches.models import Branch
-    from settings_app.models import UserRole
-    
-    # Superusers and internal admins see all branches
-    if user.is_superuser or user.groups.filter(name__in=['Superuser', 'Internal Admin']).exists():
-        return Branch.objects.all()
-    
-    # Check if user has a scoped UserRole
-    try:
-        user_role = user.role
-        if user_role.branch:
-            return Branch.objects.filter(id=user_role.branch.id)
-    except (AttributeError, UserRole.DoesNotExist):
-        pass
-    
-    # Default: user can't see any branches
-    return Branch.objects.none()
+    return get_user_accessible_branches(user)
 
 
 def filter_by_user_scope(queryset, user, model_class):
@@ -182,7 +227,7 @@ def filter_by_user_scope(queryset, user, model_class):
         QuerySet: Filtered queryset based on user scope
     """
     # Superusers and internal admins see all data
-    if user.is_superuser or user.groups.filter(name__in=['Superuser', 'Internal Admin']).exists():
+    if user.is_superuser or user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return queryset
     
     # Get user's accessible schemes and branches
@@ -194,6 +239,10 @@ def filter_by_user_scope(queryset, user, model_class):
     
     if model_name in ['Member', 'Policy', 'Dependent', 'Beneficiary']:
         # These models connect through Policy -> Scheme
+        if model_name == 'Policy':
+            return queryset.filter(scheme__in=accessible_schemes)
+        if model_name == 'Member':
+            return queryset.filter(policies__scheme__in=accessible_schemes).distinct()
         return queryset.filter(policy__scheme__in=accessible_schemes)
     elif model_name == 'Payment':
         # Payments connect through Policy -> Scheme
@@ -201,13 +250,16 @@ def filter_by_user_scope(queryset, user, model_class):
     elif model_name == 'Claim':
         # Claims connect through Policy -> Scheme
         return queryset.filter(policy__scheme__in=accessible_schemes)
-    elif model_name in ['Scheme', 'Plan']:
+    elif model_name == 'Scheme':
+        return queryset.filter(id__in=accessible_schemes.values_list('id', flat=True))
+    elif model_name == 'Plan':
         # These connect directly through branch
-        return queryset.filter(branch__in=accessible_branches)
-    elif model_name in ['Agent', 'Underwriter']:
-        # These are typically branch-scoped
+        return queryset.filter(scheme__in=accessible_schemes)
+    elif model_name == 'Agent':
+        return queryset.filter(scheme__in=accessible_schemes)
+    elif model_name == 'Underwriter':
         if accessible_branches.exists():
-            return queryset.filter(branch__in=accessible_branches)
+            return queryset.filter(schemes__branch__in=accessible_branches).distinct()
         return queryset.none()
     
     # Default: no restriction (admin access)
@@ -232,12 +284,15 @@ def can_view_branch(user, branch):
     # Superusers and admins can view all branches
     if user.is_superuser:
         return True
-    if user.groups.filter(name__in=['Internal Admin', 'Superuser', 'Administrator']).exists():
+    if user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return True
     
     # BranchOwners can only view their assigned branch
-    if user.groups.filter(name='BranchOwner').exists():
+    if user_has_role(user, 'Branch Owner'):
         return user.branch_id == branch.id if user.branch else False
+
+    if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
+        return user.assigned_schemes.filter(branch_id=branch.id).exists()
     
     # All other roles start with no access
     return False
@@ -257,15 +312,15 @@ def can_view_scheme(user, scheme):
     # Superusers and admins can view all schemes
     if user.is_superuser:
         return True
-    if user.groups.filter(name__in=['Internal Admin', 'Superuser', 'Administrator']).exists():
+    if user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return True
     
     # SchemeManagers can only view their assigned schemes
-    if user.groups.filter(name='SchemeManager').exists():
+    if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
         return user.assigned_schemes.filter(id=scheme.id).exists()
     
     # BranchOwners can view schemes in their branch
-    if user.groups.filter(name='BranchOwner').exists():
+    if user_has_role(user, 'Branch Owner'):
         return scheme.branch_id == user.branch_id if user.branch else False
     
     # All other roles start with no access
@@ -287,14 +342,17 @@ def get_user_accessible_branches(user):
     # Superusers and admins see all branches
     if user.is_superuser:
         return Branch.objects.all()
-    if user.groups.filter(name__in=['Internal Admin', 'Superuser', 'Administrator']).exists():
+    if user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return Branch.objects.all()
     
     # BranchOwners see only their assigned branch
-    if user.groups.filter(name='BranchOwner').exists():
+    if user_has_role(user, 'Branch Owner'):
         if user.branch:
             return Branch.objects.filter(id=user.branch.id)
         return Branch.objects.none()
+
+    if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
+        return Branch.objects.filter(schemes__in=user.assigned_schemes.all()).distinct()
     
     # Other roles have no direct branch access
     return Branch.objects.none()
@@ -315,15 +373,15 @@ def get_user_accessible_schemes(user):
     # Superusers and admins see all schemes
     if user.is_superuser:
         return Scheme.objects.all()
-    if user.groups.filter(name__in=['Internal Admin', 'Superuser', 'Administrator']).exists():
+    if user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return Scheme.objects.all()
     
     # SchemeManagers see only their assigned schemes
-    if user.groups.filter(name='SchemeManager').exists():
+    if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
         return user.assigned_schemes.all()
     
     # BranchOwners see all schemes in their branch
-    if user.groups.filter(name='BranchOwner').exists():
+    if user_has_role(user, 'Branch Owner'):
         if user.branch:
             return Scheme.objects.filter(branch=user.branch)
         return Scheme.objects.none()
@@ -347,7 +405,7 @@ def filter_queryset_by_user_scope(queryset, user, model_name):
     # Superusers and admins see all data
     if user.is_superuser:
         return queryset
-    if user.groups.filter(name__in=['Internal Admin', 'Superuser', 'Administrator']).exists():
+    if user_has_role(user, 'Administrator', 'Compliance Auditor', 'Finance Officer', 'Claims Officer'):
         return queryset
     
     # Get user's accessible schemes
@@ -357,18 +415,32 @@ def filter_queryset_by_user_scope(queryset, user, model_name):
     # Filter based on model type
     if model_name in ['Member', 'Policy', 'Claim', 'Payment']:
         # These models connect through Policy -> Scheme -> Branch
-        if user.groups.filter(name='SchemeManager').exists():
+        if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
             # SchemeManagers: filter by their assigned schemes
-            return queryset.filter(policy__plan__scheme__in=accessible_schemes)
-        elif user.groups.filter(name='BranchOwner').exists():
+            if model_name == 'Policy':
+                return queryset.filter(scheme__in=accessible_schemes)
+            if model_name == 'Member':
+                return queryset.filter(policies__scheme__in=accessible_schemes).distinct()
+            return queryset.filter(policy__scheme__in=accessible_schemes)
+        elif user_has_role(user, 'Branch Owner'):
             # BranchOwners: filter by their branch's schemes
-            return queryset.filter(policy__plan__scheme__branch=user.branch)
+            if model_name == 'Policy':
+                return queryset.filter(scheme__branch=user.branch)
+            if model_name == 'Member':
+                return queryset.filter(policies__scheme__branch=user.branch).distinct()
+            return queryset.filter(policy__scheme__branch=user.branch)
     elif model_name in ['Scheme', 'Plan']:
         # Schemes and Plans filter by branch/assignment
-        if user.groups.filter(name='SchemeManager').exists():
-            return queryset.filter(scheme__in=accessible_schemes)
-        elif user.groups.filter(name='BranchOwner').exists():
-            return queryset.filter(scheme__branch=user.branch)
+        if model_name == 'Scheme':
+            if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
+                return queryset.filter(id__in=accessible_schemes.values_list('id', flat=True))
+            elif user_has_role(user, 'Branch Owner'):
+                return queryset.filter(branch=user.branch)
+        else:
+            if user_has_role(user, 'Scheme Manager', 'Internal Admin'):
+                return queryset.filter(scheme__in=accessible_schemes)
+            elif user_has_role(user, 'Branch Owner'):
+                return queryset.filter(scheme__branch=user.branch)
     elif model_name in ['Branch']:
         # Branches filter by direct assignment
         return queryset.filter(id__in=accessible_branches.values_list('id', flat=True))

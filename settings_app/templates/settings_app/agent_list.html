@@ -7,10 +7,12 @@
 <div class="max-w-7xl mx-auto px-4 py-6">
     <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">Agents</h1>
+        {% if can_add_agent %}
         <a href="{% url 'settings:agent_create' %}" 
            class="inline-flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
             + Add New Agent
         </a>
+        {% endif %}
     </div>
 
     <!-- Search Form -->
@@ -45,14 +47,14 @@
                                 <p class="text-sm text-gray-700">
                                     <span class="font-medium">Scheme:</span> {{ agent.scheme.name|default:"N/A" }}
                                 </p>
-                                {% if agent.diy_token %}
+                                {% if agent.diy_token and can_manage_agent_links %}
                                 <div class="mt-2 flex items-center space-x-2">
                                     <span class="text-sm font-medium">DIY Link:</span>
                                     <div class="flex-1 flex items-center bg-gray-100 rounded px-3 py-1">
                                         <span id="diy-link-{{ agent.id }}" class="text-sm text-blue-600 overflow-hidden text-ellipsis">
-                                            {{ request.scheme }}://{{ request.get_host }}{% url 'members:agent_diy_register' agent.diy_token %}
+                                            {{ request.scheme }}://{{ request.get_host }}{% url 'members:diy_signup_start' agent.diy_token %}
                                         </span>
-                                        <button onclick="copyToClipboard('diy-link-{{ agent.id }}')" 
+                                        <button type="button" onclick="copyToClipboard('diy-link-{{ agent.id }}')" 
                                                 class="ml-2 text-gray-500 hover:text-gray-700">
                                             📋
                                         </button>
@@ -62,6 +64,7 @@
                             </div>
                         </div>
                         <div class="flex space-x-2">
+                            {% if can_add_agent %}
                             <a href="{% url 'settings:agent_edit' agent.id %}" 
                                class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                                 Edit
@@ -74,7 +77,8 @@
                                     Delete
                                 </button>
                             </form>
-                            {% if agent.diy_token %}
+                            {% endif %}
+                            {% if agent.diy_token and can_manage_agent_links %}
                             <a href="{% url 'settings:agent_regenerate_token' agent.id %}" 
                                class="inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
                                onclick="return confirm('Are you sure you want to regenerate the DIY token? The old link will stop working.')">
@@ -109,7 +113,7 @@
             </div>
         {% else %}
             <div class="text-center py-8">
-                <p class="text-gray-500">No agents found. <a href="{% url 'settings:agent_create' %}" class="text-indigo-600 hover:underline">Add one now</a>.</p>
+                <p class="text-gray-500">No agents found.{% if can_add_agent %} <a href="{% url 'settings:agent_create' %}" class="text-indigo-600 hover:underline">Add one now</a>.{% endif %}</p>
             </div>
         {% endif %}
     </div>

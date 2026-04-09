@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied
 from .forms import BranchForm
 from .models import Branch
 from schemes.models import Scheme
-from config.permissions import can_view_branch, get_user_accessible_branches
+from config.permissions import can_view_branch, get_user_accessible_branches, user_has_role
 
 
 @login_required
@@ -29,7 +29,7 @@ def branch_setup(request):
             )
     
     # Check permission - only superuser or branch managers
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=['BranchOwner', 'Administrator']).exists()):
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
         raise PermissionDenied("You do not have permission to setup branches.")
     
     if request.method == 'POST':
@@ -66,7 +66,7 @@ def branch_edit(request, branch_id):
     branch = get_object_or_404(Branch, id=branch_id)
     
     # Check permission
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=['BranchOwner', 'Administrator']).exists()):
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
         raise PermissionDenied("You do not have permission to edit branches.")
     
     # Check if user can access this specific branch
@@ -86,7 +86,7 @@ def branch_edit(request, branch_id):
 @login_required
 def branch_list(request):
     # Check permission
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=['BranchOwner', 'Administrator']).exists()):
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
         raise PermissionDenied("You do not have permission to view branches.")
     
     # Filter branches based on user scope
@@ -99,7 +99,7 @@ def branch_detail(request, branch_id):
     branch = get_object_or_404(Branch, id=branch_id)
     
     # Check permission
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=['BranchOwner', 'Administrator']).exists()):
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
         raise PermissionDenied("You do not have permission to view branches.")
     
     # Check if user can access this specific branch
@@ -114,7 +114,7 @@ def branch_delete(request, branch_id):
     branch = get_object_or_404(Branch, id=branch_id)
     
     # Check permission
-    if not (request.user.is_superuser or request.user.groups.filter(name__in=['BranchOwner', 'Administrator']).exists()):
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
         raise PermissionDenied("You do not have permission to delete branches.")
     
     # Check if user can access this specific branch

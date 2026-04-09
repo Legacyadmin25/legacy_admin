@@ -167,10 +167,8 @@ class AgentForm(forms.ModelForm):
             self.fields['code'].initial = ''
 
         if user and not user.is_superuser:
-            if user.groups.filter(name='Branch Owner').exists():
-                self.fields['scheme'].queryset = Scheme.objects.filter(branch=user.userprofile.branch)
-            elif user.groups.filter(name='Scheme Admin').exists():
-                self.fields['scheme'].queryset = Scheme.objects.filter(admin_user=user)
+            if user_has_role(user, 'Branch Owner', 'Scheme Manager', 'Internal Admin'):
+                self.fields['scheme'].queryset = get_user_accessible_schemes(user)
 
     def clean_id_number(self):
         idn = self.cleaned_data.get('id_number', '').strip()
@@ -258,6 +256,7 @@ from django.core.exceptions import ValidationError
 from branches.models import Branch as EnrollmentBranch
 from settings_app.models import Branch as LegacyBranch, UserProfile
 from settings_app.utils.validation import is_strong_password
+from config.permissions import CANONICAL_ROLE_HIERARCHY, get_user_accessible_schemes, user_has_role
 
 User = get_user_model()
 
@@ -367,6 +366,12 @@ class UserSetupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        canonical_groups = []
+        for role_name in CANONICAL_ROLE_HIERARCHY:
+            group, _ = Group.objects.get_or_create(name=role_name)
+            canonical_groups.append(group.pk)
+        self.fields['security_groups'].queryset = Group.objects.filter(pk__in=canonical_groups).order_by('name')
 
         selected_branch_id = None
         if self.is_bound:

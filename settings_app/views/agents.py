@@ -6,12 +6,14 @@ from django.urls import reverse_lazy
 from django.http import HttpResponse
 from django.contrib.auth.models import Group
 from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 import csv
 from settings_app.models import Agent
 from schemes.models import Scheme
 from settings_app.forms import AgentForm
 from django.contrib.auth.decorators import login_required  # <-- Add this import
 import csv
+from config.permissions import can_manage_agents, can_manage_agent_signup_links, get_user_accessible_schemes, user_has_role
 
 
 # ─── Agent List View ───────────────────────────────────────────────────────
@@ -24,18 +26,9 @@ class AgentListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
-        
-        # Get schemes based on user role
-        if user.is_superuser:
-            ctx['schemes'] = Scheme.objects.all()
-        elif user.groups.filter(name='Branch Owner').exists():
-            ctx['schemes'] = Scheme.objects.filter(branch=user.userprofile.branch)
-        elif user.groups.filter(name='Scheme Admin').exists():
-            ctx['schemes'] = Scheme.objects.filter(admin_user=user)
-        else:
-            ctx['schemes'] = Scheme.objects.none()
-            
-        ctx['can_add_agent'] = user.is_superuser or user.groups.filter(name__in=['Branch Owner', 'Scheme Admin']).exists()
+        ctx['schemes'] = get_user_accessible_schemes(user)
+        ctx['can_add_agent'] = can_manage_agents(user)
+        ctx['can_manage_agent_links'] = can_manage_agent_signup_links(user)
         return ctx
 
     def get_queryset(self):
@@ -56,10 +49,9 @@ class AgentListView(LoginRequiredMixin, ListView):
         # Filter by user role
         if user.is_superuser:
             return queryset.select_related('scheme')
-        elif user.groups.filter(name='Branch Owner').exists():
-            return queryset.filter(scheme__branch=user.userprofile.branch).select_related('scheme')
-        elif user.groups.filter(name='Scheme Admin').exists():
-            return queryset.filter(scheme__admin_user=user).select_related('scheme')
+        accessible_schemes = get_user_accessible_schemes(user)
+        if accessible_schemes.exists():
+            return queryset.filter(scheme__in=accessible_schemes).select_related('scheme')
         return queryset.none()
 
 
@@ -69,6 +61,11 @@ class AgentCreateView(LoginRequiredMixin, CreateView):
     form_class = AgentForm
     template_name = 'settings_app/agent_setup.html'
     success_url = reverse_lazy('settings:agent')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_agents(request.user):
+            raise PermissionDenied("You do not have permission to create agents.")
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         form.save()
@@ -83,14 +80,18 @@ class AgentUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'settings_app/agent_setup.html'
     success_url = reverse_lazy('settings:agent')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_agents(request.user):
+            raise PermissionDenied("You do not have permission to edit agents.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
             return Agent.objects.all()
-        elif user.groups.filter(name='Branch Owner').exists():
-            return Agent.objects.filter(scheme__branch=user.userprofile.branch)
-        elif user.groups.filter(name='Scheme Admin').exists():
-            return Agent.objects.filter(scheme__admin_user=user)
+        accessible_schemes = get_user_accessible_schemes(user)
+        if accessible_schemes.exists():
+            return Agent.objects.filter(scheme__in=accessible_schemes)
         return Agent.objects.none()
 
     def form_valid(self, form):
@@ -104,6 +105,11 @@ class AgentDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'settings_app/agent_confirm_delete.html'
     success_url = reverse_lazy('settings:agent')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_agents(request.user):
+            raise PermissionDenied("You do not have permission to delete agents.")
+        return super().dispatch(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, "Agent deleted successfully.")
         return super().delete(request, *args, **kwargs)
@@ -113,29 +119,20 @@ class AgentDeleteView(LoginRequiredMixin, DeleteView):
 @login_required
 def agent_setup(request, pk=None):
     user = request.user
+    if not can_manage_agents(user):
+        raise PermissionDenied("You do not have permission to manage agents.")
+
     instance = None
     edit_mode = bool(pk)  # True if we're editing an existing agent
-    
-    # Get schemes based on user role for the form
-    if user.is_superuser:
-        schemes = Scheme.objects.all()
-    elif user.groups.filter(name='Branch Owner').exists():
-        schemes = Scheme.objects.filter(branch=user.userprofile.branch)
-    elif user.groups.filter(name='Scheme Admin').exists():
-        schemes = Scheme.objects.filter(admin_user=user)
-    else:
-        schemes = Scheme.objects.none()
+    schemes = get_user_accessible_schemes(user)
     
     # Handle editing an existing agent
     if pk:
         instance = get_object_or_404(Agent, pk=pk)
         
         # Check permissions
-        if not user.is_superuser:
-            if user.groups.filter(name='Branch Owner').exists() and instance.scheme and instance.scheme.branch != user.userprofile.branch:
-                raise PermissionDenied("You don't have permission to edit this agent.")
-            elif user.groups.filter(name='Scheme Admin').exists() and instance.scheme and instance.scheme.admin_user != user:
-                raise PermissionDenied("You don't have permission to edit this agent.")
+        if not user.is_superuser and not can_manage_agent_signup_links(user, instance):
+            raise PermissionDenied("You don't have permission to edit this agent.")
     
     # Handle form submission
     if request.method == 'POST':
@@ -171,7 +168,8 @@ def agent_setup(request, pk=None):
     context = {
         'agents': agents,
         'schemes': schemes,
-        'can_add_agent': user.is_superuser or user.groups.filter(name__in=['Branch Owner', 'Scheme Admin']).exists(),
+        'can_add_agent': can_manage_agents(user),
+        'can_manage_agent_links': can_manage_agent_signup_links(user),
         'form': form,
         'edit_mode': edit_mode,
         'is_edit_page': is_edit_page
@@ -184,16 +182,10 @@ def agent_setup(request, pk=None):
 @login_required
 def agent_create(request):
     user = request.user
-    
-    # Get schemes based on user role for the form
-    if user.is_superuser:
-        schemes = Scheme.objects.all()
-    elif user.groups.filter(name='Branch Owner').exists():
-        schemes = Scheme.objects.filter(branch=user.userprofile.branch)
-    elif user.groups.filter(name='Scheme Admin').exists():
-        schemes = Scheme.objects.filter(admin_user=user)
-    else:
-        schemes = Scheme.objects.none()
+    if not can_manage_agents(user):
+        raise PermissionDenied("You do not have permission to create agents.")
+
+    schemes = get_user_accessible_schemes(user)
     
     # Handle form submission
     if request.method == 'POST':
@@ -221,7 +213,8 @@ def agent_create(request):
     
     context = {
         'schemes': schemes,
-        'can_add_agent': user.is_superuser or user.groups.filter(name__in=['Branch Owner', 'Scheme Admin']).exists(),
+        'can_add_agent': can_manage_agents(user),
+        'can_manage_agent_links': can_manage_agent_signup_links(user),
         'form': form,
         'edit_mode': False,  # This is a create page, not edit
         'is_edit_page': True  # This is an edit page (as opposed to list view)
@@ -234,26 +227,17 @@ def agent_create(request):
 @login_required
 def agent_edit(request, pk):
     user = request.user
-    
-    # Get schemes based on user role for the form
-    if user.is_superuser:
-        schemes = Scheme.objects.all()
-    elif user.groups.filter(name='Branch Owner').exists():
-        schemes = Scheme.objects.filter(branch=user.userprofile.branch)
-    elif user.groups.filter(name='Scheme Admin').exists():
-        schemes = Scheme.objects.filter(admin_user=user)
-    else:
-        schemes = Scheme.objects.none()
+    if not can_manage_agents(user):
+        raise PermissionDenied("You do not have permission to edit agents.")
+
+    schemes = get_user_accessible_schemes(user)
     
     # Get the agent instance
     instance = get_object_or_404(Agent, pk=pk)
     
     # Check permissions
-    if not user.is_superuser:
-        if user.groups.filter(name='Branch Owner').exists() and instance.scheme and instance.scheme.branch != user.userprofile.branch:
-            raise PermissionDenied("You don't have permission to edit this agent.")
-        elif user.groups.filter(name='Scheme Admin').exists() and instance.scheme and instance.scheme.admin_user != user:
-            raise PermissionDenied("You don't have permission to edit this agent.")
+    if not user.is_superuser and not can_manage_agent_signup_links(user, instance):
+        raise PermissionDenied("You don't have permission to edit this agent.")
     
     # Handle form submission
     if request.method == 'POST':
@@ -276,7 +260,8 @@ def agent_edit(request, pk):
     
     context = {
         'schemes': schemes,
-        'can_add_agent': user.is_superuser or user.groups.filter(name__in=['Branch Owner', 'Scheme Admin']).exists(),
+        'can_add_agent': can_manage_agents(user),
+        'can_manage_agent_links': can_manage_agent_signup_links(user),
         'form': form,
         'edit_mode': True,  # This is an edit page
         'is_edit_page': True  # This is an edit page (as opposed to list view)
@@ -289,16 +274,18 @@ def agent_edit(request, pk):
 def get_agents_based_on_permissions(user):
     if user.is_superuser:
         return Agent.objects.select_related('scheme').all()
-    if user.groups.filter(name='Branch Owner').exists():
-        return Agent.objects.filter(scheme__branch=user.userprofile.branch)
-    if user.groups.filter(name='Scheme Admin').exists():
-        return Agent.objects.filter(scheme__admin_user=user)
+    accessible_schemes = get_user_accessible_schemes(user)
+    if accessible_schemes.exists():
+        return Agent.objects.filter(scheme__in=accessible_schemes).select_related('scheme')
     return Agent.objects.none()
 
 
 # ─── Bulk Agent Actions ─────────────────────────────────────────────────────
 @login_required
 def bulk_agent_actions(request):
+    if not can_manage_agents(request.user):
+        raise PermissionDenied("You do not have permission to manage agents.")
+
     action = request.POST.get("action")
     agent_ids = request.POST.getlist("agent_ids")
     scheme_id = request.POST.get("scheme_id")
@@ -326,6 +313,9 @@ def bulk_agent_actions(request):
 # ─── Export Agents to CSV ───────────────────────────────────────────────────
 @login_required
 def export_agents_csv(request):
+    if not can_manage_agents(request.user):
+        raise PermissionDenied("You do not have permission to export agents.")
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="agents.csv"'
     writer = csv.writer(response)
@@ -333,7 +323,7 @@ def export_agents_csv(request):
         'Full Name', 'Surname', 'Scheme', 'Commission %', 'Rand Value', 'Contact', 'Email'
     ])
 
-    for agent in Agent.objects.all():
+    for agent in get_agents_based_on_permissions(request.user):
         writer.writerow([
             agent.full_name, agent.surname,
             agent.scheme.name if agent.scheme else '',
@@ -349,6 +339,9 @@ def export_agents_csv(request):
 @login_required
 def regenerate_diy_token(request, agent_id):
     agent = get_object_or_404(Agent, pk=agent_id)
+    if not can_manage_agent_signup_links(request.user, agent):
+        raise PermissionDenied("You do not have permission to manage this agent's signup link.")
+
     agent.revoke_diy_token()
     agent.generate_diy_token()
     messages.success(request, f"New DIY token generated for {agent.full_name}.")

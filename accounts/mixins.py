@@ -98,11 +98,11 @@ class GroupRequiredMixin(UserPassesTestMixin):
             'Internal Admin': 'accounts:superuser_dashboard',
             'Superuser': 'accounts:superuser_dashboard',
             'Administrator': 'accounts:admin_dashboard',
-            'BranchOwner': 'accounts:branch_dashboard',
-            'SchemeManager': 'accounts:scheme_dashboard',
+            'Branch Owner': 'accounts:branch_dashboard',
+            'Scheme Manager': 'accounts:scheme_dashboard',
             'Finance Officer': 'payments:payment_list',
             'Claims Officer': 'claims:claims_home',
-            'Agent': 'accounts:agent_dashboard',
+            'Agent': 'settings:agent_diy_link',
             'Compliance Auditor': 'reports:index'
         }
         

@@ -129,16 +129,16 @@ class RoleBasedLoginView(LoginView):
             return reverse('accounts:dashboard:superuser_dashboard')
         elif primary_group == 'Administrator':
             return reverse('accounts:dashboard:admin_dashboard')
-        elif primary_group == 'BranchOwner':
+        elif primary_group == 'Branch Owner':
             return reverse('accounts:dashboard:branch_dashboard')
-        elif primary_group == 'SchemeManager':
+        elif primary_group == 'Scheme Manager':
             return reverse('accounts:dashboard:scheme_dashboard')
         elif primary_group == 'Finance Officer':
             return reverse('accounts:dashboard:finance_dashboard')
         elif primary_group == 'Claims Officer':
             return reverse('accounts:dashboard:claims_dashboard')
         elif primary_group == 'Agent':
-            return reverse('accounts:dashboard:agent_dashboard')
+            return reverse('settings:agent_diy_link')
         elif primary_group == 'Compliance Auditor':
             return reverse('accounts:dashboard:compliance_dashboard')
         
