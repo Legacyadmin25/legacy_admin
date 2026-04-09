@@ -261,6 +261,19 @@ from settings_app.utils.validation import is_strong_password
 
 User = get_user_model()
 
+
+class SchemeBranchSelect(forms.Select):
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value:
+            try:
+                scheme = self.choices.queryset.get(pk=value)
+            except Exception:
+                scheme = None
+            if scheme is not None:
+                option['attrs']['data-branch-id'] = str(scheme.branch_id)
+        return option
+
 class UserSetupForm(forms.ModelForm):
     first_name = forms.CharField(label="Full Name")
     last_name  = forms.CharField(label="Surname")
@@ -296,11 +309,12 @@ class UserSetupForm(forms.ModelForm):
         label="Branch"
     )
 
-    assigned_schemes = forms.ModelMultipleChoiceField(
+    assigned_scheme = forms.ModelChoiceField(
         queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
-        widget=forms.CheckboxSelectMultiple,
+        widget=SchemeBranchSelect,
         required=False,
-        label="Assigned Schemes"
+        empty_label="Select a scheme",
+        label="Assigned Scheme"
     )
 
     generate_enrollment_link = forms.BooleanField(
@@ -310,6 +324,7 @@ class UserSetupForm(forms.ModelForm):
 
     enrollment_scheme = forms.ModelChoiceField(
         queryset=SchemeModel.objects.filter(active=True).select_related('branch').order_by('name'),
+        widget=SchemeBranchSelect,
         empty_label="Select scheme for signup link",
         required=False,
         label="Signup Link Scheme"
@@ -375,7 +390,7 @@ class UserSetupForm(forms.ModelForm):
             except UserProfile.DoesNotExist:
                 pass
 
-            self.fields['assigned_schemes'].initial = self.instance.assigned_schemes.all()
+            self.fields['assigned_scheme'].initial = self.instance.assigned_schemes.first()
             self.fields['security_groups'].initial = self.instance.groups.all()
             self.fields['is_active'].initial = self.instance.is_active
 
@@ -398,24 +413,19 @@ class UserSetupForm(forms.ModelForm):
         password = cleaned_data.get("password")
         confirm = cleaned_data.get("confirm_password")
         branch = cleaned_data.get('branch')
-        assigned_schemes = cleaned_data.get('assigned_schemes')
+        assigned_scheme = cleaned_data.get('assigned_scheme')
         generate_enrollment_link = cleaned_data.get('generate_enrollment_link')
         enrollment_scheme = cleaned_data.get('enrollment_scheme')
 
         if password and confirm and password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
 
-        if branch and assigned_schemes:
-            mismatched_schemes = [scheme.name for scheme in assigned_schemes if scheme.branch_id != branch.id]
-            if mismatched_schemes:
-                self.add_error(
-                    'assigned_schemes',
-                    f"These schemes do not belong to the selected branch: {', '.join(mismatched_schemes)}."
-                )
+        if branch and assigned_scheme and assigned_scheme.branch_id != branch.id:
+            self.add_error('assigned_scheme', 'Selected scheme does not belong to the selected branch.')
 
         if generate_enrollment_link and not enrollment_scheme:
-            if assigned_schemes and len(assigned_schemes) == 1:
-                enrollment_scheme = assigned_schemes[0]
+            if assigned_scheme:
+                enrollment_scheme = assigned_scheme
                 cleaned_data['enrollment_scheme'] = enrollment_scheme
             else:
                 self.add_error('enrollment_scheme', 'Select the scheme to use for the generated signup link.')
@@ -437,7 +447,8 @@ class UserSetupForm(forms.ModelForm):
         if commit:
             user.save()
             user.groups.set(self.cleaned_data['security_groups'])
-            user.assigned_schemes.set(self.cleaned_data['assigned_schemes'])
+            assigned_scheme = self.cleaned_data.get('assigned_scheme')
+            user.assigned_schemes.set([assigned_scheme] if assigned_scheme else [])
 
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.branch           = self._match_legacy_branch(self.cleaned_data['branch'])

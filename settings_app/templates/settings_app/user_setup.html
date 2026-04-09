@@ -88,14 +88,13 @@
 
       <section class="space-y-4">
         <h2 class="text-lg font-semibold">Scheme Assignment</h2>
-        {{ form.assigned_schemes.errors }}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {% for checkbox in form.assigned_schemes %}
-            <label class="flex items-center space-x-2">
-              {{ checkbox.tag }}
-              <span class="text-sm text-gray-800">{{ checkbox.choice_label }}</span>
-            </label>
-          {% endfor %}
+        <div>
+          <label class="block font-semibold">Assigned Scheme</label>
+          {% render_field form.assigned_scheme class="w-full px-4 py-2 border rounded" %}
+          {% if form.assigned_scheme.errors %}
+            <p class="text-sm text-red-600 mt-1">{{ form.assigned_scheme.errors.0 }}</p>
+          {% endif %}
+          <p class="text-sm text-gray-500 mt-1">Only schemes for the selected branch are shown.</p>
         </div>
       </section>
 
@@ -264,4 +263,50 @@
   });
 </script>
 {% endif %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const branchField = document.getElementById('id_branch');
+    const assignedSchemeField = document.getElementById('id_assigned_scheme');
+    const enrollmentSchemeField = document.getElementById('id_enrollment_scheme');
+
+    function filterSchemeOptions(selectElement, branchId) {
+      if (!selectElement) {
+        return;
+      }
+
+      const currentValue = selectElement.value;
+      let hasCurrentValue = false;
+
+      Array.from(selectElement.options).forEach(function (option) {
+        const optionBranchId = option.dataset.branchId;
+        const shouldShow = !optionBranchId || !branchId || optionBranchId === branchId;
+        option.hidden = !shouldShow;
+
+        if (!shouldShow && option.selected) {
+          option.selected = false;
+        }
+
+        if (shouldShow && option.value === currentValue) {
+          hasCurrentValue = true;
+        }
+      });
+
+      if (currentValue && !hasCurrentValue) {
+        selectElement.value = '';
+      }
+    }
+
+    function syncSchemeDropdowns() {
+      const branchId = branchField ? branchField.value : '';
+      filterSchemeOptions(assignedSchemeField, branchId);
+      filterSchemeOptions(enrollmentSchemeField, branchId);
+    }
+
+    if (branchField) {
+      branchField.addEventListener('change', syncSchemeDropdowns);
+      syncSchemeDropdowns();
+    }
+  });
+</script>
 {% endblock %}
