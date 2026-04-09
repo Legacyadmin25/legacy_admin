@@ -11,14 +11,10 @@
     <div class="h-full bg-blue-600 animate-progress-bar"></div>
   </div>
 
-  <form id="planForm" 
-        hx-post="{{ request.path }}" 
-        hx-encoding="multipart/form-data" 
-        hx-target="#planForm" 
-        hx-swap="outerHTML" 
-        hx-indicator=".htmx-indicator"
-        hx-trigger="submit"
-        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'  
+  <form id="planForm"
+        method="post"
+        action="{{ request.path }}{% if request.GET.scheme %}?scheme={{ request.GET.scheme }}{% endif %}"
+        enctype="multipart/form-data"
         class="space-y-8" 
         x-data="{ 
           formErrors: {}, 
