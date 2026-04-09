@@ -157,10 +157,13 @@ class AgentDIYLinkView(LoginRequiredMixin, TemplateView):
     template_name = 'settings_app/agent_diy_link.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
         # Ensure the logged-in User actually has an Agent record
         try:
             self.agent = request.user.agent
-        except ObjectDoesNotExist:
+        except (AttributeError, ObjectDoesNotExist):
             return HttpResponseForbidden("You do not have permission to access this page.")
         return super().dispatch(request, *args, **kwargs)
 
