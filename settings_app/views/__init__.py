@@ -170,7 +170,7 @@ class AgentDIYLinkView(LoginRequiredMixin, TemplateView):
         ctx['agent'] = agent
 
         if agent.diy_token:
-            diy_path = reverse('members:diy_signup', args=[agent.diy_token])
+            diy_path = reverse('members:diy_signup_start', args=[agent.diy_token])
             ctx['diy_link'] = self.request.build_absolute_uri(diy_path)
         else:
             ctx['diy_link'] = None
