@@ -130,7 +130,9 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ MEDIA_URL }}logos/legacy_guard_logo.png" alt="Legacy Guard Logo" class="logo">
+        {% if company_logo %}
+        <img src="{{ company_logo }}" alt="{{ company_name }} Logo" class="logo">
+        {% endif %}
         {% if policy.scheme %}
         <img src="{{ policy.scheme.logo.url }}" alt="{{ policy.scheme.name }} Logo" class="logo">
         {% endif %}

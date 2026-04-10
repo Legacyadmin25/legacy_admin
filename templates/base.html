@@ -12,6 +12,30 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#0A2540',
+              secondary: '#1E3A8A',
+              background: '#0F172A',
+              card: '#111827',
+              muted: '#9CA3AF',
+              silver: '#C0C0C0',
+              success: '#10B981',
+              danger: '#EF4444'
+            }
+          },
+          fontFamily: {
+            sans: ['Manrope', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 
@@ -24,8 +48,10 @@
   <!-- Full Width Layout CSS -->
   <link rel="stylesheet" href="{% static 'css/fullwidth.css' %}">
   
-  <!-- Google Fonts: Inter -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
   
   <!-- HTMX for AJAX interactions -->
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -56,9 +82,13 @@
   <script src="https://unpkg.com/tippy.js@6"></script>
   
   <style>
+    [x-cloak] {
+      display: none !important;
+    }
+
     /* Base Typography */
     body {
-      font-family: Inter, system-ui, sans-serif;
+      font-family: Manrope, system-ui, sans-serif;
     }
     
     /* Form Labels */
@@ -66,7 +96,7 @@
       display: block;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #374151;
+      color: #CBD5E1;
       margin-bottom: 0.25rem;
     }
     
@@ -78,12 +108,13 @@
       display: block;
       width: 100%;
       padding-left: 0.75rem;
-      padding-right: 2.5rem;
+      padding-right: 0.75rem;
       padding-top: 0.5rem;
       padding-bottom: 0.5rem;
-      border: 1px solid #D1D5DB;
-      border-radius: 0.375rem;
-      background-color: #F9FAFB;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 0.75rem;
+      background-color: rgba(15, 23, 42, 0.92);
+      color: #F8FAFC;
     }
     
     input:focus,
@@ -93,43 +124,50 @@
       --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
       --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
       box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-      --tw-ring-color: #3B82F6;
+      --tw-ring-color: #1E3A8A;
     }
     
     /* Section Headings */
     h3, .section-heading {
       font-size: 1.125rem;
       font-weight: 600;
-      color: #111827;
+      color: #F8FAFC;
       margin-bottom: 1rem;
     }
   </style>
   
   {% block extra_css %}{% endblock %}
 </head>
-<body class="flex h-screen overflow-hidden bg-gray-100">
+<body class="min-h-screen bg-brand-background text-white antialiased">
+  <div class="relative flex min-h-screen overflow-hidden">
+    <div x-cloak x-show="open" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm md:hidden" @click="open = false"></div>
 
-  <!-- Sidebar -->
-  <aside class="flex flex-col w-64 bg-gray-800 text-white flex-shrink-0">
-    <div class="border-b border-gray-700 px-4 py-3">
-      <div class="text-sm font-semibold text-white">{{ settings.site_name }}</div>
-    </div>
+    <!-- Sidebar -->
+    <aside :class="open ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-slate-950/95 text-white shadow-2xl shadow-black/40 transition-transform duration-300 ease-out md:static md:z-auto md:w-72 md:translate-x-0 md:bg-slate-950/85">
+      <div class="border-b border-white/10 px-5 py-5">
+        <div class="flex items-start justify-between gap-4 md:block">
+          <div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-3 shadow-lg shadow-black/20">
+              <img src="{% static 'images/legacy-core-logo.svg' %}" alt="Legacy Core logo" class="h-14 w-auto" />
+            </div>
+            <div class="mt-3 text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Legacy Core</div>
+            <div class="mt-1 text-base font-bold tracking-tight text-white">{{ settings.site_name }}</div>
+            <div class="mt-1 text-xs text-slate-400">Funeral policy administration platform</div>
+          </div>
+          <button class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 transition hover:bg-white/10 md:hidden" @click="open = false" aria-label="Close Sidebar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
 
-    <div class="md:hidden flex items-center justify-between p-4 border-b border-gray-700">
-      <h2 class="text-lg font-semibold">{{ settings.site_name }}</h2>
-      <button @click="open = false" aria-label="Close Sidebar">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-
-    <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+      <nav class="flex-1 overflow-y-auto p-4 space-y-2">
       <ul class="space-y-2" x-data="{ open: {} }">
         
         <!-- Superuser Dashboard -->
         {% if request.user|has_group:'Agent' %}
         <!-- Agent Dashboard -->
         <li>
-          <a href="{% url 'settings:agent_dashboard' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Agent Dashboard">
+          <a href="{% url 'settings:agent_dashboard' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" aria-label="Agent Dashboard">
             <i class="fa-solid fa-chart-line mr-2"></i> Agent Dashboard
           </a>
         </li>
@@ -137,7 +175,7 @@
 
         {% if not request.user.is_superuser and can_view_reports %}
         <li>
-          <a href="{% url 'reports:generate_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Open Reports">
+          <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" aria-label="Open Reports">
             <i class="fa-solid fa-chart-line mr-2"></i> Reports
           </a>
         </li>
@@ -146,30 +184,30 @@
         {% if request.user.is_superuser %}
         <!-- Enhanced Admin Dashboard -->
         <li>
-          <a href="{% url 'dashboard:admin_dashboard' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Enhanced Dashboard">
+          <a href="{% url 'dashboard:admin_dashboard' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" aria-label="Enhanced Dashboard">
             <i class="fa-solid fa-tachometer-alt mr-2"></i> Enhanced Dashboard
           </a>
         </li>
         
         <!-- Members Menu -->
         <li>
-          <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['members'] = !open['members']" aria-label="Toggle Members Menu">
+          <a href="#" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" @click.prevent="open['members'] = !open['members']" aria-label="Toggle Members Menu">
             <i class="fa-solid fa-users mr-2"></i> Members
             <i class="fa-solid fa-chevron-down ml-auto text-xs" :class="{'transform rotate-180': open['members']}"></i>
           </a>
           <ul class="ml-4 space-y-2" x-bind:class="{'hidden': !open['members']}">
             <li>
-              <a href="{% url 'members:step1_personal' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Create Policy">
+              <a href="{% url 'members:step1_personal' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Create Policy">
                 <i class="fa-solid fa-plus-circle mr-2"></i> Create Policy
               </a>
             </li>
             <li>
-              <a href="{% url 'members:find_policy' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Find Policy">
+              <a href="{% url 'members:find_policy' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Find Policy">
                 <i class="fa-solid fa-search mr-2"></i> Find Policy
               </a>
             </li>
             <li>
-              <a href="{% url 'members:incomplete_applications' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Incomplete Applications">
+              <a href="{% url 'members:incomplete_applications' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Incomplete Applications">
                 <i class="fa-solid fa-hourglass-half mr-2"></i> Incomplete Applications
               </a>
             </li>
@@ -182,27 +220,27 @@
 
           <!-- Payments -->
           <li>
-            <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['payments'] = !open['payments']" aria-label="Toggle Payments Menu">
+            <a href="#" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" @click.prevent="open['payments'] = !open['payments']" aria-label="Toggle Payments Menu">
               <i class="fa-solid fa-money-bill mr-2"></i> Payments
             </a>
             <ul class="ml-4 space-y-2" x-bind:class="{ 'hidden': !open['payments'] }">
               <li>
-                <a href="{% url 'payments:policy_payment' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Make a Payment">
+                <a href="{% url 'payments:policy_payment' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Make a Payment">
                   <i class="fa-solid fa-money-bill mr-2"></i> Make a Payment
                 </a>
               </li>
               <li>
-                <a href="{% url 'payments:payment_list' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="View Payment History">
+                <a href="{% url 'payments:payment_list' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="View Payment History">
                   <i class="fa-solid fa-money-bill mr-2"></i> Payment History
                 </a>
               </li>
               <li>
-                <a href="{% url 'payments:import_payments' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Import Payments">
+                <a href="{% url 'payments:import_payments' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Import Payments">
                   <i class="fa-solid fa-file-import mr-2"></i> Import Payments
                 </a>
               </li>
               <li>
-                <a href="{% url 'payments:import_log_list' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Import Logs">
+                <a href="{% url 'payments:import_log_list' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Import Logs">
                   <i class="fa-solid fa-list-check mr-2"></i> Import Logs
                 </a>
               </li>
@@ -211,17 +249,17 @@
 
           <!-- Claims -->
           <li>
-            <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['claims'] = !open['claims']" aria-label="Toggle Claims Menu">
+            <a href="#" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" @click.prevent="open['claims'] = !open['claims']" aria-label="Toggle Claims Menu">
               <i class="fa-solid fa-exclamation-triangle mr-2"></i> Claims
             </a>
             <ul class="ml-4 space-y-2" x-bind:class="{ 'hidden': !open['claims'] }">
               <li>
-                <a href="{% url 'claims:claims_home' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Submit a Claim">
+                <a href="{% url 'claims:claims_home' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Submit a Claim">
                   <i class="fa-solid fa-file-invoice mr-2"></i> Submit Claim
                 </a>
               </li>
               <li>
-                <a href="{% url 'claims:status' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Claim Status">
+                <a href="{% url 'claims:status' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Claim Status">
                   <i class="fa-solid fa-file-invoice mr-2"></i> Claim Status
                 </a>
               </li>
@@ -230,49 +268,49 @@
 
           <!-- Reports -->
           <li>
-            <a href="{% url 'reports:generate_report' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Open Reports">
+            <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl bg-brand-secondary/20 px-3 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-brand-secondary/50 transition hover:bg-brand-secondary/30" aria-label="Open Reports">
               <i class="fa-solid fa-chart-line mr-2"></i> Reports
             </a>
           </li>
 
           <!-- Imports -->
           <li>
-            <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['imports'] = !open['imports']" aria-label="Toggle Imports Menu">
+            <a href="#" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" @click.prevent="open['imports'] = !open['imports']" aria-label="Toggle Imports Menu">
               <i class="fa-solid fa-cloud-upload-alt mr-2"></i> Imports
             </a>
             <ul class="ml-4 space-y-2" x-bind:class="{ 'hidden': !open['imports'] }">
               <li>
-<a href="{% url 'import_data:bulk_policy_upload' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Policy Bulk Registration">
+<a href="{% url 'import_data:bulk_policy_upload' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Policy Bulk Registration">
                   <i class="fa-solid fa-file-upload mr-2"></i> Policy Bulk Registration
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:policy_amendments_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Policy Amendments">
+<a href="{% url 'import_data:policy_amendments_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Policy Amendments">
                   <i class="fa-solid fa-edit mr-2"></i> Policy Amendments
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:lapsed_policy_reactivation_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Lapsed Policy Reactivations">
+<a href="{% url 'import_data:lapsed_policy_reactivation_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Lapsed Policy Reactivations">
                   <i class="fa-solid fa-arrow-rotate-left mr-2"></i> Lapsed Policy Reactivations
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:agent_onboarding_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Agent Onboarding">
+<a href="{% url 'import_data:agent_onboarding_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Agent Onboarding">
                   <i class="fa-solid fa-user-plus mr-2"></i> Agent Onboarding
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:debit_order_file_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Debit Order Files">
+<a href="{% url 'import_data:debit_order_file_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Debit Order Files">
                   <i class="fa-solid fa-credit-card mr-2"></i> Debit Order Files
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:easypay_file_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Easypay/3rd-Party Payments">
+<a href="{% url 'import_data:easypay_file_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Easypay/3rd-Party Payments">
                   <i class="fa-solid fa-credit-card mr-2"></i> Easypay/3rd-Party Payments
                 </a>
               </li>
               <li>
-<a href="{% url 'import_data:bank_statement_import' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Bank Statement Reconciliation">
+<a href="{% url 'import_data:bank_statement_import' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Bank Statement Reconciliation">
                   <i class="fa-solid fa-university mr-2"></i> Bank Statement Reconciliation
                 </a>
               </li>
@@ -281,57 +319,57 @@
 
           <!-- Settings -->
           <li>
-            <a href="#" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" @click.prevent="open['settings'] = !open['settings']" aria-label="Toggle Settings Menu">
+            <a href="#" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" @click.prevent="open['settings'] = !open['settings']" aria-label="Toggle Settings Menu">
               <i class="fa-solid fa-cog mr-2"></i> Settings
             </a>
             <ul class="ml-4 space-y-2" x-bind:class="{ 'hidden': !open['settings'] }">
               <li>
-                <a href="{% url 'settings:general_settings' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="General Settings">
+                <a href="{% url 'settings:general_settings' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="General Settings">
                   <i class="fa-solid fa-cog mr-2"></i> General Settings
                 </a>
               </li>
               <li>
-                <a href="{% url 'supplements:setup' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Supplementary Benefits">
+                <a href="{% url 'supplements:setup' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Supplementary Benefits">
                   <i class="fa-solid fa-cog mr-2"></i> Supplementary Benefits
                 </a>
               </li>
               <li>
-                <a href="{% url 'branches:branch_setup' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Branch Setup">
+                <a href="{% url 'branches:branch_setup' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Branch Setup">
                   <i class="fa-solid fa-building mr-2"></i> Branch Setup
                 </a>
               </li>
               <li>
-<a href="{% url 'schemes:scheme_list' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Scheme Setup">
+<a href="{% url 'schemes:scheme_list' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Scheme Setup">
                   <i class="fa-solid fa-cogs mr-2"></i> Scheme Setup
                 </a>
               </li>
               <li>
-<a href="{% url 'settings:agent' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Agent Setup">
+<a href="{% url 'settings:agent' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Agent Setup">
                   <i class="fa-solid fa-user-cog mr-2"></i> Agent Setup
                 </a>
               </li>
               <li>
-<a href="{% url 'settings:plan' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Plan Creator">
+<a href="{% url 'settings:plan' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Plan Creator">
                   <i class="fa-solid fa-plus-circle mr-2"></i> Plan Creator
                 </a>
               </li>
               <li>
-                <a href="{% url 'settings:user_setup' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="User Setup">
+                <a href="{% url 'settings:user_setup' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="User Setup">
                   <i class="fa-solid fa-users-cog mr-2"></i> User Setup
                 </a>
               </li>
               <li>
-                <a href="{% url 'settings:sms_sending' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="SMS Sending">
+                <a href="{% url 'settings:sms_sending' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="SMS Sending">
                   <i class="fa-solid fa-sms mr-2"></i> SMS Sending
                 </a>
               </li>
               <li>
-<a href="{% url 'settings:underwriter' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="Underwriter Setup">
+<a href="{% url 'settings:underwriter' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Underwriter Setup">
                   <i class="fa-solid fa-cogs mr-2"></i> Underwriter Setup
                 </a>
               </li>
               <li>
-                <a href="{% url 'settings:ai_privacy_dashboard' %}" class="flex items-center px-2 py-2 rounded hover:bg-gray-700" aria-label="AI Privacy Controls">
+                <a href="{% url 'settings:ai_privacy_dashboard' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="AI Privacy Controls">
                   <i class="fa-solid fa-shield-alt mr-2"></i> AI Privacy Controls
                 </a>
               </li>
@@ -340,34 +378,53 @@
         {% endif %}
 
         <!-- Logout Button -->
-        <div class="mt-auto p-4">
-          <a href="{% url 'logout' %}?next={% url 'login' %}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm w-full text-center" aria-label="Logout">
+        <div class="mt-6 p-2">
+          <a href="{% url 'logout' %}?next={% url 'login' %}" class="inline-flex w-full items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20" aria-label="Logout">
             Logout
           </a>
         </div>
       </ul>
-    </nav>
-  </aside>
+      </nav>
+    </aside>
 
-  <!-- Main Content -->
-  <div class="flex-1 flex flex-col overflow-hidden">
-    <!-- Main content -->
-    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-      <div class="w-full px-6 py-8">
-        {% block content %}{% endblock %}
-      </div>
-    </main>
+    <!-- Main Content -->
+    <div class="flex min-h-screen flex-1 flex-col overflow-hidden">
+      <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
+        <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div class="flex items-center gap-3">
+            <button class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10 md:hidden" @click="open = true" aria-label="Open Sidebar">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-2 shadow-lg shadow-black/20">
+                <img src="{% static 'images/legacy-core-mark.svg' %}" alt="Legacy Core mark" class="h-full w-full" />
+              </div>
+              <div>
+                <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Legacy Core</div>
+                <div class="text-base font-semibold text-white sm:text-lg">{{ settings.site_name }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="hidden items-center gap-3 md:flex">
+            <div class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300">{{ request.user.get_full_name|default:request.user.username }}</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent">
+        <div class="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
   </div>
-
-  <!-- Sidebar Toggle Button -->
-  <button class="md:hidden fixed top-4 left-4 bg-gray-800 text-white p-2 rounded shadow" @click="open = true" aria-label="Open Sidebar">
-    <i class="fa-solid fa-bars"></i>
-  </button>
 
   <!-- Alpine.js Sidebar State -->
   <script>
     function sidebar() {
-      return { open: window.innerWidth >= 768 };
+      return {
+        open: window.innerWidth >= 768
+      };
     }
   </script>
 

@@ -298,6 +298,12 @@ OPENAI_API_KEY = env('OPENAI_API_KEY', '')
 # Set a default model if not specified in environment
 DEFAULT_OPENAI_MODEL = env('DEFAULT_OPENAI_MODEL', 'gpt-4o')
 
+# Brand settings
+BRAND_NAME = env('BRAND_NAME', 'Legacy Core')
+COMPANY_NAME = env('COMPANY_NAME', BRAND_NAME)
+COMPANY_LOGO = env('COMPANY_LOGO', '/static/images/legacy-core-logo.svg')
+COMPANY_LOGO_URL = env('COMPANY_LOGO_URL', COMPANY_LOGO)
+
 # Visible marker to confirm which deployment/build is serving the UI
 DEPLOYMENT_MARKER = env('DEPLOYMENT_MARKER', 'release-2026-04-09-reporthub-r1')
 

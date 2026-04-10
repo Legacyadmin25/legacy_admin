@@ -1,6 +1,7 @@
 {% extends base_template %}
 
 {% load humanize %}
+{% load static %}
 
 {% block title %}Policy Confirmation{% endblock %}
 
@@ -10,7 +11,7 @@
     <!-- Logo Section -->
     <div class="flex justify-center space-x-8 mb-8">
       <div class="flex items-center">
-        <img src="{% static 'images/legacy_guard_logo.png' %}" alt="Legacy Guard Logo" class="h-16">
+        <img src="{% static 'images/legacy-core-logo.svg' %}" alt="Legacy Core Logo" class="h-16">
       </div>
       <div class="flex items-center">
         <img src="{% static 'images/scheme_logo.png' %}" alt="Scheme Logo" class="h-16">
