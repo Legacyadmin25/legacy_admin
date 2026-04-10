@@ -1,0 +1,3 @@
+account_holder,account_number,bank,branch_code,amount,status,reference
+Jane Doe,1234567890,Standard Bank,051001,199.99,SUCCESS,LS10001
+John Smith,9876543210,FNB,250655,249.50,PENDING,LS10002
