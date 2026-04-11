@@ -35,6 +35,12 @@ from members.communications.sms_sender import send_otp_sms, send_bulk_sms
 logger = logging.getLogger(__name__)
 
 
+def mask_phone_number(phone_number):
+    if not phone_number:
+        return ''
+    return f"...{str(phone_number)[-4:]}"
+
+
 def invalid_enrollment_session_response():
     return HttpResponseForbidden(
         'This application session is no longer valid. Please reopen your signup link and start again.'
@@ -556,13 +562,22 @@ class Step6ConsentAndTermsView(FormView):
                 )
                 
                 # Send OTP via SMS
+                sms_sent_successfully = False
+                sms_status_message = ''
                 try:
-                    send_otp_sms(personal['phone_number'], otp.otp_code)
+                    sms_log = send_otp_sms(personal['phone_number'], otp.otp_code)
+                    sms_sent_successfully = sms_log.status in {'SENT', 'TEST'}
+                    sms_status_message = sms_log.detail or sms_log.status
                 except Exception as e:
                     logger.error(f"Failed to send OTP SMS: {str(e)}")
+                    sms_status_message = str(e)
                 
                 # Store application ID for next step
                 self.request.session['enrollment_app_id'] = application.id
+                self.request.session['otp_phone_masked'] = mask_phone_number(personal['phone_number'])
+                self.request.session['otp_sms_sent_successfully'] = sms_sent_successfully
+                self.request.session['otp_sms_status_message'] = sms_status_message
+                self.request.session.modified = True
                 
                 return redirect('public_enrollment:otp_verify')
                 
@@ -603,9 +618,15 @@ class OTPVerificationView(FormView):
         try:
             application = PublicApplication.objects.get(id=app_id)
             otp_obj = application.otp_verification
-            context['phone_number'] = f"...{otp_obj.phone_number[-4:]}"
+            context['phone_masked'] = self.request.session.get('otp_phone_masked') or mask_phone_number(otp_obj.phone_number)
             context['can_resend'] = otp_obj.can_resend()
-        except:
+            context['attempts_remaining'] = max(otp_obj.max_attempts - otp_obj.verification_attempts, 0)
+            context['resend_count'] = otp_obj.resend_count
+            context['expiry_timestamp'] = int(otp_obj.expires_at.timestamp())
+            context['application_id'] = application.id
+            context['sms_sent_successfully'] = self.request.session.get('otp_sms_sent_successfully', True)
+            context['sms_status_message'] = self.request.session.get('otp_sms_status_message', '')
+        except Exception:
             pass
         
         return context
@@ -659,8 +680,18 @@ class OTPResendView(View):
             otp.resend()
             
             # Send SMS
-            message = f"Your verification code is: {otp.otp_code}\n\nDo not share this code."
-            send_bulk_sms(otp.phone_number, message)
+            sms_log = send_otp_sms(otp.phone_number, otp.otp_code)
+            sms_sent_successfully = sms_log.status in {'SENT', 'TEST'}
+            request.session['otp_phone_masked'] = mask_phone_number(otp.phone_number)
+            request.session['otp_sms_sent_successfully'] = sms_sent_successfully
+            request.session['otp_sms_status_message'] = sms_log.detail or sms_log.status
+            request.session.modified = True
+
+            if not sms_sent_successfully:
+                return JsonResponse({
+                    'success': False,
+                    'message': sms_log.detail or 'OTP SMS could not be sent.'
+                }, status=500)
             
             return JsonResponse({
                 'success': True,

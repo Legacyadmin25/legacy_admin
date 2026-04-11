@@ -1,6 +1,7 @@
 import logging
 import base64
 import os
+import re
 import requests
 from django.conf import settings
 from requests.auth import HTTPBasicAuth
@@ -10,6 +11,21 @@ logger = logging.getLogger(__name__)
 
 # Settings
 BULKSMS_API_URL = 'https://api.bulksms.com/v1'
+
+
+def normalize_phone_number(phone_number: str) -> str:
+    """Normalize SA mobile numbers to +27 format for SMS delivery."""
+    if not phone_number:
+        return phone_number
+
+    normalized = re.sub(r'\s+', '', str(phone_number))
+    if normalized.startswith('+27'):
+        return normalized
+    if normalized.startswith('27'):
+        return f'+{normalized}'
+    if normalized.startswith('0'):
+        return f'+27{normalized[1:]}'
+    return normalized
 
 
 def get_bulksms_auth():
@@ -71,6 +87,8 @@ def send_bulksms(to: str, message: str, test_mode: bool = False) -> SMSLog:
         SMSLog instance with status
     """
     
+    to = normalize_phone_number(to)
+
     # Test mode: print to console instead of sending
     if test_mode or os.getenv('OTP_TEST_MODE') == 'True':
         logger.info(f"[TEST MODE] SMS to {to}: {message}")

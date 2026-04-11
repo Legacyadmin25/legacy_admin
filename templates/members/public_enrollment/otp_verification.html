@@ -19,6 +19,12 @@
             color: #27852e;
         }
 
+        .otp-message.error-state {
+            background: rgba(231, 76, 60, 0.08);
+            border-color: rgba(231, 76, 60, 0.25);
+            color: #c0392b;
+        }
+
         .otp-code-input {
             display: flex;
             gap: 10px;
@@ -99,10 +105,17 @@
 {% endblock %}
 
 {% block form_content %}
-    <div class="otp-message">
-        <strong>✓ SMS Sent Successfully</strong>
-        <br>
-        We've sent a 6-digit verification code to <strong>{{ phone_masked }}</strong>
+    <div class="otp-message{% if not sms_sent_successfully %} error-state{% endif %}">
+        {% if sms_sent_successfully %}
+            <strong>✓ SMS Sent Successfully</strong>
+            <br>
+            We've sent a 6-digit verification code to <strong>{{ phone_masked }}</strong>
+        {% else %}
+            <strong>SMS Delivery Failed</strong>
+            <br>
+            We could not deliver the verification code to <strong>{{ phone_masked|default:'your phone' }}</strong>.
+            {% if sms_status_message %}<br>{{ sms_status_message }}{% endif %}
+        {% endif %}
     </div>
 
     <div class="form-section">
@@ -228,6 +241,7 @@
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -246,7 +260,7 @@
                     // Disable resend button for 60 seconds
                     disableResendButton();
                 } else {
-                    alert('Error: ' + (data.error || 'Could not resend code'));
+                    alert('Error: ' + (data.message || data.error || 'Could not resend code'));
                 }
             })
             .catch(error => {
@@ -284,7 +298,7 @@
         otpInputs[0].focus();
 
         // Countdown timer for OTP expiry (15 minutes)
-        const expiryTime = {{ expiry_timestamp|default:0 }};
+        const expiryTime = Number('{{ expiry_timestamp|default:"0" }}');
         if (expiryTime) {
             setInterval(() => {
                 const now = Math.floor(Date.now() / 1000);

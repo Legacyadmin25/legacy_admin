@@ -12,6 +12,7 @@ from .models_public_enrollment import (
 )
 from .models import Member
 from .utils import luhn_check, validate_sa_id
+from schemes.models import Plan
 from datetime import date
 
 
@@ -24,6 +25,12 @@ class EnrollmentLinkAccessForm(forms.Form):
         widget=forms.HiddenInput(),
         required=False
     )
+
+
+class PublicPlanChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        premium = obj.premium if obj.premium is not None else obj.main_premium
+        return f"{obj.name} - Premium R{premium:.2f}/month"
 
 
 class PersonalDetailsPublicForm(forms.ModelForm):
@@ -202,13 +209,16 @@ class PlanSelectionPublicForm(forms.ModelForm):
             'plan': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'payment_method': forms.RadioSelect(attrs={'class': 'form-check-input'}),
         }
+
+    plan = PublicPlanChoiceField(
+        queryset=Plan.objects.none(),
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
     
     def __init__(self, scheme=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         if scheme:
-            # Filter plans by age (when available from previous step)
-            from schemes.models import Plan
             self.fields['plan'].queryset = Plan.objects.filter(
                 scheme=scheme,
                 is_active=True
