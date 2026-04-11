@@ -176,7 +176,7 @@
 
         {% if not request.user.is_superuser and can_view_reports %}
         <li>
-          <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium text-slate-200 transition hover:bg-brand-secondary/20 hover:text-white" aria-label="Open Reports">
+          <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-medium transition {% if '/reports/' in request.path %}bg-brand-secondary/20 text-white ring-1 ring-inset ring-brand-secondary/50{% else %}text-slate-200 hover:bg-brand-secondary/20 hover:text-white{% endif %}" aria-label="Open Reports">
             <i class="fa-solid fa-chart-line mr-2"></i> Reports
           </a>
         </li>
@@ -269,7 +269,7 @@
 
           <!-- Reports -->
           <li>
-            <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl bg-brand-secondary/20 px-3 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-brand-secondary/50 transition hover:bg-brand-secondary/30" aria-label="Open Reports">
+            <a href="{% url 'reports:generate_report' %}" class="flex items-center rounded-xl px-3 py-3 text-sm font-semibold transition {% if '/reports/' in request.path %}bg-brand-secondary/20 text-white ring-1 ring-inset ring-brand-secondary/50 hover:bg-brand-secondary/30{% else %}text-slate-200 hover:bg-brand-secondary/20 hover:text-white{% endif %}" aria-label="Open Reports">
               <i class="fa-solid fa-chart-line mr-2"></i> Reports
             </a>
           </li>
