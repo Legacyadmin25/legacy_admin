@@ -6,6 +6,7 @@ Separate from admin/agent views with different flows and permissions
 import json
 import logging
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -374,13 +375,44 @@ class Step6ConsentAndTermsView(FormView):
         context = super().get_context_data(**kwargs)
         context['step'] = 6
         context['total_steps'] = 6
+
+        personal = self.request.session.get('enrollment_personal', {})
+        plan_data = self.request.session.get('enrollment_plan', {})
+        payment_method_key = plan_data.get('payment_method', '')
+
+        payment_method_label = dict(PublicApplication.PAYMENT_METHOD_CHOICES).get(
+            payment_method_key,
+            payment_method_key,
+        )
+
+        premium_value = plan_data.get('plan_premium')
+        if premium_value in (None, '') and plan_data.get('plan_id'):
+            try:
+                selected_plan = Plan.objects.get(id=plan_data['plan_id'])
+                premium_value = selected_plan.premium or selected_plan.main_premium
+            except Plan.DoesNotExist:
+                premium_value = None
+
+        premium_display = '-'
+        if premium_value not in (None, ''):
+            try:
+                premium_display = f"R {Decimal(str(premium_value)):.2f}"
+            except (InvalidOperation, ValueError, TypeError):
+                premium_display = str(premium_value)
+
         beneficiary_data = self.request.session.get('enrollment_beneficiaries', {})
         context['enrollment_data'] = {
-            'personal': self.request.session.get('enrollment_personal', {}),
+            'personal': personal,
             'address': self.request.session.get('enrollment_address', {}),
-            'plan': self.request.session.get('enrollment_plan', {}),
+            'plan': plan_data,
             'answers': self.request.session.get('enrollment_answers', {}),
         }
+        context['applicant_name'] = f"{personal.get('first_name', '')} {personal.get('last_name', '')}".strip() or '-'
+        context['applicant_email'] = personal.get('email') or '-'
+        context['applicant_phone'] = personal.get('phone_number') or '-'
+        context['selected_plan'] = plan_data.get('plan_name') or '-'
+        context['payment_method'] = payment_method_label or '-'
+        context['selected_plan_premium'] = premium_display
         context.update(beneficiary_data)
         return context
     
