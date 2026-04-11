@@ -89,32 +89,27 @@ def convert_application_to_policy(application, reviewed_by=None):
                 for a in application.answers.all()
             }
 
-            for idx in (1, 2):
-                first_name = answer_map.get(f'beneficiary_{idx}_first_name', '')
-                last_name = answer_map.get(f'beneficiary_{idx}_last_name', '')
-                relationship = answer_map.get(f'beneficiary_{idx}_relationship', '')
-                share_raw = answer_map.get(f'beneficiary_{idx}_share', '')
-                id_number = answer_map.get(f'beneficiary_{idx}_id_number', '')
+            first_name = answer_map.get('beneficiary_1_first_name', '')
+            last_name = answer_map.get('beneficiary_1_last_name', '')
+            relationship = answer_map.get('beneficiary_1_relationship', '')
+            share_raw = answer_map.get('beneficiary_1_share', '')
+            id_number = answer_map.get('beneficiary_1_id_number', '')
 
-                if not first_name or not last_name or not relationship:
-                    continue
-
+            if first_name and last_name and relationship:
                 try:
-                    share = int(share_raw) if share_raw else (100 if idx == 1 else 0)
+                    share = int(share_raw) if share_raw else 100
                 except ValueError:
-                    share = 100 if idx == 1 else 0
+                    share = 100
 
-                if share <= 0:
-                    continue
-
-                Beneficiary.objects.create(
-                    policy=policy,
-                    first_name=first_name,
-                    last_name=last_name,
-                    relationship_to_main_member=relationship,
-                    id_number=id_number,
-                    share=share,
-                )
+                if share > 0:
+                    Beneficiary.objects.create(
+                        policy=policy,
+                        first_name=first_name,
+                        last_name=last_name,
+                        relationship_to_main_member=relationship,
+                        id_number=id_number,
+                        share=share,
+                    )
             
             # Link application to policy
             application.converted_member = member

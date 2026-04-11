@@ -390,15 +390,10 @@ class Step6ConsentAndTermsView(FormView):
         b1_last_name = (self.request.POST.get('beneficiary_1_last_name') or '').strip()
         b1_relationship = (self.request.POST.get('beneficiary_1_relationship') or '').strip()
         b1_share_raw = (self.request.POST.get('beneficiary_1_share') or '').strip()
+        b1_phone_number = (self.request.POST.get('beneficiary_1_phone_number') or '').strip()
         b1_id_number = (self.request.POST.get('beneficiary_1_id_number') or '').strip()
 
-        b2_first_name = (self.request.POST.get('beneficiary_2_first_name') or '').strip()
-        b2_last_name = (self.request.POST.get('beneficiary_2_last_name') or '').strip()
-        b2_relationship = (self.request.POST.get('beneficiary_2_relationship') or '').strip()
-        b2_share_raw = (self.request.POST.get('beneficiary_2_share') or '').strip()
-        b2_id_number = (self.request.POST.get('beneficiary_2_id_number') or '').strip()
-
-        if not b1_first_name or not b1_last_name or not b1_relationship or not b1_share_raw:
+        if not b1_first_name or not b1_last_name or not b1_relationship or not b1_share_raw or not b1_phone_number:
             form.add_error(None, 'Please complete all required primary beneficiary fields.')
             return self.form_invalid(form)
 
@@ -412,23 +407,8 @@ class Step6ConsentAndTermsView(FormView):
             form.add_error(None, 'Primary beneficiary share must be between 1 and 100.')
             return self.form_invalid(form)
 
-        b2_has_data = any([b2_first_name, b2_last_name, b2_relationship, b2_share_raw, b2_id_number])
-        b2_share = 0
-        if b2_has_data:
-            if not b2_first_name or not b2_last_name or not b2_relationship or not b2_share_raw:
-                form.add_error(None, 'If you add a second beneficiary, first name, last name, relationship, and share are required.')
-                return self.form_invalid(form)
-            try:
-                b2_share = int(b2_share_raw)
-            except (TypeError, ValueError):
-                form.add_error(None, 'Second beneficiary share must be a valid number.')
-                return self.form_invalid(form)
-            if b2_share < 1 or b2_share > 100:
-                form.add_error(None, 'Second beneficiary share must be between 1 and 100.')
-                return self.form_invalid(form)
-
-        if (b1_share + b2_share) > 100:
-            form.add_error(None, 'Total beneficiary share cannot exceed 100%.')
+        if not b1_phone_number.isdigit() or len(b1_phone_number) < 10:
+            form.add_error(None, 'Beneficiary contact number must be at least 10 digits.')
             return self.form_invalid(form)
 
         self.request.session['enrollment_beneficiaries'] = {
@@ -436,12 +416,8 @@ class Step6ConsentAndTermsView(FormView):
             'beneficiary_1_last_name': b1_last_name,
             'beneficiary_1_relationship': b1_relationship,
             'beneficiary_1_share': str(b1_share),
+            'beneficiary_1_phone_number': b1_phone_number,
             'beneficiary_1_id_number': b1_id_number,
-            'beneficiary_2_first_name': b2_first_name,
-            'beneficiary_2_last_name': b2_last_name,
-            'beneficiary_2_relationship': b2_relationship,
-            'beneficiary_2_share': str(b2_share) if b2_share else '',
-            'beneficiary_2_id_number': b2_id_number,
         }
         self.request.session.modified = True
 
@@ -511,16 +487,9 @@ class Step6ConsentAndTermsView(FormView):
                     ('beneficiary_1_last_name', b1_last_name),
                     ('beneficiary_1_relationship', b1_relationship),
                     ('beneficiary_1_share', str(b1_share)),
+                    ('beneficiary_1_phone_number', b1_phone_number),
                     ('beneficiary_1_id_number', b1_id_number),
                 ]
-                if b2_has_data:
-                    beneficiary_answers.extend([
-                        ('beneficiary_2_first_name', b2_first_name),
-                        ('beneficiary_2_last_name', b2_last_name),
-                        ('beneficiary_2_relationship', b2_relationship),
-                        ('beneficiary_2_share', str(b2_share)),
-                        ('beneficiary_2_id_number', b2_id_number),
-                    ])
 
                 for key, value in beneficiary_answers:
                     ApplicationAnswer.objects.create(
@@ -577,12 +546,8 @@ class Step6ConsentAndTermsView(FormView):
             'beneficiary_1_last_name': self.request.POST.get('beneficiary_1_last_name', ''),
             'beneficiary_1_relationship': self.request.POST.get('beneficiary_1_relationship', ''),
             'beneficiary_1_share': self.request.POST.get('beneficiary_1_share', '100'),
+            'beneficiary_1_phone_number': self.request.POST.get('beneficiary_1_phone_number', ''),
             'beneficiary_1_id_number': self.request.POST.get('beneficiary_1_id_number', ''),
-            'beneficiary_2_first_name': self.request.POST.get('beneficiary_2_first_name', ''),
-            'beneficiary_2_last_name': self.request.POST.get('beneficiary_2_last_name', ''),
-            'beneficiary_2_relationship': self.request.POST.get('beneficiary_2_relationship', ''),
-            'beneficiary_2_share': self.request.POST.get('beneficiary_2_share', ''),
-            'beneficiary_2_id_number': self.request.POST.get('beneficiary_2_id_number', ''),
         })
         return self.render_to_response(context)
 
