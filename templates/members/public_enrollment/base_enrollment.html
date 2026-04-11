@@ -404,7 +404,7 @@
             </div>
             <div class="brand-meta">
                 Secure enrollment<br>
-                Scheme-linked application<br>
+                {% if scheme %}{{ scheme.name }}{% else %}Scheme-linked application{% endif %}<br>
                 Agent-linked onboarding
             </div>
         </div>
