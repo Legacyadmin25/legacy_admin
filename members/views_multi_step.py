@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from .models import Policy, Member, Dependent, Beneficiary, OtpVerification
 from .forms import (
     PersonalDetailsForm, PolicyDetailsForm, SpouseInfoForm,
-    ChildrenInfoForm, BeneficiaryForm, PaymentOptionsForm, 
+    DependentForm, BeneficiaryForm, PaymentOptionsForm,
     OTPConfirmForm, PolicySummaryForm
 )
 from .multi_step_utils import (
@@ -17,6 +17,7 @@ from .multi_step_utils import (
     clear_policy_session, mark_policy_complete
 )
 from schemes.models import Scheme, Plan
+from .communications.sms_sender import send_otp_sms
 from utils.easypay import generate_easypay_number
 import json
 from datetime import timedelta, datetime
@@ -25,11 +26,85 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
+
+def _get_public_enrollment_context(request):
+    scheme_id = request.session.get('enrollment_scheme_id')
+    agent_id = request.session.get('enrollment_agent_id')
+    token = request.session.get('enrollment_token')
+    return {
+        'is_public_enrollment': bool(token and scheme_id),
+        'scheme_id': scheme_id,
+        'agent_id': agent_id,
+    }
+
+
+def _apply_public_link_context(policy, public_context):
+    changed = False
+
+    if public_context['scheme_id'] and policy.scheme_id != public_context['scheme_id']:
+        policy.scheme_id = public_context['scheme_id']
+        changed = True
+
+    if public_context['agent_id'] and policy.underwritten_by_id != public_context['agent_id']:
+        policy.underwritten_by_id = public_context['agent_id']
+        changed = True
+
+    return changed
+
+
+def _mask_phone_number(phone_number):
+    digits = ''.join(ch for ch in str(phone_number or '') if ch.isdigit())
+    if len(digits) <= 4:
+        return str(phone_number or '')
+    return digits[-4:]
+
+
+def _otp_has_expired(otp_verification):
+    if not otp_verification.sent_at:
+        return True
+    return timezone.now() - otp_verification.sent_at > timedelta(minutes=15)
+
+
+def _send_policy_otp(policy, otp_verification):
+    """Generate a new OTP, send via SMS, and fall back to email if SMS fails.
+    Returns (success: bool, sms_log, otp_code: str).
+    """
+    otp_code = otp_verification.generate_new_code()
+    sms_log = send_otp_sms(policy.member.phone_number, otp_code)
+
+    if sms_log.status.upper() in ('SENT', 'TEST'):
+        return True, sms_log, otp_code
+
+    # SMS failed — try email fallback
+    member = policy.member
+    if member.email:
+        try:
+            send_mail(
+                subject='Legacy Core Verification Code',
+                message=(
+                    f'Your verification code is: {otp_code}\n'
+                    f'This code is valid for 15 minutes.\n'
+                    f'Do not share this code.'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[member.email],
+                fail_silently=False,
+            )
+            sms_log.detail = f'SMS failed; OTP sent via email to {member.email}'
+            sms_log.save(update_fields=['detail'])
+            return True, sms_log, otp_code
+        except Exception as email_err:
+            sms_log.detail = f'{sms_log.detail}; email fallback failed: {email_err}'
+            sms_log.save(update_fields=['detail'])
+
+    return False, sms_log, otp_code
+
 # ─── Step 1: Personal Details ─────────────────────────────────────────────────
 
 def step1_personal(request):
     """Step 1: Collect personal details and create a new member."""
     policy = get_or_create_policy(request)
+    public_context = _get_public_enrollment_context(request)
     member = policy.member if policy else None
     
     if request.method == 'POST':
@@ -43,6 +118,10 @@ def step1_personal(request):
                 policy = get_or_create_policy(request, member.id)
             elif policy.member != member:
                 policy.member = member
+
+            if policy and _apply_public_link_context(policy, public_context):
+                policy.save()
+            elif policy and policy.member_id == member.id and policy.pk:
                 policy.save()
             
             # Store the policy ID in the session
@@ -86,6 +165,10 @@ def step1_personal(request):
 @validate_policy_step
 def step2_policy_details(request, policy):
     """Step 2: Select policy details and plan."""
+    public_context = _get_public_enrollment_context(request)
+    if _apply_public_link_context(policy, public_context):
+        policy.save()
+
     # Get member's age for plan filtering
     today = timezone.now().date()
     age = today.year - policy.member.date_of_birth.year - (
@@ -100,7 +183,10 @@ def step2_policy_details(request, policy):
         main_age_to__gte=age,
     )
 
-    if request.user.is_superuser:
+    if public_context['is_public_enrollment']:
+        schemes_qs = Scheme.objects.filter(pk=public_context['scheme_id'], active=True)
+        plans_qs = age_filtered_plans.filter(scheme_id=public_context['scheme_id'])
+    elif request.user.is_superuser:
         schemes_qs = Scheme.objects.filter(active=True)
         plans_qs = age_filtered_plans
         if policy.scheme_id:
@@ -131,6 +217,14 @@ def step2_policy_details(request, policy):
         
         if form.is_valid():
             policy = form.save(commit=False)
+
+            if policy.plan_id:
+                selected_plan = policy.plan
+                policy.scheme = selected_plan.scheme
+                policy.premium_amount = selected_plan.main_premium if selected_plan.main_premium is not None else selected_plan.premium
+                policy.cover_amount = selected_plan.main_cover if selected_plan.main_cover is not None else 0
+
+            _apply_public_link_context(policy, public_context)
             
             # Set policy dates if start_date is provided
             if policy.start_date:
@@ -251,20 +345,54 @@ def step3_spouse_info(request, policy):
 @validate_policy_step
 def step4_children_info(request, policy):
     """Step 4: Collect children information."""
-    children = policy.member.children.all()
+    children_allowed = policy.plan.children_allowed if policy.plan and policy.plan.children_allowed else 0
+    extended_allowed = policy.plan.extended_allowed if policy.plan and policy.plan.extended_allowed else 0
+    children = policy.dependents.filter(relationship='Child').order_by('first_name', 'last_name')
+    extended_members = policy.dependents.filter(relationship='Extended Family').order_by('first_name', 'last_name')
+    form = DependentForm()
     
     if request.method == 'POST':
-        form = ChildrenInfoForm(request.POST, instance=policy.member)
-        if form.is_valid():
-            form.save()
+        if 'next_step' in request.POST:
             return redirect('members:step5_beneficiaries', pk=policy.pk)
-    else:
-        form = ChildrenInfoForm(instance=policy.member)
+
+        remove_dependent_id = request.POST.get('remove_dependent')
+        if remove_dependent_id:
+            dependent = get_object_or_404(Dependent, pk=remove_dependent_id, policy=policy)
+            dependent.delete()
+            messages.success(request, 'Dependent removed successfully.')
+            return redirect('members:step4_children_info', pk=policy.pk)
+
+        relationship_map = {
+            'add_child': ('Child', children.count(), children_allowed),
+            'add_extended': ('Extended Family', extended_members.count(), extended_allowed),
+        }
+        action = next((name for name in relationship_map if name in request.POST), None)
+
+        if action:
+            relationship_name, current_count, allowed_count = relationship_map[action]
+            if allowed_count <= current_count:
+                messages.error(request, f'This plan allows a maximum of {allowed_count} {relationship_name.lower()} dependents.')
+            else:
+                post_data = request.POST.copy()
+                post_data['relationship'] = relationship_name
+                form = DependentForm(post_data)
+                if form.is_valid():
+                    dependent = form.save(commit=False)
+                    dependent.policy = policy
+                    dependent.relationship = relationship_name
+                    dependent.save()
+                    messages.success(request, f'{relationship_name} added successfully.')
+                    return redirect('members:step4_children_info', pk=policy.pk)
     
     return render(request, 'members/step4_children_info.html', {
         'form': form,
         'policy': policy,
         'children': children,
+        'extended_members': extended_members,
+        'children_count': children.count(),
+        'extended_count': extended_members.count(),
+        'children_allowed': children_allowed,
+        'extended_allowed': extended_allowed,
         'step': 4,
         'steps': range(1, 10),
     })
@@ -332,32 +460,61 @@ def step7_otp_verification(request, policy):
         defaults={'code_hash': 'dummy'}  # Will be set by generate_new_code
     )
     
+    otp_sent = True
+    otp_delivery_error = ''
+    debug_otp = None
+
     if request.method == 'POST':
-        form = OTPConfirmForm(request.POST, instance=otp_verification)
+        form = OTPConfirmForm(request.POST)
         if form.is_valid():
-            otp_verification = form.save(commit=False)
-            if otp_verification.verify_otp(form.cleaned_data['otp_code']):
+            if otp_verification.check_code(form.cleaned_data['otp_code']):
                 policy.otp_confirmed = True
                 policy.save()
                 return redirect('members:step8_policy_summary', pk=policy.pk)
-            else:
-                messages.error(request, 'Invalid OTP code. Please try again.')
+            messages.error(request, 'Invalid or expired OTP code. Please try again.')
     else:
         form = OTPConfirmForm()
-        
+
         # Generate and send new OTP if not already sent or expired
-        if created or not otp_verification.is_valid():
-            otp_code = otp_verification.generate_new_code()
-            # In a real app, you would send this via SMS or email
-            messages.info(request, f'Your OTP is: {otp_code}')
-    
+        if created or _otp_has_expired(otp_verification):
+            otp_sent, sms_log, otp_code_plain = _send_policy_otp(policy, otp_verification)
+            if otp_sent:
+                messages.success(request, 'A verification code has been sent.')
+            else:
+                otp_delivery_error = sms_log.detail or 'We could not send the verification code right now.'
+                messages.error(request, otp_delivery_error)
+                if settings.DEBUG:
+                    debug_otp = otp_code_plain
+
     return render(request, 'members/step7_otp_verification.html', {
         'form': form,
         'policy': policy,
+        'member': policy.member,
         'step': 7,
         'steps': range(1, 10),
-        'otp_sent': True,
+        'otp_sent': otp_sent,
+        'otp_delivery_error': otp_delivery_error,
+        'masked_phone_number': _mask_phone_number(policy.member.phone_number),
+        'debug_otp': debug_otp,
     })
+
+
+@validate_policy_step
+def resend_policy_otp(request, policy):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed.'}, status=405)
+
+    otp_verification, _ = OtpVerification.objects.get_or_create(
+        policy=policy,
+        defaults={'code_hash': 'dummy'}
+    )
+    otp_sent, sms_log, _otp_plain = _send_policy_otp(policy, otp_verification)
+
+    status_code = 200 if otp_sent else 400
+    return JsonResponse({
+        'success': otp_sent,
+        'error': '' if otp_sent else (sms_log.detail or 'Unable to send OTP.'),
+    }, status=status_code)
 
 # ─── Step 8: Policy Summary ────────────────────────────────────────────────
 

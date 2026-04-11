@@ -60,7 +60,7 @@ def validate_policy_step(view_func):
         
         # If policy is complete, redirect to confirmation
         if policy.is_complete:
-            return redirect('members:step9_policy_confirmation', policy_id=policy.pk)
+            return redirect('members:step9_policy_confirmation', pk=policy.pk)
             
         return view_func(request, policy, *args, **kwargs)
     

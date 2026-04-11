@@ -1,4 +1,4 @@
-{% extends base_template %}
+{% extends base_template|default:'base.html' %}
 
 {% load widget_tweaks %}
 
@@ -14,34 +14,64 @@
     </div>
     <h2 class="text-3xl font-bold text-gray-900 mb-2">Verify Your Identity</h2>
     <p class="text-gray-600">
-      We've sent a 6-digit verification code to your {% if member.phone_number %}phone number ending in {{ member.phone_number|slice:"-4:" }}{% else %}email address{% endif %}. 
+      We've sent a 6-digit verification code to your {% if member.phone_number %}phone number ending in {{ masked_phone_number }}{% else %}email address{% endif %}.
       Please enter it below to continue.
     </p>
   </div>
+
+  {% if debug_otp %}
+    <div class="mb-6 rounded-md border border-yellow-400 bg-yellow-900/40 px-4 py-3 text-sm text-yellow-200">
+      <strong>DEBUG:</strong> SMS delivery failed — OTP is <code class="font-mono font-bold tracking-widest text-yellow-100">{{ debug_otp }}</code>
+    </div>
+  {% endif %}
+
+  {% if otp_delivery_error %}
+    <div class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {% if not debug_otp %}{{ otp_delivery_error }}{% else %}Delivery failed — see debug code above.{% endif %}
+    </div>
+  {% elif otp_sent %}
+    <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      Your verification code has been sent. Enter it below to continue.
+    </div>
+  {% endif %}
 
   <form method="POST" action="{% url 'members:step7_otp_verification' pk=policy.pk %}" class="space-y-6">
     {% csrf_token %}
     
     <div class="space-y-2">
-      <label for="otp" class="block text-sm font-medium text-gray-700">Verification Code</label>
+      <label for="id_otp_code" class="block text-sm font-medium text-gray-700">Verification Code</label>
       <div class="mt-1">
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="fas fa-key text-gray-400"></i>
           </div>
-          <input type="text" name="otp" id="otp" 
+          <input type="text" name="otp_code" id="id_otp_code"
                  class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-xl tracking-widest"
                  placeholder="• • • • • •" 
                  maxlength="6"
                  inputmode="numeric"
                  pattern="\d{6}"
                  autocomplete="one-time-code"
+                 value="{{ form.otp_code.value|default:'' }}"
                  required>
         </div>
         <p class="mt-2 text-sm text-gray-500">
           Enter the 6-digit code we sent to you
         </p>
+        {% if form.otp_code.errors %}
+          <p class="mt-2 text-sm text-red-600">{{ form.otp_code.errors|join:', ' }}</p>
+        {% endif %}
       </div>
+    </div>
+
+    <div>
+      <label class="inline-flex items-start gap-3 text-sm text-gray-700">
+        <input type="checkbox" name="agree_tnc" id="id_agree_tnc" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" {% if form.agree_tnc.value %}checked{% endif %}>
+        <span>I agree to the Terms & Conditions.</span>
+      </label>
+      {% if form.agree_tnc.errors %}
+        <p class="mt-2 text-sm text-red-600">{{ form.agree_tnc.errors|join:', ' }}</p>
+      {% endif %}
     </div>
 
     <div class="bg-blue-50 p-4 rounded-md">
@@ -79,28 +109,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Auto-focus the OTP input
-  const otpInput = document.getElementById('otp');
+  const otpInput = document.getElementById('id_otp_code');
   if (otpInput) {
     otpInput.focus();
     
-    // Auto-tab between OTP digits
     otpInput.addEventListener('input', function(e) {
       // Remove any non-numeric characters
       this.value = this.value.replace(/\D/g, '');
-      
-      // Auto-submit when 6 digits are entered
-      if (this.value.length === 6) {
-        // Add a brief delay to show the completed code before submitting
-        setTimeout(() => {
-          // Show a loading indicator
-          const submitBtn = document.querySelector('button[type="submit"]');
-          if (submitBtn) {
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
-            submitBtn.disabled = true;
-          }
-          this.form.submit();
-        }, 300);
-      }
     });
     
     // Handle paste event for OTP
@@ -198,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
           startCountdown();
         } else {
           // Show error
-          alert('Failed to resend code. Please try again.');
+          alert(data.error || 'Failed to resend code. Please try again.');
         }
       })
       .catch(error => {

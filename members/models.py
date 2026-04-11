@@ -276,7 +276,7 @@ class OtpVerification(models.Model):
         import hashlib
         if self.attempts >= 3:
             return False
-        if timezone.now() - self.sent_at > timezone.timedelta(minutes=5):
+        if timezone.now() - self.sent_at > timezone.timedelta(minutes=15):
             return False
         if hashlib.sha256(code.encode()).hexdigest() == self.code_hash:
             self.attempts += 1

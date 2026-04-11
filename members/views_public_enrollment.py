@@ -130,9 +130,11 @@ class PublicEnrollmentStartView(View):
         request.session['enrollment_scheme_id'] = link.scheme.id
         request.session['enrollment_branch_id'] = link.branch.id
         request.session['enrollment_agent_id'] = link.agent.id if link.agent else None
+
+        request.session.pop('policy_id', None)
         
-        # Redirect to step 1
-        return redirect('public_enrollment:step1_personal')
+        # Redirect into the shared internal-style application wizard.
+        return redirect('members:step1_personal')
 
 
 class Step1PersonalDetailsView(FormView):

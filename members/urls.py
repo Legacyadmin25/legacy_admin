@@ -10,6 +10,7 @@ from .views_multi_step import (
     step1_personal, step2_policy_details, step3_spouse_info,
     step4_children_info, step5_beneficiaries, step6_payment_options,
     step7_otp_verification, step8_policy_summary, step9_policy_confirmation,
+    resend_policy_otp,
     IncompleteApplicationsList,
 )
 from .api_views import search_suggestions
@@ -71,7 +72,7 @@ urlpatterns = [
     path('api/ai-search-assistant/',                            ai_search_assistant,             name='ai_search_assistant'),
     path('api/policy/<int:policy_id>/ai-summary/',              generate_policy_summary,         name='generate_policy_summary'),
     path('export-search-results/',                              export_search_results,           name='export_search_results'),
-    path('policy/create/step7/<int:pk>/resend-otp/',            views.resend_otp,                name='resend_otp'),
+    path('policy/create/step7/<int:pk>/resend-otp/',            resend_policy_otp,              name='resend_otp'),
     
     # Policy document download
     path('policy/<int:pk>/document/',                          views.download_policy_document,   name='download_policy_document'),
