@@ -4,424 +4,474 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Policy Enrollment{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
     <style>
         :root {
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>{% block title %}Policy Enrollment{% endblock %}</title>
-                <link rel="preconnect" href="https://fonts.googleapis.com">
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-                <style>
-                    :root {
-                        --brand-primary: #0A2540;
-                        --brand-secondary: #1E3A8A;
-                        --brand-background: #0F172A;
-                        --brand-border: rgba(148, 163, 184, 0.18);
-                        --brand-muted: #94A3B8;
-                        --brand-text: #E2E8F0;
-                        --brand-title: #F8FAFC;
-                        --brand-danger: #EF4444;
-                        --panel-surface: rgba(255, 255, 255, 0.97);
-                    }
+            --brand-primary: #0A2540;
+            --brand-secondary: #1E3A8A;
+            --brand-border: rgba(148, 163, 184, 0.18);
+            --brand-muted: #94A3B8;
+            --brand-text: #E2E8F0;
+            --brand-title: #F8FAFC;
+            --panel-surface: rgba(255, 255, 255, 0.97);
+        }
 
-                    * { box-sizing: border-box; }
+        * { box-sizing: border-box; }
 
-                    body {
-                        margin: 0;
-                        min-height: 100vh;
-                        font-family: 'Manrope', system-ui, sans-serif;
-                        color: var(--brand-text);
-                        background:
-                            radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32%),
-                            radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 24%),
-                            linear-gradient(180deg, #081222 0%, #0F172A 52%, #121D31 100%);
-                        padding: 28px 16px;
-                    }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Manrope', system-ui, sans-serif;
+            color: var(--brand-text);
+            background:
+                radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32%),
+                radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 24%),
+                linear-gradient(180deg, #081222 0%, #0F172A 52%, #121D31 100%);
+            padding: 28px 16px;
+        }
 
-                    .page-shell { max-width: 1080px; margin: 0 auto; }
+        .page-shell { max-width: 1080px; margin: 0 auto; }
 
-                    .brand-strip {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 24px;
-                        margin-bottom: 22px;
-                        padding: 18px 22px;
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        border-radius: 24px;
-                        background: rgba(10, 37, 64, 0.68);
-                        backdrop-filter: blur(18px);
-                        box-shadow: 0 22px 50px rgba(0, 0, 0, 0.26);
-                    }
+        .brand-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 22px;
+            padding: 18px 22px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            background: rgba(10, 37, 64, 0.68);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.26);
+        }
 
-                    .brand-mark { display: flex; align-items: center; gap: 14px; }
+        .brand-mark { display: flex; align-items: center; gap: 14px; }
 
-                    .brand-badge {
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 48px;
-                        height: 48px;
-                        border-radius: 16px;
-                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(255, 255, 255, 0.08));
-                        border: 1px solid rgba(255, 255, 255, 0.12);
-                        color: #BFDBFE;
-                        font-weight: 800;
-                        letter-spacing: 0.08em;
-                    }
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(255, 255, 255, 0.08));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #BFDBFE;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
 
-                    .brand-copy small {
-                        display: block;
-                        margin-bottom: 4px;
-                        font-size: 0.72rem;
-                        letter-spacing: 0.18em;
-                        text-transform: uppercase;
-                        color: var(--brand-muted);
-                    }
+        .brand-copy small {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.72rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--brand-muted);
+        }
 
-                    .brand-copy strong {
-                        display: block;
-                        font-size: 1.15rem;
-                        color: var(--brand-title);
-                    }
+        .brand-copy strong {
+            display: block;
+            font-size: 1.15rem;
+            color: var(--brand-title);
+        }
 
-                    .brand-copy span {
-                        display: block;
-                        margin-top: 4px;
-                        font-size: 0.9rem;
-                        color: #CBD5E1;
-                    }
+        .brand-copy span {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: #CBD5E1;
+        }
 
-                    .brand-meta {
-                        text-align: right;
-                        font-size: 0.84rem;
-                        line-height: 1.5;
-                        color: var(--brand-muted);
-                    }
+        .brand-meta {
+            text-align: right;
+            font-size: 0.84rem;
+            line-height: 1.5;
+            color: var(--brand-muted);
+        }
 
-                    .enrollment-grid {
-                        display: grid;
-                        grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-                        gap: 22px;
-                    }
+        .enrollment-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+            gap: 22px;
+        }
 
-                    .journey-panel,
-                    .enrollment-container {
-                        border: 1px solid var(--brand-border);
-                        border-radius: 28px;
-                        overflow: hidden;
-                        box-shadow: 0 26px 55px rgba(0, 0, 0, 0.24);
-                    }
+        .journey-panel,
+        .enrollment-container {
+            border: 1px solid var(--brand-border);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 26px 55px rgba(0, 0, 0, 0.24);
+        }
 
-                    .journey-panel {
-                        background: rgba(10, 37, 64, 0.72);
-                        backdrop-filter: blur(18px);
-                        padding: 28px 24px;
-                    }
+        .journey-panel {
+            background: rgba(10, 37, 64, 0.72);
+            backdrop-filter: blur(18px);
+            padding: 28px 24px;
+        }
 
-                    .journey-tag {
-                        display: inline-flex;
-                        margin-bottom: 16px;
-                        padding: 7px 12px;
-                        border-radius: 999px;
-                        background: rgba(59, 130, 246, 0.18);
-                        color: #BFDBFE;
-                        font-size: 0.78rem;
-                        font-weight: 700;
-                        letter-spacing: 0.08em;
-                        text-transform: uppercase;
-                    }
+        .journey-tag {
+            display: inline-flex;
+            margin-bottom: 16px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.18);
+            color: #BFDBFE;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
 
-                    .journey-panel h1 {
-                        margin: 0 0 10px;
-                        color: var(--brand-title);
-                        font-size: 1.85rem;
-                        line-height: 1.15;
-                    }
+        .journey-panel h1 {
+            margin: 0 0 10px;
+            color: var(--brand-title);
+            font-size: 1.85rem;
+            line-height: 1.15;
+        }
 
-                    .journey-panel p {
-                        margin: 0;
-                        color: #CBD5E1;
-                        line-height: 1.6;
-                        font-size: 0.96rem;
-                    }
+        .journey-panel p {
+            margin: 0;
+            color: #CBD5E1;
+            line-height: 1.6;
+            font-size: 0.96rem;
+        }
 
-                    .journey-list {
-                        margin: 28px 0 0;
-                        padding: 0;
-                        list-style: none;
-                        display: grid;
-                        gap: 14px;
-                    }
+        .journey-list {
+            margin: 28px 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 14px;
+        }
 
-                    .journey-list li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
+        .journey-list li {
+            display: grid;
+            grid-template-columns: 36px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
 
-                    .journey-number {
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 999px;
-                        background: rgba(255, 255, 255, 0.08);
-                        color: #E0F2FE;
-                        font-weight: 700;
-                        font-size: 0.9rem;
-                    }
+        .journey-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #E0F2FE;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
 
-                    .journey-item strong { display: block; color: var(--brand-title); margin-bottom: 4px; font-size: 0.95rem; }
-                    .journey-item span { color: var(--brand-muted); font-size: 0.88rem; line-height: 1.55; }
+        .journey-item strong {
+            display: block;
+            color: var(--brand-title);
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
 
-                    .enrollment-container { background: var(--panel-surface); }
+        .journey-item span {
+            color: var(--brand-muted);
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
 
-                    .enrollment-header {
-                        padding: 28px 30px 20px;
-                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
-                        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
-                    }
+        .enrollment-container { background: var(--panel-surface); }
 
-                    .enrollment-header h2 { margin: 0 0 6px; color: #0F172A; font-size: 1.8rem; line-height: 1.15; }
-                    .enrollment-header p { margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.55; }
+        .enrollment-header {
+            padding: 28px 30px 20px;
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+            border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        }
 
-                    .progress-container {
-                        padding: 0 30px 22px;
-                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
-                        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-                    }
+        .enrollment-header h2 {
+            margin: 0 0 6px;
+            color: #0F172A;
+            font-size: 1.8rem;
+            line-height: 1.15;
+        }
 
-                    .progress-meta {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 12px;
-                        margin-bottom: 12px;
-                        font-size: 0.84rem;
-                        color: #64748B;
-                    }
+        .enrollment-header p {
+            margin: 0;
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.55;
+        }
 
-                    .progress-meta strong { color: #0F172A; font-weight: 700; }
+        .progress-container {
+            padding: 0 30px 22px;
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
 
-                    .progress-track {
-                        width: 100%;
-                        height: 9px;
-                        border-radius: 999px;
-                        background: rgba(148, 163, 184, 0.22);
-                        overflow: hidden;
-                    }
+        .progress-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.84rem;
+            color: #64748B;
+        }
 
-                    .progress-fill {
-                        height: 100%;
-                        width: {% block progress_percent %}0%{% endblock %};
-                        border-radius: inherit;
-                        background: linear-gradient(90deg, #1D4ED8, #3B82F6);
-                    }
+        .progress-meta strong {
+            color: #0F172A;
+            font-weight: 700;
+        }
 
-                    .step-rail {
-                        display: grid;
-                        grid-template-columns: repeat(9, minmax(0, 1fr));
-                        gap: 10px;
-                        margin-top: 18px;
-                    }
+        .progress-track {
+            width: 100%;
+            height: 9px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.22);
+            overflow: hidden;
+        }
 
-                    .step-pill { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+        .progress-fill {
+            height: 100%;
+            width: {% block progress_percent %}0%{% endblock %};
+            border-radius: inherit;
+            background: linear-gradient(90deg, #1D4ED8, #3B82F6);
+        }
 
-                    .step-dot {
-                        width: 32px;
-                        height: 32px;
-                        border-radius: 999px;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 0.85rem;
-                        font-weight: 700;
-                        color: #64748B;
-                        background: #E2E8F0;
-                    }
+        .step-rail {
+            display: grid;
+            grid-template-columns: repeat(9, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 18px;
+        }
 
-                    .step-pill.is-current .step-dot {
-                        color: #FFFFFF;
-                        background: linear-gradient(135deg, #2563EB, #1E40AF);
-                        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.28);
-                    }
+        .step-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 7px;
+            text-align: center;
+        }
 
-                    .step-label { font-size: 0.72rem; line-height: 1.2; color: #64748B; }
-                    .step-pill.is-current .step-label { color: #1E3A8A; font-weight: 700; }
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748B;
+            background: #E2E8F0;
+        }
 
-                    .enrollment-body { padding: 30px; color: #0F172A; }
-                    .form-section h4 { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.24); color: #0F172A; font-size: 1.15rem; }
+        .step-pill.is-current .step-dot {
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #2563EB, #1E40AF);
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.28);
+        }
 
-                    .alert,
-                    .info-box {
-                        margin-bottom: 18px;
-                        padding: 16px 18px;
-                        border-radius: 18px;
-                        border: 1px solid transparent;
-                        font-size: 0.93rem;
-                        line-height: 1.6;
-                    }
+        .step-label {
+            font-size: 0.72rem;
+            line-height: 1.2;
+            color: #64748B;
+        }
 
-                    .alert-info { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.16); color: #1E3A8A; }
-                    .alert-warning { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.18); color: #92400E; }
-                    .alert-danger { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.18); color: #B91C1C; }
-                    .info-box { background: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%); border-color: rgba(59, 130, 246, 0.18); color: #334155; }
-                    .info-box strong { color: #0F172A; }
+        .step-pill.is-current .step-label {
+            color: #1E3A8A;
+            font-weight: 700;
+        }
 
-                    .enrollment-footer {
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 12px;
-                        padding: 22px 30px 28px;
-                        border-top: 1px solid rgba(148, 163, 184, 0.18);
-                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.86), rgba(255, 255, 255, 1));
-                    }
+        .enrollment-body {
+            padding: 30px;
+            color: #0F172A;
+        }
 
-                    .btn {
-                        appearance: none;
-                        border: none;
-                        border-radius: 16px;
-                        padding: 14px 20px;
-                        font-size: 0.95rem;
-                        font-weight: 700;
-                        cursor: pointer;
-                        text-decoration: none;
-                        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-                    }
+        .form-section h4 {
+            margin: 0 0 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+            color: #0F172A;
+            font-size: 1.15rem;
+        }
 
-                    .btn-primary {
-                        color: #FFFFFF;
-                        background: linear-gradient(135deg, #2563EB, #1E3A8A);
-                        box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
-                    }
+        .alert,
+        .info-box {
+            margin-bottom: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid transparent;
+            font-size: 0.93rem;
+            line-height: 1.6;
+        }
 
-                    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28); }
+        .alert-info {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: rgba(37, 99, 235, 0.16);
+            color: #1E3A8A;
+        }
 
-                    @media (max-width: 920px) {
-                        .enrollment-grid { grid-template-columns: 1fr; }
-                        .brand-strip { flex-direction: column; align-items: flex-start; }
-                        .brand-meta { text-align: left; }
-                    }
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.18);
+            color: #92400E;
+        }
 
-                    @media (max-width: 720px) {
-                        body { padding: 16px 12px; }
-                        .enrollment-header, .progress-container, .enrollment-body, .enrollment-footer, .journey-panel { padding-left: 18px; padding-right: 18px; }
-                        .step-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
-                        .enrollment-footer { flex-direction: column; }
-                        .btn { width: 100%; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="page-shell">
-                    <div class="brand-strip">
-                        <div class="brand-mark">
-                            <div class="brand-badge">LC</div>
-                            <div class="brand-copy">
-                                <small>Legacy Core</small>
-                                <strong>Public Policy Application</strong>
-                                <span>Same application journey, without requiring account login.</span>
-                            </div>
-                        </div>
-                        <div class="brand-meta">
-                            Secure enrollment<br>
-                            Scheme-linked application<br>
-                            Agent-linked onboarding
-                        </div>
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.18);
+            color: #B91C1C;
+        }
+
+        .info-box {
+            background: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
+            border-color: rgba(59, 130, 246, 0.18);
+            color: #334155;
+        }
+
+        .info-box strong { color: #0F172A; }
+
+        .enrollment-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 22px 30px 28px;
+            border-top: 1px solid rgba(148, 163, 184, 0.18);
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.86), rgba(255, 255, 255, 1));
+        }
+
+        .btn {
+            appearance: none;
+            border: none;
+            border-radius: 16px;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .btn-primary {
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #2563EB, #1E3A8A);
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+        }
+
+        @media (max-width: 920px) {
+            .enrollment-grid { grid-template-columns: 1fr; }
+            .brand-strip { flex-direction: column; align-items: flex-start; }
+            .brand-meta { text-align: left; }
+        }
+
+        @media (max-width: 720px) {
+            body { padding: 16px 12px; }
+
+            .enrollment-header,
+            .progress-container,
+            .enrollment-body,
+            .enrollment-footer,
+            .journey-panel {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .step-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
+            .enrollment-footer { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="brand-strip">
+            <div class="brand-mark">
+                <div class="brand-badge">LC</div>
+                <div class="brand-copy">
+                    <small>Legacy Core</small>
+                    <strong>Public Policy Application</strong>
+                    <span>Same application journey, without requiring account login.</span>
+                </div>
+            </div>
+            <div class="brand-meta">
+                Secure enrollment<br>
+                Scheme-linked application<br>
+                Agent-linked onboarding
+            </div>
+        </div>
+
+        <div class="enrollment-grid">
+            <aside class="journey-panel">
+                <div class="journey-tag">Application Journey</div>
+                <h1>{% block header_title %}Policy Application{% endblock %}</h1>
+                <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
+
+                <ol class="journey-list">
+                    <li><span class="journey-number">1</span><div class="journey-item"><strong>Personal details</strong><span>Capture the main member information and verify identity details.</span></div></li>
+                    <li><span class="journey-number">2</span><div class="journey-item"><strong>Plan and cover</strong><span>Select the policy plan attached to your scheme and review pricing.</span></div></li>
+                    <li><span class="journey-number">3</span><div class="journey-item"><strong>Family, payment, OTP</strong><span>Add dependants, set payment details, and verify the submission securely.</span></div></li>
+                </ol>
+            </aside>
+
+            <div class="enrollment-container">
+                <div class="enrollment-header">
+                    <h2>{% block header_title_secondary %}Policy Application{% endblock %}</h2>
+                    <p>{% block header_subtitle_secondary %}Apply for your policy today{% endblock %}</p>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-meta">
+                        <span>Step <strong>{% block current_step %}1{% endblock %}</strong> of 9</span>
+                        <span>{% block progress_label %}Personal Details{% endblock %}</span>
                     </div>
-
-                    <div class="enrollment-grid">
-                        <aside class="journey-panel">
-                            <div class="journey-tag">Application Journey</div>
-                            <h1>{% block header_title %}Policy Application{% endblock %}</h1>
-                            <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
-
-                            <ol class="journey-list">
-                                <li><span class="journey-number">1</span><div class="journey-item"><strong>Personal details</strong><span>Capture the main member information and verify identity details.</span></div></li>
-                                <li><span class="journey-number">2</span><div class="journey-item"><strong>Plan and cover</strong><span>Select the policy plan attached to your scheme and review pricing.</span></div></li>
-                                <li><span class="journey-number">3</span><div class="journey-item"><strong>Family, payment, OTP</strong><span>Add dependants, set payment details, and verify the submission securely.</span></div></li>
-                            </ol>
-                        </aside>
-
-                        <div class="enrollment-container">
-                            <div class="enrollment-header">
-                                <h2>{% block header_title_secondary %}Policy Application{% endblock %}</h2>
-                                <p>{% block header_subtitle_secondary %}Apply for your policy today{% endblock %}</p>
-                            </div>
-
-                            <div class="progress-container">
-                                <div class="progress-meta">
-                                    <span>Step <strong>{% block current_step %}1{% endblock %}</strong> of 9</span>
-                                    <span>{% block progress_label %}Personal Details{% endblock %}</span>
-                                </div>
-                                <div class="progress-track"><div class="progress-fill"></div></div>
-                                <div class="step-rail">
-                                    <div class="step-pill is-current"><span class="step-dot">1</span><span class="step-label">Personal</span></div>
-                                    <div class="step-pill"><span class="step-dot">2</span><span class="step-label">Policy</span></div>
-                                    <div class="step-pill"><span class="step-dot">3</span><span class="step-label">Spouse</span></div>
-                                    <div class="step-pill"><span class="step-dot">4</span><span class="step-label">Dependents</span></div>
-                                    <div class="step-pill"><span class="step-dot">5</span><span class="step-label">Beneficiaries</span></div>
-                                    <div class="step-pill"><span class="step-dot">6</span><span class="step-label">Payment</span></div>
-                                    <div class="step-pill"><span class="step-dot">7</span><span class="step-label">OTP</span></div>
-                                    <div class="step-pill"><span class="step-dot">8</span><span class="step-label">Summary</span></div>
-                                    <div class="step-pill"><span class="step-dot">9</span><span class="step-label">Confirm</span></div>
-                                </div>
-                            </div>
-
-                            <form method="post" class="enrollment-form" novalidate>
-                                {% csrf_token %}
-                                <div class="enrollment-body">
-                                    {% if form.non_field_errors %}
-                                        <div class="alert alert-danger">
-                                            <strong>Please correct the following errors:</strong>
-                                            <ul>
-                                                {% for error in form.non_field_errors %}
-                                                    <li>{{ error }}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        </div>
-                                    {% endif %}
-
-                                    {% block form_content %}{% endblock %}
-                                </div>
-
-                                <div class="enrollment-footer">
-                                    {% block footer_buttons %}
-                                        <button type="submit" class="btn btn-primary">Continue</button>
-                                    {% endblock %}
-                                </div>
-                            </form>
-                        </div>
+                    <div class="progress-track"><div class="progress-fill"></div></div>
+                    <div class="step-rail">
+                        <div class="step-pill is-current"><span class="step-dot">1</span><span class="step-label">Personal</span></div>
+                        <div class="step-pill"><span class="step-dot">2</span><span class="step-label">Policy</span></div>
+                        <div class="step-pill"><span class="step-dot">3</span><span class="step-label">Spouse</span></div>
+                        <div class="step-pill"><span class="step-dot">4</span><span class="step-label">Dependents</span></div>
+                        <div class="step-pill"><span class="step-dot">5</span><span class="step-label">Beneficiaries</span></div>
+                        <div class="step-pill"><span class="step-dot">6</span><span class="step-label">Payment</span></div>
+                        <div class="step-pill"><span class="step-dot">7</span><span class="step-label">OTP</span></div>
+                        <div class="step-pill"><span class="step-dot">8</span><span class="step-label">Summary</span></div>
+                        <div class="step-pill"><span class="step-dot">9</span><span class="step-label">Confirm</span></div>
                     </div>
                 </div>
 
-                {% block extra_js %}{% endblock %}
-            </body>
-            </html>
-                            {% for error in form.non_field_errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
+                <form method="post" class="enrollment-form" novalidate>
+                    {% csrf_token %}
+                    <div class="enrollment-body">
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                <strong>Please correct the following errors:</strong>
+                                <ul>
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        {% block form_content %}{% endblock %}
                     </div>
-                {% endif %}
 
-                <!-- Form Content -->
-                {% block form_content %}{% endblock %}
+                    <div class="enrollment-footer">
+                        {% block footer_buttons %}
+                            <button type="submit" class="btn btn-primary">Continue</button>
+                        {% endblock %}
+                    </div>
+                </form>
             </div>
-
-            <!-- Footer with Actions -->
-            <div class="enrollment-footer">
-                {% block footer_buttons %}
-                    <button type="submit" class="btn btn-primary">Continue</button>
-                {% endblock %}
-            </div>
-        </form>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
