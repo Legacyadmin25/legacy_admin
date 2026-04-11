@@ -194,67 +194,85 @@
             }
         }
 
-        // Real-time Luhn validation
+        function extractIdDetails(id) {
+            if (id.length !== 13 || !/^\d+$/.test(id) || !luhnCheck(id)) {
+                return null;
+            }
+
+            const year = parseInt(id.substring(0, 2), 10);
+            const month = parseInt(id.substring(2, 4), 10);
+            const day = parseInt(id.substring(4, 6), 10);
+            const genderDigit = parseInt(id.substring(6, 7), 10);
+
+            const currentYear = new Date().getFullYear() % 100;
+            const fullYear = year <= currentYear ? 2000 + year : 1900 + year;
+
+            const dateObj = new Date(fullYear, month - 1, day);
+            if (
+                dateObj.getFullYear() !== fullYear ||
+                dateObj.getMonth() !== (month - 1) ||
+                dateObj.getDate() !== day
+            ) {
+                return null;
+            }
+
+            return {
+                dateOfBirth: `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                gender: genderDigit >= 5 ? 'Male' : 'Female'
+            };
+        }
+
+        function applyIdAutoFill(id) {
+            const details = extractIdDetails(id);
+            if (!details) return;
+
+            const dobInput = document.getElementById('id_date_of_birth');
+            const genderSelect = document.getElementById('id_gender');
+
+            if (dobInput) dobInput.value = details.dateOfBirth;
+            if (genderSelect) genderSelect.value = details.gender;
+        }
+
+        // Real-time Luhn validation + auto-fill
         document.getElementById('id_id_number').addEventListener('input', function() {
             const value = this.value.trim();
             const feedback = document.getElementById('id-validation-feedback');
-            
+
             if (value.length === 0) {
                 feedback.style.display = 'none';
                 this.classList.remove('is-invalid', 'is-valid');
                 return;
             }
-            
+
             if (value.length !== 13 || !/^\d+$/.test(value)) {
                 feedback.textContent = '❌ Must be exactly 13 digits';
                 feedback.style.display = 'block';
                 feedback.style.color = '#dc3545';
                 this.classList.add('is-invalid');
                 this.classList.remove('is-valid');
-            } else if (!luhnCheck(value)) {
+                return;
+            }
+
+            if (!luhnCheck(value)) {
                 feedback.textContent = '❌ Invalid ID number (checksum failed)';
                 feedback.style.display = 'block';
                 feedback.style.color = '#dc3545';
                 this.classList.add('is-invalid');
                 this.classList.remove('is-valid');
-            } else {
-                feedback.textContent = '✓ Valid ID number';
-                feedback.style.display = 'block';
-                feedback.style.color = '#28a745';
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
+                return;
             }
+
+            feedback.textContent = '✓ Valid ID number';
+            feedback.style.display = 'block';
+            feedback.style.color = '#28a745';
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            applyIdAutoFill(value);
         });
 
-        // Auto-populate DOB and gender from ID number
+        // Auto-populate DOB and gender from ID number when leaving the field
         document.getElementById('id_id_number').addEventListener('blur', function() {
-            const id = this.value.trim();
-            
-            if (id.length === 13 && luhnCheck(id)) {
-                try {
-                    // Extract components
-                    const year = parseInt(id.substring(0, 2));
-                    const month = parseInt(id.substring(2, 4));
-                    const day = parseInt(id.substring(4, 6));
-                    const genderDigit = parseInt(id.substring(6, 7));
-                    
-                    // Calculate full year
-                    const fullYear = year > 50 ? 1900 + year : 2000 + year;
-                    
-                    // Format date
-                    const dateObj = new Date(fullYear, month - 1, day);
-                    const formattedDate = dateObj.toISOString().split('T')[0];
-                    
-                    // Set date of birth
-                    document.getElementById('id_date_of_birth').value = formattedDate;
-                    
-                    // Set gender (5-9 = Male, 0-4 = Female)
-                    const genderSelect = document.getElementById('id_gender');
-                    genderSelect.value = genderDigit >= 5 ? 'M' : 'F';
-                } catch (e) {
-                    console.error('Error parsing ID:', e);
-                }
-            }
+            applyIdAutoFill(this.value.trim());
         });
 
         // Initialize field visibility on page load
@@ -263,6 +281,11 @@
             if (checkedRadio && checkedRadio.value === 'passport') {
                 document.getElementById('id-number-group').style.display = 'none';
                 document.getElementById('passport-group').style.display = 'block';
+            }
+
+            const idInput = document.getElementById('id_id_number');
+            if (idInput && idInput.value && idInput.value.trim().length === 13) {
+                applyIdAutoFill(idInput.value.trim());
             }
         });
     </script>
@@ -273,9 +296,23 @@
         }
         .form-check {
             margin-bottom: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 0;
         }
         .form-check-input {
-            margin-right: 8px;
+            margin-right: 0;
+            margin-left: 0;
+            margin-top: 0;
+            float: none;
+            flex-shrink: 0;
+            position: static;
+        }
+        .form-check-label {
+            margin-left: 0;
+            line-height: 1.35;
+            display: inline-block;
         }
         #id-validation-feedback {
             margin-top: 5px;

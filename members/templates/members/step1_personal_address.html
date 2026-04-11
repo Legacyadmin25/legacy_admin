@@ -191,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset validation state
         errorDiv.style.display = 'none';
+        errorDiv.classList.remove('text-red-600', 'text-green-600');
         idInput.classList.remove('border-red-500', 'border-green-500');
         
         // Skip validation if empty
@@ -200,6 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!/^\d*$/.test(idNumber)) {
             errorDiv.textContent = 'ID number must contain only digits';
             errorDiv.style.display = 'block';
+          errorDiv.classList.add('text-red-600');
             idInput.classList.add('border-red-500');
             return;
         }
@@ -208,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (idNumber.length < 13) {
             errorDiv.textContent = `ID number must be 13 digits (${idNumber.length}/13)`;
             errorDiv.style.display = 'block';
+          errorDiv.classList.add('text-red-600');
             idInput.classList.add('border-red-500');
             return;
         }
@@ -220,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Valid ID number
                 errorDiv.textContent = '✓ ' + result.message;
                 errorDiv.style.display = 'block';
-                errorDiv.style.color = '#10b981'; // Green color
+              errorDiv.classList.add('text-green-600');
                 idInput.classList.add('border-green-500');
                 
                 // Update DOB and gender from ID
@@ -230,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Invalid ID number
                 errorDiv.textContent = result.message;
                 errorDiv.style.display = 'block';
-                errorDiv.style.color = '#ef4444'; // Red color
+              errorDiv.classList.add('text-red-600');
                 idInput.classList.add('border-red-500');
             }
         }
@@ -444,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                          placeholder="Enter 13-digit SA ID number"
                          required>
                 </div>
-                <div id="id-error-message" class="mt-1 text-sm text-red-600" style="display: none;"></div>
+                <div id="id-error-message" class="mt-1 text-sm" style="display: none;"></div>
                 {% if form.id_number.errors %}
                 <p class="mt-1 text-sm text-red-600">{{ form.id_number.errors.0 }}</p>
                 {% endif %}

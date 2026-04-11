@@ -94,22 +94,27 @@ def step2_policy_details(request, policy):
     )
     
     # Get available schemes and plans based on user permissions
+    age_filtered_plans = Plan.objects.filter(
+        is_active=True,
+        main_age_from__lte=age,
+        main_age_to__gte=age,
+    )
+
     if request.user.is_superuser:
-        schemes_qs = Scheme.objects.all()
-        plans_qs = Plan.objects.filter(
-            main_age_from__lte=age,
-            main_age_to__gte=age
-        )
+        schemes_qs = Scheme.objects.filter(active=True)
+        plans_qs = age_filtered_plans
+        if policy.scheme_id:
+            plans_qs = plans_qs.filter(scheme_id=policy.scheme_id)
+
+        # Prevent superuser onboarding from being blocked by age configuration gaps.
+        if not plans_qs.exists():
+            plans_qs = Plan.objects.filter(is_active=True)
     else:
         branch_user = getattr(request.user, 'branchuser', None)
         agent_scheme = getattr(branch_user, 'scheme', None) if branch_user else None
-        schemes_qs = Scheme.objects.filter(branch=branch_user.branch) if branch_user and branch_user.branch else Scheme.objects.none()
+        schemes_qs = Scheme.objects.filter(branch=branch_user.branch, active=True) if branch_user and branch_user.branch else Scheme.objects.none()
         agent_scheme = agent_scheme or (schemes_qs.first() if schemes_qs.exists() else None)
-        plans_qs = Plan.objects.filter(
-            main_age_from__lte=age,
-            main_age_to__gte=age,
-            scheme=agent_scheme
-        )
+        plans_qs = age_filtered_plans.filter(scheme=agent_scheme) if agent_scheme else Plan.objects.none()
     
     if request.method == 'POST':
         # Handle back button
@@ -159,21 +164,42 @@ def step2_policy_details(request, policy):
         form.fields['scheme'].queryset = schemes_qs
         form.fields['plan'].queryset = plans_qs
     
-    # Prepare plans data with all required fields
-    available_plans = []
+    plans_qs = plans_qs.select_related('scheme').prefetch_related('plan_tiers')
+
+    # Prepare plans data with all required fields used by the template.
+    plans_data = []
     for plan in plans_qs:
-        available_plans.append({
+        tiers = [
+            {
+                'member_type': tier.get_user_type_display(),
+                'age_from': tier.age_from,
+                'age_to': tier.age_to,
+                'premium': float(tier.premium_amount),
+                'cover': float(tier.cover_amount),
+            }
+            for tier in plan.plan_tiers.all()
+        ]
+
+        in_member_scheme = True if not policy.scheme_id else (plan.scheme_id == policy.scheme_id)
+
+        plans_data.append({
             'id': plan.id,
             'name': plan.name,
             'description': plan.description or '',
-            'premium_amount': float(plan.main_premium) if plan.main_premium is not None else 0.0,
+            'premium': float(plan.main_premium) if plan.main_premium is not None else float(plan.premium),
             'cover_amount': float(plan.main_cover) if plan.main_cover is not None else 0.0,
-            'main_premium': float(plan.main_premium) if plan.main_premium is not None else 0.0,  # Keep for backward compatibility
-            'main_cover': float(plan.main_cover) if plan.main_cover is not None else 0.0,  # Keep for backward compatibility
+            'spouses_allowed': plan.spouses_allowed,
+            'children_allowed': plan.children_allowed,
+            'extended_allowed': plan.extended_allowed,
+            'policy_type': plan.policy_type,
+            'waiting_period': plan.waiting_period,
+            'in_member_scheme': in_member_scheme,
             'is_popular': getattr(plan, 'is_popular', False),
-            'benefits': list(getattr(plan, 'benefits', []).values('id', 'description') if hasattr(plan, 'benefits') and plan.benefits.exists() else []),
-            'underwriter': getattr(plan, 'underwriter', ''),
+            'tiers': json.dumps(tiers),
         })
+
+    # Keep backward-compatible alias expected by some scripts/snippets.
+    available_plans = plans_data
     
     # Prepare plans data for JavaScript
     plans_json = json.dumps([
@@ -193,6 +219,8 @@ def step2_policy_details(request, policy):
         'policy': policy,
         'step': 2,
         'steps': range(1, 10),  # Update this based on your total steps
+        'member_age': age,
+        'plans_data': plans_data,
         'plans_json': plans_json,
         'available_plans': available_plans,
     })

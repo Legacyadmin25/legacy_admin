@@ -197,6 +197,7 @@ class PublicApplication(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('DEBIT_ORDER', 'Debit Order'),
         ('EFT', 'EFT Transfer'),
+        ('RECURRING_EFT', 'Recurring EFT'),
         ('EASYPAY', 'EasyPay'),
     ]
     payment_method = models.CharField(

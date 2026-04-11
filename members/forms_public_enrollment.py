@@ -217,8 +217,9 @@ class PlanSelectionPublicForm(forms.ModelForm):
         # Payment method choices
         self.fields['payment_method'].choices = [
             ('DEBIT_ORDER', 'Monthly Debit Order (Automatic)'),
-            ('EASYPAY', 'EasyPay (Pay at stores)'),
-            ('EFT', 'EFT Transfer (Manual)'),
+            ('EASYPAY', 'EasyPay'),
+            ('EFT', 'EFT'),
+            ('RECURRING_EFT', 'Recurring EFT'),
         ]
 
 
