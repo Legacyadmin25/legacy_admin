@@ -7,481 +7,400 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --success-color: #27ae60;
-            --danger-color: #e74c3c;
-            --light-bg: #ecf0f1;
-            --border-color: #bdc3c7;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px 0;
-        }
-
-        .enrollment-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-
-        .enrollment-header {
-            background: var(--primary-color);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        .enrollment-header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .enrollment-header p {
-            font-size: 14px;
-            opacity: 0.9;
-            margin: 0;
-        }
-
-        .progress-container {
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: var(--light-bg);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-
-        .progress-bar .progress-fill {
-            background: var(--secondary-color);
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
-
-        .enrollment-body {
-            padding: 30px;
-        }
-
-        .form-section {
-            margin-bottom: 25px;
-        }
-
-        .form-section h4 {
-            color: var(--primary-color);
-            margin-bottom: 15px;
-            font-weight: 600;
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .form-group label .required {
-            color: var(--danger-color);
-        }
-
-        .form-control, .form-select {
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        }
-
-        .form-control.is-invalid {
-            border-color: var(--danger-color);
-        }
-
-        .form-control.is-invalid:focus {
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
-        }
-
-        .invalid-feedback {
-            display: block;
-            color: var(--danger-color);
-            font-size: 12px;
-            margin-top: 4px;
-        }
-
-        .form-check {
-            margin-bottom: 12px;
-            padding-left: 0;
-        }
-
-        .form-check-input {
-            margin-top: 4px;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-
-        .form-check-input:checked {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-
-        .form-check-label {
-            margin-left: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .form-radio-group {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .form-radio {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .form-radio input[type="radio"] {
-            cursor: pointer;
-            margin: 0;
-        }
-
-        .form-radio input[type="radio"]:checked + label {
-            font-weight: 600;
-        }
-
-        .form-radio:has(input[type="radio"]:checked) {
-            background: rgba(52, 152, 219, 0.1);
-            border-color: var(--secondary-color);
-        }
-
-        .form-radio label {
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .help-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        .alert {
-            border-radius: 6px;
-            border: none;
-            margin-bottom: 20px;
-        }
-
-        .alert-info {
-            background: rgba(52, 152, 219, 0.1);
-            color: var(--secondary-color);
-        }
-
-        .alert-warning {
-            background: rgba(241, 196, 15, 0.1);
-            color: #d68910;
-        }
-
-        .alert-danger {
-            background: rgba(231, 76, 60, 0.1);
-            color: var(--danger-color);
-        }
-
-        .alert-success {
-            background: rgba(39, 174, 96, 0.1);
-            color: var(--success-color);
-        }
-
-        .enrollment-footer {
-            padding: 20px 30px;
-            background: #f8f9fa;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .btn-primary {
-            background: var(--secondary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-        }
-
-        .btn-secondary {
-            background: var(--light-bg);
-            color: var(--primary-color);
-        }
-
-        .btn-secondary:hover {
-            background: #d5dbdb;
-        }
-
-        .btn-success {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #229954;
-        }
-
-        .btn-danger {
-            background: var(--danger-color);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .error-summary {
-            background: rgba(231, 76, 60, 0.1);
-            border-left: 4px solid var(--danger-color);
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            color: #c0392b;
-        }
-
-        .error-summary ul {
-            margin: 0;
-            padding-left: 20px;
-            font-size: 13px;
-        }
-
-        .error-summary li {
-            margin-bottom: 5px;
-        }
-
-        .section-divider {
-            background: var(--light-bg);
-            height: 1px;
-            margin: 20px 0;
-        }
-
-        .info-box {
-            background: rgba(52, 152, 219, 0.05);
-            border-left: 3px solid var(--secondary-color);
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #333;
-        }
-
-        .info-box strong {
-            color: var(--primary-color);
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(52, 152, 219, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--secondary-color);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .btn:disabled .loading-spinner {
-            margin-right: 8px;
-        }
-
-        @media (max-width: 576px) {
-            body {
-                padding: 10px;
-            }
-
-            .enrollment-container {
-                border-radius: 8px;
-            }
-
-            .enrollment-header {
-                padding: 20px 15px;
-            }
-
-            .enrollment-header h1 {
-                font-size: 20px;
-            }
-
-            .enrollment-body {
-                padding: 20px;
-            }
-
-            .enrollment-footer {
-                padding: 15px 20px;
-                flex-direction: column;
-            }
-
-            .btn {
-                flex: none;
-                width: 100%;
-            }
-
-            .form-radio-group {
-                flex-direction: column;
-            }
-
-            .form-radio {
-                width: 100%;
-            }
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .step-indicator .current {
-            font-weight: 600;
-            color: var(--secondary-color);
-        }
-
-        .otp-input-container {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-
-        .otp-input {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            transition: border-color 0.3s ease;
-        }
-
-        .otp-input:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        }
-
-        .otp-input.error {
-            border-color: var(--danger-color);
-        }
-
-        .timer-countdown {
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-        }
-
-        .timer-countdown .time-remaining {
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-    </style>
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    <div class="enrollment-container">
-        <!-- Header -->
-        <div class="enrollment-header">
-            <h1>{% block header_title %}Policy Application{% endblock %}</h1>
-            <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {% block progress_percent %}0%{% endblock %}"></div>
-            </div>
-            <div class="step-indicator">
-                <span>Step <span class="current">{% block current_step %}1{% endblock %}</span> of {% block total_steps %}6{% endblock %}</span>
-                <span>{% block progress_label %}Personal Details{% endblock %}</span>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <form method="post" class="enrollment-form" novalidate>
-            {% csrf_token %}
-            
-            <div class="enrollment-body">
-                <!-- Error Messages -->
-                {% if form.non_field_errors %}
-                    <div class="error-summary alert alert-danger">
-                        <strong>Please correct the following errors:</strong>
-                        <ul>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{% block title %}Policy Enrollment{% endblock %}</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+                <style>
+                    :root {
+                        --brand-primary: #0A2540;
+                        --brand-secondary: #1E3A8A;
+                        --brand-background: #0F172A;
+                        --brand-border: rgba(148, 163, 184, 0.18);
+                        --brand-muted: #94A3B8;
+                        --brand-text: #E2E8F0;
+                        --brand-title: #F8FAFC;
+                        --brand-danger: #EF4444;
+                        --panel-surface: rgba(255, 255, 255, 0.97);
+                    }
+
+                    * { box-sizing: border-box; }
+
+                    body {
+                        margin: 0;
+                        min-height: 100vh;
+                        font-family: 'Manrope', system-ui, sans-serif;
+                        color: var(--brand-text);
+                        background:
+                            radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32%),
+                            radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 24%),
+                            linear-gradient(180deg, #081222 0%, #0F172A 52%, #121D31 100%);
+                        padding: 28px 16px;
+                    }
+
+                    .page-shell { max-width: 1080px; margin: 0 auto; }
+
+                    .brand-strip {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 24px;
+                        margin-bottom: 22px;
+                        padding: 18px 22px;
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 24px;
+                        background: rgba(10, 37, 64, 0.68);
+                        backdrop-filter: blur(18px);
+                        box-shadow: 0 22px 50px rgba(0, 0, 0, 0.26);
+                    }
+
+                    .brand-mark { display: flex; align-items: center; gap: 14px; }
+
+                    .brand-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 16px;
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(255, 255, 255, 0.08));
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        color: #BFDBFE;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                    }
+
+                    .brand-copy small {
+                        display: block;
+                        margin-bottom: 4px;
+                        font-size: 0.72rem;
+                        letter-spacing: 0.18em;
+                        text-transform: uppercase;
+                        color: var(--brand-muted);
+                    }
+
+                    .brand-copy strong {
+                        display: block;
+                        font-size: 1.15rem;
+                        color: var(--brand-title);
+                    }
+
+                    .brand-copy span {
+                        display: block;
+                        margin-top: 4px;
+                        font-size: 0.9rem;
+                        color: #CBD5E1;
+                    }
+
+                    .brand-meta {
+                        text-align: right;
+                        font-size: 0.84rem;
+                        line-height: 1.5;
+                        color: var(--brand-muted);
+                    }
+
+                    .enrollment-grid {
+                        display: grid;
+                        grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+                        gap: 22px;
+                    }
+
+                    .journey-panel,
+                    .enrollment-container {
+                        border: 1px solid var(--brand-border);
+                        border-radius: 28px;
+                        overflow: hidden;
+                        box-shadow: 0 26px 55px rgba(0, 0, 0, 0.24);
+                    }
+
+                    .journey-panel {
+                        background: rgba(10, 37, 64, 0.72);
+                        backdrop-filter: blur(18px);
+                        padding: 28px 24px;
+                    }
+
+                    .journey-tag {
+                        display: inline-flex;
+                        margin-bottom: 16px;
+                        padding: 7px 12px;
+                        border-radius: 999px;
+                        background: rgba(59, 130, 246, 0.18);
+                        color: #BFDBFE;
+                        font-size: 0.78rem;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                    }
+
+                    .journey-panel h1 {
+                        margin: 0 0 10px;
+                        color: var(--brand-title);
+                        font-size: 1.85rem;
+                        line-height: 1.15;
+                    }
+
+                    .journey-panel p {
+                        margin: 0;
+                        color: #CBD5E1;
+                        line-height: 1.6;
+                        font-size: 0.96rem;
+                    }
+
+                    .journey-list {
+                        margin: 28px 0 0;
+                        padding: 0;
+                        list-style: none;
+                        display: grid;
+                        gap: 14px;
+                    }
+
+                    .journey-list li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
+
+                    .journey-number {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 999px;
+                        background: rgba(255, 255, 255, 0.08);
+                        color: #E0F2FE;
+                        font-weight: 700;
+                        font-size: 0.9rem;
+                    }
+
+                    .journey-item strong { display: block; color: var(--brand-title); margin-bottom: 4px; font-size: 0.95rem; }
+                    .journey-item span { color: var(--brand-muted); font-size: 0.88rem; line-height: 1.55; }
+
+                    .enrollment-container { background: var(--panel-surface); }
+
+                    .enrollment-header {
+                        padding: 28px 30px 20px;
+                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+                        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+                    }
+
+                    .enrollment-header h2 { margin: 0 0 6px; color: #0F172A; font-size: 1.8rem; line-height: 1.15; }
+                    .enrollment-header p { margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.55; }
+
+                    .progress-container {
+                        padding: 0 30px 22px;
+                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+                        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+                    }
+
+                    .progress-meta {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        margin-bottom: 12px;
+                        font-size: 0.84rem;
+                        color: #64748B;
+                    }
+
+                    .progress-meta strong { color: #0F172A; font-weight: 700; }
+
+                    .progress-track {
+                        width: 100%;
+                        height: 9px;
+                        border-radius: 999px;
+                        background: rgba(148, 163, 184, 0.22);
+                        overflow: hidden;
+                    }
+
+                    .progress-fill {
+                        height: 100%;
+                        width: {% block progress_percent %}0%{% endblock %};
+                        border-radius: inherit;
+                        background: linear-gradient(90deg, #1D4ED8, #3B82F6);
+                    }
+
+                    .step-rail {
+                        display: grid;
+                        grid-template-columns: repeat(9, minmax(0, 1fr));
+                        gap: 10px;
+                        margin-top: 18px;
+                    }
+
+                    .step-pill { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+
+                    .step-dot {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 999px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        color: #64748B;
+                        background: #E2E8F0;
+                    }
+
+                    .step-pill.is-current .step-dot {
+                        color: #FFFFFF;
+                        background: linear-gradient(135deg, #2563EB, #1E40AF);
+                        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.28);
+                    }
+
+                    .step-label { font-size: 0.72rem; line-height: 1.2; color: #64748B; }
+                    .step-pill.is-current .step-label { color: #1E3A8A; font-weight: 700; }
+
+                    .enrollment-body { padding: 30px; color: #0F172A; }
+                    .form-section h4 { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.24); color: #0F172A; font-size: 1.15rem; }
+
+                    .alert,
+                    .info-box {
+                        margin-bottom: 18px;
+                        padding: 16px 18px;
+                        border-radius: 18px;
+                        border: 1px solid transparent;
+                        font-size: 0.93rem;
+                        line-height: 1.6;
+                    }
+
+                    .alert-info { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.16); color: #1E3A8A; }
+                    .alert-warning { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.18); color: #92400E; }
+                    .alert-danger { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.18); color: #B91C1C; }
+                    .info-box { background: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%); border-color: rgba(59, 130, 246, 0.18); color: #334155; }
+                    .info-box strong { color: #0F172A; }
+
+                    .enrollment-footer {
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 12px;
+                        padding: 22px 30px 28px;
+                        border-top: 1px solid rgba(148, 163, 184, 0.18);
+                        background: linear-gradient(180deg, rgba(248, 250, 252, 0.86), rgba(255, 255, 255, 1));
+                    }
+
+                    .btn {
+                        appearance: none;
+                        border: none;
+                        border-radius: 16px;
+                        padding: 14px 20px;
+                        font-size: 0.95rem;
+                        font-weight: 700;
+                        cursor: pointer;
+                        text-decoration: none;
+                        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+                    }
+
+                    .btn-primary {
+                        color: #FFFFFF;
+                        background: linear-gradient(135deg, #2563EB, #1E3A8A);
+                        box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+                    }
+
+                    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28); }
+
+                    @media (max-width: 920px) {
+                        .enrollment-grid { grid-template-columns: 1fr; }
+                        .brand-strip { flex-direction: column; align-items: flex-start; }
+                        .brand-meta { text-align: left; }
+                    }
+
+                    @media (max-width: 720px) {
+                        body { padding: 16px 12px; }
+                        .enrollment-header, .progress-container, .enrollment-body, .enrollment-footer, .journey-panel { padding-left: 18px; padding-right: 18px; }
+                        .step-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; }
+                        .enrollment-footer { flex-direction: column; }
+                        .btn { width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="page-shell">
+                    <div class="brand-strip">
+                        <div class="brand-mark">
+                            <div class="brand-badge">LC</div>
+                            <div class="brand-copy">
+                                <small>Legacy Core</small>
+                                <strong>Public Policy Application</strong>
+                                <span>Same application journey, without requiring account login.</span>
+                            </div>
+                        </div>
+                        <div class="brand-meta">
+                            Secure enrollment<br>
+                            Scheme-linked application<br>
+                            Agent-linked onboarding
+                        </div>
+                    </div>
+
+                    <div class="enrollment-grid">
+                        <aside class="journey-panel">
+                            <div class="journey-tag">Application Journey</div>
+                            <h1>{% block header_title %}Policy Application{% endblock %}</h1>
+                            <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
+
+                            <ol class="journey-list">
+                                <li><span class="journey-number">1</span><div class="journey-item"><strong>Personal details</strong><span>Capture the main member information and verify identity details.</span></div></li>
+                                <li><span class="journey-number">2</span><div class="journey-item"><strong>Plan and cover</strong><span>Select the policy plan attached to your scheme and review pricing.</span></div></li>
+                                <li><span class="journey-number">3</span><div class="journey-item"><strong>Family, payment, OTP</strong><span>Add dependants, set payment details, and verify the submission securely.</span></div></li>
+                            </ol>
+                        </aside>
+
+                        <div class="enrollment-container">
+                            <div class="enrollment-header">
+                                <h2>{% block header_title %}Policy Application{% endblock %}</h2>
+                                <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
+                            </div>
+
+                            <div class="progress-container">
+                                <div class="progress-meta">
+                                    <span>Step <strong>{% block current_step %}1{% endblock %}</strong> of 9</span>
+                                    <span>{% block progress_label %}Personal Details{% endblock %}</span>
+                                </div>
+                                <div class="progress-track"><div class="progress-fill"></div></div>
+                                <div class="step-rail">
+                                    <div class="step-pill is-current"><span class="step-dot">1</span><span class="step-label">Personal</span></div>
+                                    <div class="step-pill"><span class="step-dot">2</span><span class="step-label">Policy</span></div>
+                                    <div class="step-pill"><span class="step-dot">3</span><span class="step-label">Spouse</span></div>
+                                    <div class="step-pill"><span class="step-dot">4</span><span class="step-label">Dependents</span></div>
+                                    <div class="step-pill"><span class="step-dot">5</span><span class="step-label">Beneficiaries</span></div>
+                                    <div class="step-pill"><span class="step-dot">6</span><span class="step-label">Payment</span></div>
+                                    <div class="step-pill"><span class="step-dot">7</span><span class="step-label">OTP</span></div>
+                                    <div class="step-pill"><span class="step-dot">8</span><span class="step-label">Summary</span></div>
+                                    <div class="step-pill"><span class="step-dot">9</span><span class="step-label">Confirm</span></div>
+                                </div>
+                            </div>
+
+                            <form method="post" class="enrollment-form" novalidate>
+                                {% csrf_token %}
+                                <div class="enrollment-body">
+                                    {% if form.non_field_errors %}
+                                        <div class="alert alert-danger">
+                                            <strong>Please correct the following errors:</strong>
+                                            <ul>
+                                                {% for error in form.non_field_errors %}
+                                                    <li>{{ error }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+
+                                    {% block form_content %}{% endblock %}
+                                </div>
+
+                                <div class="enrollment-footer">
+                                    {% block footer_buttons %}
+                                        <button type="submit" class="btn btn-primary">Continue</button>
+                                    {% endblock %}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% block extra_js %}{% endblock %}
+            </body>
+            </html>
                             {% for error in form.non_field_errors %}
                                 <li>{{ error }}</li>
                             {% endfor %}
