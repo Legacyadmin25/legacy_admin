@@ -111,6 +111,8 @@
             background: rgba(10, 37, 64, 0.72);
             backdrop-filter: blur(18px);
             padding: 28px 24px;
+            max-height: calc(100vh - 56px);
+            overflow: auto;
         }
 
         .journey-tag {
@@ -414,9 +416,15 @@
                 <p>{% block header_subtitle %}Apply for your policy today{% endblock %}</p>
 
                 <ol class="journey-list">
-                    <li><span class="journey-number">1</span><div class="journey-item"><strong>Personal details</strong><span>Capture the main member information and verify identity details.</span></div></li>
-                    <li><span class="journey-number">2</span><div class="journey-item"><strong>Plan and cover</strong><span>Select the policy plan attached to your scheme and review pricing.</span></div></li>
-                    <li><span class="journey-number">3</span><div class="journey-item"><strong>Family, payment, OTP</strong><span>Add dependants, set payment details, and verify the submission securely.</span></div></li>
+                    <li><span class="journey-number">1</span><div class="journey-item"><strong>Main member details</strong><span>Provide the personal details for the main member applying for the policy.</span></div></li>
+                    <li><span class="journey-number">2</span><div class="journey-item"><strong>Choose your policy</strong><span>Select the policy based on the main member's age and the cover amount you need.</span></div></li>
+                    <li><span class="journey-number">3</span><div class="journey-item"><strong>Spouse details</strong><span>If the policy includes a spouse, complete the spouse details in this step.</span></div></li>
+                    <li><span class="journey-number">4</span><div class="journey-item"><strong>Children or family</strong><span>Add the children or extended family members who should be covered on the policy.</span></div></li>
+                    <li><span class="journey-number">5</span><div class="journey-item"><strong>Beneficiary details</strong><span>Enter the beneficiary's name, surname, contact number, and ID number.</span></div></li>
+                    <li><span class="journey-number">6</span><div class="journey-item"><strong>Monthly premium payment</strong><span>Choose how you would like to pay your premium each month.</span></div></li>
+                    <li><span class="journey-number">7</span><div class="journey-item"><strong>OTP verification</strong><span>Verify the application securely using the one-time pin sent to you.</span></div></li>
+                    <li><span class="journey-number">8</span><div class="journey-item"><strong>Cover summary</strong><span>Review the summary of cover for everyone included on the application.</span></div></li>
+                    <li><span class="journey-number">9</span><div class="journey-item"><strong>Policy documents</strong><span>Complete the application and generate the policy documents.</span></div></li>
                 </ol>
             </aside>
 
