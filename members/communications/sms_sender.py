@@ -37,26 +37,21 @@ def get_bulksms_auth():
        Format: TOKEN_ID:TOKEN_SECRET
     2. Basic Auth (username/password)
     """
-    # Check for API token first (recommended)
+    # BulkSMS API tokens are in the format "token_id:token_secret" and MUST be
+    # used as Basic auth credentials, NOT as Bearer tokens.
     api_token = os.getenv('BULKSMS_API_TOKEN')
-    if api_token:
-        # BulkSMS API token format: use as Bearer token or Basic auth
-        # The token ID:secret can be used as Basic auth credentials
-        try:
-            # Try to use it as Bearer token directly
-            return {
-                'auth_type': 'bearer',
-                'token': api_token,
-                'headers': {
-                    'Authorization': f'Bearer {api_token}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
+    if api_token and ':' in api_token:
+        token_id, token_secret = api_token.split(':', 1)
+        return {
+            'auth_type': 'basic',
+            'auth': HTTPBasicAuth(token_id, token_secret),
+            'headers': {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
-        except:
-            pass
-    
-    # Fall back to basic auth with token credentials
+        }
+
+    # Fall back to explicit username/password credentials
     username = os.getenv('BULKSMS_USERNAME')
     password = os.getenv('BULKSMS_PASSWORD')
     
@@ -117,7 +112,7 @@ def send_bulksms(to: str, message: str, test_mode: bool = False) -> SMSLog:
     payload = {
         "to": to,
         "body": message,
-        "encoding": "UTF-8"
+        "encoding": "TEXT"
     }
     
     headers = auth_config.get('headers', {})
@@ -125,30 +120,24 @@ def send_bulksms(to: str, message: str, test_mode: bool = False) -> SMSLog:
     headers['Content-Type'] = 'application/json'
     
     try:
-        # Send SMS
-        if auth_config['auth_type'] == 'bearer':
-            response = requests.post(
-                url,
-                json=payload,
-                headers=headers,
-                timeout=10
-            )
-        else:  # basic auth
-            response = requests.post(
-                url,
-                json=payload,
-                auth=auth_config['auth'],
-                headers=headers,
-                timeout=10
-            )
+        # Send SMS using Basic auth (the only auth type we now produce)
+        response = requests.post(
+            url,
+            json=payload,
+            auth=auth_config['auth'],
+            headers=headers,
+            timeout=10
+        )
         
         response.raise_for_status()
-        
-        # Parse response
+
+        # API returns a list of submitted message objects
         result = response.json()
+        first = result[0] if isinstance(result, list) and result else {}
+        api_status = first.get('status', {}).get('type', 'ACCEPTED')
         status = "SENT"
-        detail = result.get('body', 'Message queued for delivery')
-        
+        detail = f"Message queued: id={first.get('id', '')} status={api_status}"
+
         logger.info(f"SMS sent to {to}: {detail}")
         
     except requests.exceptions.HTTPError as e:

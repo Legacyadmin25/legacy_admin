@@ -2,10 +2,23 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+
+def _load_dotenv():
+    """Load .env into the process environment (local dev only; cPanel sets vars natively)."""
+    try:
+        from dotenv import load_dotenv
+        env_path = Path(__file__).resolve().parent / '.env'
+        if env_path.exists():
+            load_dotenv(env_path, override=False)
+    except ImportError:
+        pass
 
 
 def main():
     """Run administrative tasks."""
+    _load_dotenv()
     os.environ.setdefault(
         'DJANGO_SETTINGS_MODULE',
         os.getenv('DJANGO_SETTINGS_MODULE', 'legacyadmin.settings'),
