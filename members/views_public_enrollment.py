@@ -5,7 +5,7 @@ Separate from admin/agent views with different flows and permissions
 
 import json
 import logging
-from datetime import timedelta
+from datetime import timedelta, date
 from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
@@ -39,6 +39,29 @@ def mask_phone_number(phone_number):
     if not phone_number:
         return ''
     return f"...{str(phone_number)[-4:]}"
+
+
+def extract_dob_from_id(id_number):
+    if not id_number or not isinstance(id_number, str) or len(id_number) != 13 or not id_number.isdigit():
+        return None
+    try:
+        year_prefix = '19' if int(id_number[0:2]) > 22 else '20'
+        year = int(year_prefix + id_number[0:2])
+        month = int(id_number[2:4])
+        day = int(id_number[4:6])
+        return date(year, month, day)
+    except (ValueError, TypeError):
+        return None
+
+
+def extract_gender_from_id(id_number):
+    if not id_number or not isinstance(id_number, str) or len(id_number) != 13 or not id_number.isdigit():
+        return None
+    try:
+        gender_digits = int(id_number[6:10])
+        return 'M' if gender_digits >= 5000 else 'F'
+    except (ValueError, TypeError):
+        return None
 
 
 def invalid_enrollment_session_response():
@@ -392,12 +415,18 @@ class Step6ConsentAndTermsView(FormView):
         )
 
         premium_value = plan_data.get('plan_premium')
+        selected_plan_obj = None
         if premium_value in (None, '') and plan_data.get('plan_id'):
             try:
-                selected_plan = Plan.objects.get(id=plan_data['plan_id'])
-                premium_value = selected_plan.premium or selected_plan.main_premium
+                selected_plan_obj = Plan.objects.get(id=plan_data['plan_id'])
+                premium_value = selected_plan_obj.premium or selected_plan_obj.main_premium
             except Plan.DoesNotExist:
                 premium_value = None
+        elif plan_data.get('plan_id'):
+            try:
+                selected_plan_obj = Plan.objects.get(id=plan_data['plan_id'])
+            except Plan.DoesNotExist:
+                selected_plan_obj = None
 
         premium_display = '-'
         if premium_value not in (None, ''):
@@ -407,6 +436,20 @@ class Step6ConsentAndTermsView(FormView):
                 premium_display = str(premium_value)
 
         beneficiary_data = self.request.session.get('enrollment_beneficiaries', {})
+        family_data = self.request.session.get('enrollment_family_members', {})
+        spouse_slots = 1 if selected_plan_obj and selected_plan_obj.spouses_allowed else 0
+        child_slots = list(range(1, min((selected_plan_obj.children_allowed if selected_plan_obj else 0), 5) + 1))
+        child_entries = [
+            {
+                'idx': idx,
+                'first_name': family_data.get(f'child_{idx}_first_name', ''),
+                'last_name': family_data.get(f'child_{idx}_last_name', ''),
+                'gender': family_data.get(f'child_{idx}_gender', ''),
+                'date_of_birth': family_data.get(f'child_{idx}_date_of_birth', ''),
+                'id_number': family_data.get(f'child_{idx}_id_number', ''),
+            }
+            for idx in child_slots
+        ]
         context['enrollment_data'] = {
             'personal': personal,
             'address': self.request.session.get('enrollment_address', {}),
@@ -419,7 +462,11 @@ class Step6ConsentAndTermsView(FormView):
         context['selected_plan'] = plan_data.get('plan_name') or '-'
         context['payment_method'] = payment_method_label or '-'
         context['selected_plan_premium'] = premium_display
+        context['spouse_slots'] = spouse_slots
+        context['child_slots'] = child_slots
+        context['child_entries'] = child_entries
         context.update(beneficiary_data)
+        context.update(family_data)
         return context
     
     def form_valid(self, form):
@@ -457,6 +504,95 @@ class Step6ConsentAndTermsView(FormView):
             'beneficiary_1_phone_number': b1_phone_number,
             'beneficiary_1_id_number': b1_id_number,
         }
+
+        plan = Plan.objects.filter(id=self.request.session['enrollment_plan']['plan_id']).first()
+        spouse_allowed = bool(plan and plan.spouses_allowed)
+        children_allowed = min(plan.children_allowed, 5) if plan else 0
+
+        family_member_answers = []
+        family_member_session = {}
+
+        if spouse_allowed:
+            spouse_first_name = (self.request.POST.get('spouse_first_name') or '').strip()
+            spouse_last_name = (self.request.POST.get('spouse_last_name') or '').strip()
+            spouse_phone_number = (self.request.POST.get('spouse_phone_number') or '').strip()
+            spouse_gender = (self.request.POST.get('spouse_gender') or '').strip()
+            spouse_date_of_birth = (self.request.POST.get('spouse_date_of_birth') or '').strip()
+            spouse_id_number = (self.request.POST.get('spouse_id_number') or '').strip()
+
+            spouse_has_data = any([spouse_first_name, spouse_last_name, spouse_phone_number, spouse_gender, spouse_date_of_birth, spouse_id_number])
+            if spouse_has_data:
+                if not spouse_first_name or not spouse_last_name or not spouse_phone_number:
+                    form.add_error(None, 'If you add a spouse, first name, last name, and contact number are required.')
+                    return self.form_invalid(form)
+                if not spouse_phone_number.isdigit() or len(spouse_phone_number) < 10:
+                    form.add_error(None, 'Spouse contact number must be at least 10 digits.')
+                    return self.form_invalid(form)
+                if spouse_id_number and len(spouse_id_number) == 13 and spouse_id_number.isdigit():
+                    spouse_date_of_birth = spouse_date_of_birth or str(extract_dob_from_id(spouse_id_number) or '')
+                    inferred_gender = extract_gender_from_id(spouse_id_number)
+                    if inferred_gender:
+                        spouse_gender = spouse_gender or ('Male' if inferred_gender == 'M' else 'Female')
+                if not spouse_gender or not spouse_date_of_birth:
+                    form.add_error(None, 'Spouse gender and date of birth are required when spouse details are provided.')
+                    return self.form_invalid(form)
+
+                family_member_session.update({
+                    'spouse_first_name': spouse_first_name,
+                    'spouse_last_name': spouse_last_name,
+                    'spouse_phone_number': spouse_phone_number,
+                    'spouse_gender': spouse_gender,
+                    'spouse_date_of_birth': spouse_date_of_birth,
+                    'spouse_id_number': spouse_id_number,
+                })
+                family_member_answers.extend([
+                    ('spouse_first_name', spouse_first_name),
+                    ('spouse_last_name', spouse_last_name),
+                    ('spouse_phone_number', spouse_phone_number),
+                    ('spouse_gender', spouse_gender),
+                    ('spouse_date_of_birth', spouse_date_of_birth),
+                    ('spouse_id_number', spouse_id_number),
+                ])
+
+        for idx in range(1, children_allowed + 1):
+            child_first_name = (self.request.POST.get(f'child_{idx}_first_name') or '').strip()
+            child_last_name = (self.request.POST.get(f'child_{idx}_last_name') or '').strip()
+            child_gender = (self.request.POST.get(f'child_{idx}_gender') or '').strip()
+            child_date_of_birth = (self.request.POST.get(f'child_{idx}_date_of_birth') or '').strip()
+            child_id_number = (self.request.POST.get(f'child_{idx}_id_number') or '').strip()
+
+            child_has_data = any([child_first_name, child_last_name, child_gender, child_date_of_birth, child_id_number])
+            if not child_has_data:
+                continue
+
+            if not child_first_name or not child_last_name:
+                form.add_error(None, f'Child {idx} first name and last name are required when child details are provided.')
+                return self.form_invalid(form)
+            if child_id_number and len(child_id_number) == 13 and child_id_number.isdigit():
+                child_date_of_birth = child_date_of_birth or str(extract_dob_from_id(child_id_number) or '')
+                inferred_gender = extract_gender_from_id(child_id_number)
+                if inferred_gender:
+                    child_gender = child_gender or ('Male' if inferred_gender == 'M' else 'Female')
+            if not child_gender or not child_date_of_birth:
+                form.add_error(None, f'Child {idx} gender and date of birth are required when child details are provided.')
+                return self.form_invalid(form)
+
+            family_member_session.update({
+                f'child_{idx}_first_name': child_first_name,
+                f'child_{idx}_last_name': child_last_name,
+                f'child_{idx}_gender': child_gender,
+                f'child_{idx}_date_of_birth': child_date_of_birth,
+                f'child_{idx}_id_number': child_id_number,
+            })
+            family_member_answers.extend([
+                (f'child_{idx}_first_name', child_first_name),
+                (f'child_{idx}_last_name', child_last_name),
+                (f'child_{idx}_gender', child_gender),
+                (f'child_{idx}_date_of_birth', child_date_of_birth),
+                (f'child_{idx}_id_number', child_id_number),
+            ])
+
+        self.request.session['enrollment_family_members'] = family_member_session
         self.request.session.modified = True
 
         # Create PublicApplication from session data
@@ -537,6 +673,15 @@ class Step6ConsentAndTermsView(FormView):
                         answer=value,
                         answer_type='text',
                     )
+
+                for key, value in family_member_answers:
+                    ApplicationAnswer.objects.create(
+                        application=application,
+                        question_key=key,
+                        question_text=key.replace('_', ' ').title(),
+                        answer=value,
+                        answer_type='text',
+                    )
                 
                 # Store POPIA consents
                 consent_mappings = {
@@ -595,7 +740,26 @@ class Step6ConsentAndTermsView(FormView):
             'beneficiary_1_share': self.request.POST.get('beneficiary_1_share', '100'),
             'beneficiary_1_phone_number': self.request.POST.get('beneficiary_1_phone_number', ''),
             'beneficiary_1_id_number': self.request.POST.get('beneficiary_1_id_number', ''),
+            'spouse_first_name': self.request.POST.get('spouse_first_name', ''),
+            'spouse_last_name': self.request.POST.get('spouse_last_name', ''),
+            'spouse_phone_number': self.request.POST.get('spouse_phone_number', ''),
+            'spouse_gender': self.request.POST.get('spouse_gender', ''),
+            'spouse_date_of_birth': self.request.POST.get('spouse_date_of_birth', ''),
+            'spouse_id_number': self.request.POST.get('spouse_id_number', ''),
         })
+        plan = Plan.objects.filter(id=self.request.session.get('enrollment_plan', {}).get('plan_id')).first()
+        if plan:
+            context['child_entries'] = [
+                {
+                    'idx': idx,
+                    'first_name': self.request.POST.get(f'child_{idx}_first_name', ''),
+                    'last_name': self.request.POST.get(f'child_{idx}_last_name', ''),
+                    'gender': self.request.POST.get(f'child_{idx}_gender', ''),
+                    'date_of_birth': self.request.POST.get(f'child_{idx}_date_of_birth', ''),
+                    'id_number': self.request.POST.get(f'child_{idx}_id_number', ''),
+                }
+                for idx in range(1, min(plan.children_allowed, 5) + 1)
+            ]
         return self.render_to_response(context)
 
 

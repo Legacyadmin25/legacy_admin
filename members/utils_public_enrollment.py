@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 import logging
+from datetime import date
 
 from members.models import Member, Policy, Dependent, Beneficiary
 from members.models_public_enrollment import PublicApplication
@@ -14,6 +15,29 @@ from branches.models import Bank
 from payments.models import Payment
 
 logger = logging.getLogger(__name__)
+
+
+def extract_dob_from_id(id_number):
+    if not id_number or not isinstance(id_number, str) or len(id_number) != 13 or not id_number.isdigit():
+        return None
+    try:
+        year_prefix = '19' if int(id_number[0:2]) > 22 else '20'
+        year = int(year_prefix + id_number[0:2])
+        month = int(id_number[2:4])
+        day = int(id_number[4:6])
+        return date(year, month, day)
+    except (ValueError, TypeError):
+        return None
+
+
+def extract_gender_from_id(id_number):
+    if not id_number or not isinstance(id_number, str) or len(id_number) != 13 or not id_number.isdigit():
+        return None
+    try:
+        gender_digits = int(id_number[6:10])
+        return 'M' if gender_digits >= 5000 else 'F'
+    except (ValueError, TypeError):
+        return None
 
 
 def convert_application_to_policy(application, reviewed_by=None):
@@ -88,6 +112,59 @@ def convert_application_to_policy(application, reviewed_by=None):
                 a.question_key: (a.answer or '').strip()
                 for a in application.answers.all()
             }
+
+            spouse_first_name = answer_map.get('spouse_first_name', '')
+            spouse_last_name = answer_map.get('spouse_last_name', '')
+            spouse_phone_number = answer_map.get('spouse_phone_number', '')
+            spouse_gender = answer_map.get('spouse_gender', '')
+            spouse_date_of_birth = answer_map.get('spouse_date_of_birth', '')
+            spouse_id_number = answer_map.get('spouse_id_number', '')
+
+            if spouse_first_name and spouse_last_name:
+                if spouse_id_number and not spouse_date_of_birth:
+                    extracted_dob = extract_dob_from_id(spouse_id_number)
+                    spouse_date_of_birth = extracted_dob or spouse_date_of_birth
+                if spouse_id_number and not spouse_gender:
+                    extracted_gender = extract_gender_from_id(spouse_id_number)
+                    spouse_gender = 'Male' if extracted_gender == 'M' else 'Female' if extracted_gender == 'F' else spouse_gender
+
+                member.spouse_first_name = spouse_first_name
+                member.spouse_last_name = spouse_last_name
+                member.spouse_phone_number = spouse_phone_number
+                member.spouse_id_number = spouse_id_number or None
+                member.spouse_date_of_birth = spouse_date_of_birth or None
+                member.spouse_gender = spouse_gender or ''
+                member.save()
+
+            for idx in range(1, 6):
+                child_first_name = answer_map.get(f'child_{idx}_first_name', '')
+                child_last_name = answer_map.get(f'child_{idx}_last_name', '')
+                child_gender = answer_map.get(f'child_{idx}_gender', '')
+                child_date_of_birth = answer_map.get(f'child_{idx}_date_of_birth', '')
+                child_id_number = answer_map.get(f'child_{idx}_id_number', '')
+
+                if not child_first_name or not child_last_name:
+                    continue
+
+                if child_id_number and not child_date_of_birth:
+                    extracted_dob = extract_dob_from_id(child_id_number)
+                    child_date_of_birth = extracted_dob or child_date_of_birth
+                if child_id_number and not child_gender:
+                    extracted_gender = extract_gender_from_id(child_id_number)
+                    child_gender = 'Male' if extracted_gender == 'M' else 'Female' if extracted_gender == 'F' else child_gender
+
+                if not child_date_of_birth or not child_gender:
+                    continue
+
+                Dependent.objects.create(
+                    policy=policy,
+                    relationship='Child',
+                    first_name=child_first_name,
+                    last_name=child_last_name,
+                    gender=child_gender,
+                    date_of_birth=child_date_of_birth,
+                    id_number=child_id_number,
+                )
 
             first_name = answer_map.get('beneficiary_1_first_name', '')
             last_name = answer_map.get('beneficiary_1_last_name', '')

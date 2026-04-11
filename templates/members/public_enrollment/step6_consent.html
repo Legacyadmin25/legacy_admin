@@ -156,6 +156,85 @@
 
     <div class="section-divider"></div>
 
+    {% if spouse_slots or child_slots %}
+    <div class="form-section">
+        <h4>Family Members</h4>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+            This selected plan allows family members. Add spouse and child details where applicable.
+        </p>
+
+        {% if spouse_slots %}
+        <div class="summary-section">
+            <h5 style="margin-bottom: 12px; color: var(--primary-color);">Spouse Details</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div>
+                    <label for="id_spouse_first_name">First Name</label>
+                    <input type="text" class="form-control" id="id_spouse_first_name" name="spouse_first_name" value="{{ spouse_first_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_spouse_last_name">Last Name</label>
+                    <input type="text" class="form-control" id="id_spouse_last_name" name="spouse_last_name" value="{{ spouse_last_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_spouse_phone_number">Contact Number</label>
+                    <input type="text" class="form-control" id="id_spouse_phone_number" name="spouse_phone_number" value="{{ spouse_phone_number|default:'' }}" placeholder="e.g. 0712345678" maxlength="20">
+                </div>
+                <div>
+                    <label for="id_spouse_gender">Gender</label>
+                    <select class="form-control" id="id_spouse_gender" name="spouse_gender">
+                        <option value="">-- Select Gender --</option>
+                        <option value="Female" {% if spouse_gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Male" {% if spouse_gender == 'Male' %}selected{% endif %}>Male</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="id_spouse_date_of_birth">Date of Birth</label>
+                    <input type="date" class="form-control" id="id_spouse_date_of_birth" name="spouse_date_of_birth" value="{{ spouse_date_of_birth|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_spouse_id_number">SA ID Number (Optional)</label>
+                    <input type="text" class="form-control" id="id_spouse_id_number" name="spouse_id_number" maxlength="13" value="{{ spouse_id_number|default:'' }}" placeholder="13 digits">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% for child in child_entries %}
+        <div class="summary-section">
+            <h5 style="margin-bottom: 12px; color: var(--primary-color);">Child {{ child.idx }}</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div>
+                    <label for="id_child_{{ child.idx }}_first_name">First Name</label>
+                    <input type="text" class="form-control" id="id_child_{{ child.idx }}_first_name" name="child_{{ child.idx }}_first_name" value="{{ child.first_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_child_{{ child.idx }}_last_name">Last Name</label>
+                    <input type="text" class="form-control" id="id_child_{{ child.idx }}_last_name" name="child_{{ child.idx }}_last_name" value="{{ child.last_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_child_{{ child.idx }}_gender">Gender</label>
+                    <select class="form-control" id="id_child_{{ child.idx }}_gender" name="child_{{ child.idx }}_gender">
+                        <option value="">-- Select Gender --</option>
+                        <option value="Female" {% if child.gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Male" {% if child.gender == 'Male' %}selected{% endif %}>Male</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="id_child_{{ child.idx }}_date_of_birth">Date of Birth</label>
+                    <input type="date" class="form-control" id="id_child_{{ child.idx }}_date_of_birth" name="child_{{ child.idx }}_date_of_birth" value="{{ child.date_of_birth|default:'' }}">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="id_child_{{ child.idx }}_id_number">SA ID Number (Optional)</label>
+                    <input type="text" class="form-control" id="id_child_{{ child.idx }}_id_number" name="child_{{ child.idx }}_id_number" maxlength="13" value="{{ child.id_number|default:'' }}" placeholder="13 digits">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="section-divider"></div>
+    {% endif %}
+
     <!-- POPIA Consent -->
     <div class="form-section">
         <h4>Consents & Agreements</h4>
