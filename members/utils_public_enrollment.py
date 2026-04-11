@@ -82,6 +82,39 @@ def convert_application_to_policy(application, reviewed_by=None):
                 policy.cover_amount = application.plan.main_cover
                 policy.premium_amount = application.plan.premium
                 policy.save()
+
+            # Create beneficiaries captured during public enrollment.
+            answer_map = {
+                a.question_key: (a.answer or '').strip()
+                for a in application.answers.all()
+            }
+
+            for idx in (1, 2):
+                first_name = answer_map.get(f'beneficiary_{idx}_first_name', '')
+                last_name = answer_map.get(f'beneficiary_{idx}_last_name', '')
+                relationship = answer_map.get(f'beneficiary_{idx}_relationship', '')
+                share_raw = answer_map.get(f'beneficiary_{idx}_share', '')
+                id_number = answer_map.get(f'beneficiary_{idx}_id_number', '')
+
+                if not first_name or not last_name or not relationship:
+                    continue
+
+                try:
+                    share = int(share_raw) if share_raw else (100 if idx == 1 else 0)
+                except ValueError:
+                    share = 100 if idx == 1 else 0
+
+                if share <= 0:
+                    continue
+
+                Beneficiary.objects.create(
+                    policy=policy,
+                    first_name=first_name,
+                    last_name=last_name,
+                    relationship_to_main_member=relationship,
+                    id_number=id_number,
+                    share=share,
+                )
             
             # Link application to policy
             application.converted_member = member

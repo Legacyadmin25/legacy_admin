@@ -112,6 +112,68 @@
 
     <div class="section-divider"></div>
 
+    <!-- Beneficiary Details -->
+    <div class="form-section">
+        <h4>Beneficiary Details</h4>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+            Add at least one beneficiary before submitting your application.
+        </p>
+
+        <div class="summary-section">
+            <h5 style="margin-bottom: 12px; color: var(--primary-color);">Primary Beneficiary (Required)</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div>
+                    <label for="id_beneficiary_1_first_name">First Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="id_beneficiary_1_first_name" name="beneficiary_1_first_name" required value="{{ beneficiary_1_first_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_beneficiary_1_last_name">Last Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="id_beneficiary_1_last_name" name="beneficiary_1_last_name" required value="{{ beneficiary_1_last_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_beneficiary_1_relationship">Relationship <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="id_beneficiary_1_relationship" name="beneficiary_1_relationship" required value="{{ beneficiary_1_relationship|default:'' }}" placeholder="e.g. Spouse, Child, Parent">
+                </div>
+                <div>
+                    <label for="id_beneficiary_1_share">Share % <span class="required">*</span></label>
+                    <input type="number" class="form-control" id="id_beneficiary_1_share" name="beneficiary_1_share" min="1" max="100" required value="{{ beneficiary_1_share|default:'100' }}">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="id_beneficiary_1_id_number">SA ID Number (Optional)</label>
+                    <input type="text" class="form-control" id="id_beneficiary_1_id_number" name="beneficiary_1_id_number" maxlength="13" value="{{ beneficiary_1_id_number|default:'' }}" placeholder="13 digits">
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-section" style="margin-top: 12px;">
+            <h5 style="margin-bottom: 12px; color: var(--primary-color);">Additional Beneficiary (Optional)</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div>
+                    <label for="id_beneficiary_2_first_name">First Name</label>
+                    <input type="text" class="form-control" id="id_beneficiary_2_first_name" name="beneficiary_2_first_name" value="{{ beneficiary_2_first_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_beneficiary_2_last_name">Last Name</label>
+                    <input type="text" class="form-control" id="id_beneficiary_2_last_name" name="beneficiary_2_last_name" value="{{ beneficiary_2_last_name|default:'' }}">
+                </div>
+                <div>
+                    <label for="id_beneficiary_2_relationship">Relationship</label>
+                    <input type="text" class="form-control" id="id_beneficiary_2_relationship" name="beneficiary_2_relationship" value="{{ beneficiary_2_relationship|default:'' }}" placeholder="e.g. Spouse, Child, Parent">
+                </div>
+                <div>
+                    <label for="id_beneficiary_2_share">Share %</label>
+                    <input type="number" class="form-control" id="id_beneficiary_2_share" name="beneficiary_2_share" min="1" max="100" value="{{ beneficiary_2_share|default:'' }}">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="id_beneficiary_2_id_number">SA ID Number (Optional)</label>
+                    <input type="text" class="form-control" id="id_beneficiary_2_id_number" name="beneficiary_2_id_number" maxlength="13" value="{{ beneficiary_2_id_number|default:'' }}" placeholder="13 digits">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+
     <!-- POPIA Consent -->
     <div class="form-section">
         <h4>Consents & Agreements</h4>
@@ -121,7 +183,7 @@
             <div class="consent-header">
                 <div class="consent-checkbox">
                     <input class="form-check-input" type="checkbox" id="id_tc_consent" 
-                        name="tc_consent" required>
+                        name="agree_to_terms" required>
                 </div>
                 <div class="consent-text">
                     <strong>Terms & Conditions</strong>
@@ -140,7 +202,7 @@
             <div class="consent-header">
                 <div class="consent-checkbox">
                     <input class="form-check-input" type="checkbox" id="id_privacy_consent" 
-                        name="privacy_consent" required>
+                        name="agree_to_privacy" required>
                 </div>
                 <div class="consent-text">
                     <strong>Privacy Policy</strong>
@@ -159,7 +221,7 @@
             <div class="consent-header">
                 <div class="consent-checkbox">
                     <input class="form-check-input" type="checkbox" id="id_popia_consent" 
-                        name="popia_consent" required>
+                        name="consent_data_processing" required>
                 </div>
                 <div class="consent-text">
                     <strong>POPIA Compliance</strong>
@@ -177,7 +239,7 @@
             <div class="consent-header">
                 <div class="consent-checkbox">
                     <input class="form-check-input" type="checkbox" id="id_marketing_consent" 
-                        name="marketing_consent">
+                        name="consent_marketing_sms">
                 </div>
                 <div class="consent-text">
                     <strong>Marketing Communications (Optional)</strong>
@@ -196,6 +258,12 @@
                 {% endfor %}
             </div>
         {% endif %}
+
+        {% for field in form %}
+            {% if field.errors %}
+                <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+            {% endif %}
+        {% endfor %}
     </div>
 
     <div class="alert alert-info">
@@ -224,6 +292,15 @@
                 if (!tcConsent.checked || !privacyConsent.checked || !popiaConsent.checked) {
                     e.preventDefault();
                     alert('Please agree to all required consents to continue.');
+                    return false;
+                }
+
+                const share1 = parseInt(document.getElementById('id_beneficiary_1_share').value || '0', 10);
+                const share2Raw = document.getElementById('id_beneficiary_2_share').value;
+                const share2 = share2Raw ? parseInt(share2Raw, 10) : 0;
+                if ((share1 + share2) > 100) {
+                    e.preventDefault();
+                    alert('Total beneficiary share cannot exceed 100%.');
                     return false;
                 }
             });

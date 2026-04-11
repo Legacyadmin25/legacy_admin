@@ -374,15 +374,77 @@ class Step6ConsentAndTermsView(FormView):
         context = super().get_context_data(**kwargs)
         context['step'] = 6
         context['total_steps'] = 6
+        beneficiary_data = self.request.session.get('enrollment_beneficiaries', {})
         context['enrollment_data'] = {
             'personal': self.request.session.get('enrollment_personal', {}),
             'address': self.request.session.get('enrollment_address', {}),
             'plan': self.request.session.get('enrollment_plan', {}),
             'answers': self.request.session.get('enrollment_answers', {}),
         }
+        context.update(beneficiary_data)
         return context
     
     def form_valid(self, form):
+        # Validate beneficiary capture before creating the application.
+        b1_first_name = (self.request.POST.get('beneficiary_1_first_name') or '').strip()
+        b1_last_name = (self.request.POST.get('beneficiary_1_last_name') or '').strip()
+        b1_relationship = (self.request.POST.get('beneficiary_1_relationship') or '').strip()
+        b1_share_raw = (self.request.POST.get('beneficiary_1_share') or '').strip()
+        b1_id_number = (self.request.POST.get('beneficiary_1_id_number') or '').strip()
+
+        b2_first_name = (self.request.POST.get('beneficiary_2_first_name') or '').strip()
+        b2_last_name = (self.request.POST.get('beneficiary_2_last_name') or '').strip()
+        b2_relationship = (self.request.POST.get('beneficiary_2_relationship') or '').strip()
+        b2_share_raw = (self.request.POST.get('beneficiary_2_share') or '').strip()
+        b2_id_number = (self.request.POST.get('beneficiary_2_id_number') or '').strip()
+
+        if not b1_first_name or not b1_last_name or not b1_relationship or not b1_share_raw:
+            form.add_error(None, 'Please complete all required primary beneficiary fields.')
+            return self.form_invalid(form)
+
+        try:
+            b1_share = int(b1_share_raw)
+        except (TypeError, ValueError):
+            form.add_error(None, 'Primary beneficiary share must be a valid number.')
+            return self.form_invalid(form)
+
+        if b1_share < 1 or b1_share > 100:
+            form.add_error(None, 'Primary beneficiary share must be between 1 and 100.')
+            return self.form_invalid(form)
+
+        b2_has_data = any([b2_first_name, b2_last_name, b2_relationship, b2_share_raw, b2_id_number])
+        b2_share = 0
+        if b2_has_data:
+            if not b2_first_name or not b2_last_name or not b2_relationship or not b2_share_raw:
+                form.add_error(None, 'If you add a second beneficiary, first name, last name, relationship, and share are required.')
+                return self.form_invalid(form)
+            try:
+                b2_share = int(b2_share_raw)
+            except (TypeError, ValueError):
+                form.add_error(None, 'Second beneficiary share must be a valid number.')
+                return self.form_invalid(form)
+            if b2_share < 1 or b2_share > 100:
+                form.add_error(None, 'Second beneficiary share must be between 1 and 100.')
+                return self.form_invalid(form)
+
+        if (b1_share + b2_share) > 100:
+            form.add_error(None, 'Total beneficiary share cannot exceed 100%.')
+            return self.form_invalid(form)
+
+        self.request.session['enrollment_beneficiaries'] = {
+            'beneficiary_1_first_name': b1_first_name,
+            'beneficiary_1_last_name': b1_last_name,
+            'beneficiary_1_relationship': b1_relationship,
+            'beneficiary_1_share': str(b1_share),
+            'beneficiary_1_id_number': b1_id_number,
+            'beneficiary_2_first_name': b2_first_name,
+            'beneficiary_2_last_name': b2_last_name,
+            'beneficiary_2_relationship': b2_relationship,
+            'beneficiary_2_share': str(b2_share) if b2_share else '',
+            'beneficiary_2_id_number': b2_id_number,
+        }
+        self.request.session.modified = True
+
         # Create PublicApplication from session data
         with transaction.atomic():
             try:
@@ -442,6 +504,32 @@ class Step6ConsentAndTermsView(FormView):
                         )
                     except EnrollmentQuestionBank.DoesNotExist:
                         pass
+
+                # Persist beneficiary details with the application for downstream conversion.
+                beneficiary_answers = [
+                    ('beneficiary_1_first_name', b1_first_name),
+                    ('beneficiary_1_last_name', b1_last_name),
+                    ('beneficiary_1_relationship', b1_relationship),
+                    ('beneficiary_1_share', str(b1_share)),
+                    ('beneficiary_1_id_number', b1_id_number),
+                ]
+                if b2_has_data:
+                    beneficiary_answers.extend([
+                        ('beneficiary_2_first_name', b2_first_name),
+                        ('beneficiary_2_last_name', b2_last_name),
+                        ('beneficiary_2_relationship', b2_relationship),
+                        ('beneficiary_2_share', str(b2_share)),
+                        ('beneficiary_2_id_number', b2_id_number),
+                    ])
+
+                for key, value in beneficiary_answers:
+                    ApplicationAnswer.objects.create(
+                        application=application,
+                        question_key=key,
+                        question_text=key.replace('_', ' ').title(),
+                        answer=value,
+                        answer_type='text',
+                    )
                 
                 # Store POPIA consents
                 consent_mappings = {
@@ -481,6 +569,22 @@ class Step6ConsentAndTermsView(FormView):
                 logger.error(f"Error creating application: {str(e)}")
                 messages.error(self.request, 'An error occurred. Please try again.')
                 return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        context.update({
+            'beneficiary_1_first_name': self.request.POST.get('beneficiary_1_first_name', ''),
+            'beneficiary_1_last_name': self.request.POST.get('beneficiary_1_last_name', ''),
+            'beneficiary_1_relationship': self.request.POST.get('beneficiary_1_relationship', ''),
+            'beneficiary_1_share': self.request.POST.get('beneficiary_1_share', '100'),
+            'beneficiary_1_id_number': self.request.POST.get('beneficiary_1_id_number', ''),
+            'beneficiary_2_first_name': self.request.POST.get('beneficiary_2_first_name', ''),
+            'beneficiary_2_last_name': self.request.POST.get('beneficiary_2_last_name', ''),
+            'beneficiary_2_relationship': self.request.POST.get('beneficiary_2_relationship', ''),
+            'beneficiary_2_share': self.request.POST.get('beneficiary_2_share', ''),
+            'beneficiary_2_id_number': self.request.POST.get('beneficiary_2_id_number', ''),
+        })
+        return self.render_to_response(context)
 
 
 class OTPVerificationView(FormView):
