@@ -1,18 +1,96 @@
 <!DOCTYPE html>
-<html>
-<head><title>Branch Onboarding Queue</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Onboardings to Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --brand-primary: #0A2540; --brand-secondary: #1E3A8A;
+      --brand-border: rgba(148,163,184,0.18); --brand-muted: #94A3B8;
+      --brand-text: #E2E8F0; --brand-title: #F8FAFC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      color: var(--brand-text);
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .page-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 24px 60px; }
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 800; color: var(--brand-title); margin: 0 0 6px; }
+    .page-header p { font-size: 0.9rem; color: var(--brand-muted); margin: 0; }
+    .table-card { background: rgba(255,255,255,0.97); border-radius: 14px;
+                  box-shadow: 0 8px 40px rgba(0,0,0,0.28); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { padding: 12px 20px; text-align: left; font-size: 0.75rem; font-weight: 700;
+         text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;
+         background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 14px 20px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+    tr:hover { background: #fafbfc; }
+    tr:last-child td { border-bottom: none; }
+    .company-name { font-weight: 700; color: #111827; }
+    .email-text { font-size: 0.82rem; color: #9ca3af; }
+    .submitted-date { font-size: 0.82rem; color: #6b7280; }
+    .status-link { display: inline-block; padding: 6px 14px; border-radius: 6px;
+                   background: #1E3A8A; color: #fff; font-size: 0.78rem; font-weight: 700;
+                   text-decoration: none; }
+    .status-link:hover { background: #1d4ed8; }
+    .empty-msg { text-align: center; padding: 36px 20px; color: #9ca3af; font-style: italic; }
+  </style>
+</head>
 <body>
-    <h1>Submitted Scheme Onboardings</h1>
-    <ul>
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h1>Scheme Onboardings to Review</h1>
+    <p>Pending submissions from schemes in your branch awaiting approval</p>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Contact</th>
+          <th>Registration / FSP</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
         {% for onboarding in onboardings %}
-            <li>
-                <a href="{% url 'scheme_onboarding:branch_detail' pk=onboarding.pk %}">
-                    {{ onboarding.submitted_by }}
-                </a>
-            </li>
+        <tr>
+          <td>
+            <div class="company-name">{{ onboarding.company_name|default:'(Unnamed)' }}</div>
+            <div style="font-size:0.8rem; color:#9ca3af; margin-top:3px;">{{ onboarding.branch.name }}</div>
+          </td>
+          <td>
+            <div style="font-size:0.88rem;">{{ onboarding.email|default:'—' }}</div>
+            <div class="email-text">{{ onboarding.phone|default:'—' }}</div>
+          </td>
+          <td>
+            <div style="font-size:0.82rem;">{{ onboarding.registration_no|default:'—' }}</div>
+            <div class="email-text">FSP: {{ onboarding.fsp_number|default:'—' }}</div>
+          </td>
+          <td>
+            <div class="submitted-date">{{ onboarding.submitted_at|date:'d M Y' }}</div>
+            <div style="font-size:0.78rem; color:#9ca3af; margin-top:2px;">{{ onboarding.submitted_at|time:'H:i' }}</div>
+          </td>
+          <td style="text-align:right;">
+            <a href="{% url 'scheme_onboarding:branch_detail' pk=onboarding.pk %}"
+               class="status-link">Review</a>
+          </td>
+        </tr>
         {% empty %}
-            <li>No submitted onboardings.</li>
+        <tr><td colspan="5" class="empty-msg">No pending onboardings. All submissions have been reviewed.</td></tr>
         {% endfor %}
-    </ul>
+      </tbody>
+    </table>
+  </div>
+
+</div>
 </body>
 </html>

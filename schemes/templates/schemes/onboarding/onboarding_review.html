@@ -1,23 +1,116 @@
 <!DOCTYPE html>
-<html>
-<head><title>Onboarding Review</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Your Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --brand-primary: #0A2540; --brand-secondary: #1E3A8A;
+      --brand-border: rgba(148,163,184,0.18); --brand-title: #F8FAFC;
+      --panel-surface: rgba(255,255,255,0.97);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      color: #E2E8F0;
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .wizard-wrap { max-width: 700px; margin: 0 auto; padding: 40px 24px 60px; }
+    .back-link { color: #93c5fd; font-size: 0.85rem; text-decoration: none; display: inline-block;
+                 margin-bottom: 24px; }
+    .back-link:hover { color: #bfdbfe; }
+    .card { background: var(--panel-surface); border-radius: 16px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.32); overflow: hidden; margin-bottom: 20px; }
+    .card-header { background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+                   padding: 16px 24px; border-bottom: 1px solid var(--brand-border); }
+    .card-header h2 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--brand-title); }
+    .card-body { padding: 24px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0;
+                  border-bottom: 1px solid #f3f4f6; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+                    letter-spacing: 0.06em; color: #9ca3af; }
+    .detail-value { font-size: 0.92rem; font-weight: 600; color: #111827; text-align: right; }
+    .actions { display: flex; gap: 12px; margin-top: 32px; }
+    .btn { padding: 12px 32px; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+           cursor: pointer; border: none; font-family: inherit; }
+    .btn-primary { background: #166534; color: #fff; }
+    .btn-primary:hover { background: #15803d; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .confirm-msg { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+                   border-radius: 10px; padding: 14px 18px; color: #047857; font-size: 0.85rem;
+                   margin-bottom: 20px; }
+  </style>
+</head>
 <body>
-    <h1>Review and Submit</h1>
-    <h2>Company</h2>
-    <p>Name: {{ onboarding.company_name }}</p>
-    <p>Registration: {{ onboarding.registration_no }}</p>
-    <p>FSP: {{ onboarding.fsp_number }}</p>
-    <p>Email: {{ onboarding.email }}</p>
-    <p>Phone: {{ onboarding.phone }}</p>
+<div class="wizard-wrap">
+  <a href="{% url 'scheme_onboarding:step2' token=onboarding.onboarding_token %}" class="back-link">&larr; Back</a>
 
-    <h2>Banking</h2>
-    <p>Account: {{ onboarding.bank_account_no }}</p>
-    <p>Debit order no: {{ onboarding.debit_order_no }}</p>
-    <p>Account type: {{ onboarding.account_type }}</p>
+  <div class="confirm-msg">
+    &#10003; Please review all information below. Once submitted, your branch owner will review and approve your onboarding.
+  </div>
 
-    <form method="post" action="{% url 'scheme_onboarding:submit' token=onboarding.onboarding_token %}">
+  <!-- Company Details Review -->
+  <div class="card">
+    <div class="card-header"><h2>Company Details</h2></div>
+    <div class="card-body">
+      <div class="detail-row">
+        <div class="detail-label">Company Name</div>
+        <div class="detail-value">{{ onboarding.company_name }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Registration No</div>
+        <div class="detail-value">{{ onboarding.registration_no }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">FSP Number</div>
+        <div class="detail-value">{{ onboarding.fsp_number }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Email</div>
+        <div class="detail-value">{{ onboarding.email }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Phone</div>
+        <div class="detail-value">{{ onboarding.phone }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banking Details Review -->
+  <div class="card">
+    <div class="card-header"><h2>Banking Details</h2></div>
+    <div class="card-body">
+      <div class="detail-row">
+        <div class="detail-label">Account Number</div>
+        <div class="detail-value">{{ onboarding.bank_account_no }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Debit Order No</div>
+        <div class="detail-value">{{ onboarding.debit_order_no }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Account Type</div>
+        <div class="detail-value">{{ onboarding.account_type }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="card">
+    <div class="card-body">
+      <form method="post" action="{% url 'scheme_onboarding:submit' token=onboarding.onboarding_token %}">
         {% csrf_token %}
-        <button type="submit">Submit for review</button>
-    </form>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">&#10003; Submit for Approval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 </body>
 </html>
