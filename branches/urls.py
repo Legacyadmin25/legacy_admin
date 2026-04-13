@@ -16,6 +16,13 @@ urlpatterns = [
     # Branch Details (Display specific branch information)
     path('<int:branch_id>/', views.branch_detail, name='branch_detail'),
 
+    # Scheme self-onboarding links (feature-flagged in view)
+    path(
+        '<int:branch_id>/scheme-onboarding-links/create/',
+        views.branch_create_scheme_onboarding_link,
+        name='create_scheme_onboarding_link',
+    ),
+
     # Branch Deletion (Delete a branch after confirmation)
     path('<int:branch_id>/delete/', views.branch_delete, name='branch_delete'),
 ]

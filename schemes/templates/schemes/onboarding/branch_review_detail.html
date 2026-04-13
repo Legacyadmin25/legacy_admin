@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>Branch Review</title></head>
+<body>
+    <h1>Branch Review: {{ onboarding.company_name|default:'Unnamed Scheme' }}</h1>
+    <p>Status: {{ onboarding.get_status_display }}</p>
+    <p>Branch: {{ onboarding.branch.name }}</p>
+    <p>Email: {{ onboarding.email }}</p>
+    <p>Phone: {{ onboarding.phone }}</p>
+    <p>Registration: {{ onboarding.registration_no }}</p>
+    <p>FSP: {{ onboarding.fsp_number }}</p>
+
+    <form method="post" action="{% url 'scheme_onboarding:branch_approve' pk=onboarding.pk %}">
+        {% csrf_token %}
+        <button type="submit">Approve</button>
+    </form>
+
+    <h2>Reopen for corrections</h2>
+    <form method="post" action="{% url 'scheme_onboarding:branch_reopen' pk=onboarding.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reopen">
+        <p>
+            <label for="id_notes">Correction notes</label>
+            <textarea id="id_notes" name="notes" rows="3" required></textarea>
+        </p>
+        <button type="submit">Reopen</button>
+    </form>
+</body>
+</html>

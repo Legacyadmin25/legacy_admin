@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Onboarding Review</title></head>
+<body>
+    <h1>Review and Submit</h1>
+    <h2>Company</h2>
+    <p>Name: {{ onboarding.company_name }}</p>
+    <p>Registration: {{ onboarding.registration_no }}</p>
+    <p>FSP: {{ onboarding.fsp_number }}</p>
+    <p>Email: {{ onboarding.email }}</p>
+    <p>Phone: {{ onboarding.phone }}</p>
+
+    <h2>Banking</h2>
+    <p>Account: {{ onboarding.bank_account_no }}</p>
+    <p>Debit order no: {{ onboarding.debit_order_no }}</p>
+    <p>Account type: {{ onboarding.account_type }}</p>
+
+    <form method="post" action="{% url 'scheme_onboarding:submit' token=onboarding.onboarding_token %}">
+        {% csrf_token %}
+        <button type="submit">Submit for review</button>
+    </form>
+</body>
+</html>

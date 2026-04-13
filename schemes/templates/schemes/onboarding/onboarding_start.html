@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Scheme Onboarding</title></head>
+<body>
+    <h1>Scheme Self-Onboarding</h1>
+    {% if locked %}
+        <p>This onboarding link has already been submitted and is now under review.</p>
+        <p>Status: {{ onboarding.get_status_display }}</p>
+        {% if onboarding.reopened_notes %}
+            <p><strong>Correction notes:</strong> {{ onboarding.reopened_notes }}</p>
+        {% endif %}
+    {% else %}
+        <p>Branch: {{ onboarding.branch.name }}</p>
+        <p>Complete your onboarding details to submit for branch approval.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Start onboarding</button>
+        </form>
+    {% endif %}
+</body>
+</html>

@@ -50,6 +50,11 @@ urlpatterns = [
     path('reports/', include(('reports.urls', 'reports'), namespace='reports')),
 ]
 
+if settings.FEATURE_FLAGS.get('SCHEME_SELF_ONBOARDING', False):
+    urlpatterns += [
+        path('scheme-onboarding/', include(('schemes.onboarding.urls', 'scheme_onboarding'), namespace='scheme_onboarding')),
+    ]
+
 # Serve uploaded media files. Shared hosting does not provide a separate media
 # alias, so Django needs to expose MEDIA_URL in production as well.
 urlpatterns += [

@@ -1,11 +1,20 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 from .forms import BranchForm
 from .models import Branch
 from schemes.models import Scheme
 from config.permissions import can_view_branch, get_user_accessible_branches, user_has_role
+
+
+def _scheme_self_onboarding_enabled():
+    return settings.FEATURE_FLAGS.get('SCHEME_SELF_ONBOARDING', False)
 
 
 @login_required
@@ -105,8 +114,55 @@ def branch_detail(request, branch_id):
     # Check if user can access this specific branch
     if not can_view_branch(request.user, branch):
         raise PermissionDenied("You do not have permission to view this branch.")
-    
-    return render(request, 'branches/branch_detail.html', {'branch': branch})
+
+    context = {'branch': branch, 'scheme_self_onboarding_enabled': _scheme_self_onboarding_enabled()}
+
+    if context['scheme_self_onboarding_enabled']:
+        from schemes.onboarding.models import BranchSchemeOnboarding
+
+        context['onboarding_links'] = BranchSchemeOnboarding.objects.filter(branch=branch).order_by('-created_at')[:10]
+
+    return render(request, 'branches/branch_detail.html', context)
+
+
+@login_required
+def branch_create_scheme_onboarding_link(request, branch_id):
+    if request.method != 'POST':
+        raise PermissionDenied('Invalid request method.')
+
+    if not _scheme_self_onboarding_enabled():
+        raise PermissionDenied('Scheme self-onboarding is currently disabled.')
+
+    branch = get_object_or_404(Branch, id=branch_id)
+
+    if not (request.user.is_superuser or user_has_role(request.user, 'Branch Owner', 'Administrator')):
+        raise PermissionDenied('You do not have permission to create onboarding links.')
+
+    if not can_view_branch(request.user, branch):
+        raise PermissionDenied('You do not have permission to manage this branch.')
+
+    from schemes.onboarding.models import BranchSchemeOnboarding
+
+    try:
+        expires_days = int(request.POST.get('expires_days', '7'))
+    except ValueError:
+        expires_days = 7
+
+    expires_days = max(1, min(expires_days, 90))
+    expires_at = timezone.now() + timedelta(days=expires_days)
+    onboarding = BranchSchemeOnboarding.create_with_token(branch=branch, expires_at=expires_at)
+
+    site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+    if site_url:
+        onboarding_url = f"{site_url}/scheme-onboarding/start/{onboarding.onboarding_token}/"
+    else:
+        onboarding_url = request.build_absolute_uri(
+            f"/scheme-onboarding/start/{onboarding.onboarding_token}/"
+        )
+
+    request.session['latest_scheme_onboarding_link'] = onboarding_url
+    messages.success(request, f'Scheme onboarding link created. Expires in {expires_days} day(s).')
+    return redirect('branches:branch_detail', branch_id=branch.id)
 
 
 @login_required

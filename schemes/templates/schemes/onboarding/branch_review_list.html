@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Branch Onboarding Queue</title></head>
+<body>
+    <h1>Submitted Scheme Onboardings</h1>
+    <ul>
+        {% for onboarding in onboardings %}
+            <li>
+                <a href="{% url 'scheme_onboarding:branch_detail' pk=onboarding.pk %}">
+                    {{ onboarding.submitted_by }}
+                </a>
+            </li>
+        {% empty %}
+            <li>No submitted onboardings.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -67,6 +67,8 @@ class Scheme(models.Model):
 
 class Plan(models.Model):
     name = models.CharField(max_length=100)
+    is_wholesale = models.BooleanField(default=False)
+    template_code = models.CharField(max_length=50, blank=True)
     description = models.TextField(blank=True)
     POLICY_TYPE_CHOICES = [
         ('service', 'Service Based'),
@@ -144,3 +146,7 @@ class PlanTier(models.Model):
     
     def __str__(self):
         return f"{self.plan.name} - {self.get_user_type_display()} ({self.age_from}-{self.age_to})"
+
+
+# Register onboarding model under the schemes app without changing live routes.
+from schemes.onboarding.models import BranchSchemeOnboarding  # noqa: E402,F401

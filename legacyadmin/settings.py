@@ -29,6 +29,12 @@ def env_csv(name, default=''):
         return []
     return [item.strip() for item in value.split(',') if item.strip()]
 
+
+# Feature flags for isolated module rollout.
+FEATURE_FLAGS = {
+    'SCHEME_SELF_ONBOARDING': env_bool('ENABLE_SCHEME_SELF_ONBOARDING', False),
+}
+
 # ─── Base directory ───────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEV_FIELD_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='

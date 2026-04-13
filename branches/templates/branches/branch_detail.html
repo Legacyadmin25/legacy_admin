@@ -27,5 +27,41 @@
         <li>No schemes available for this branch.</li>
         {% endfor %}
     </ul>
+
+    {% if scheme_self_onboarding_enabled %}
+    <div class="mt-8 rounded border p-4 bg-white">
+        <h2 class="text-xl font-semibold">Scheme Self-Onboarding Links</h2>
+        <p class="mt-1 text-sm text-gray-600">
+            Generate a secure referral link for a scheme owner to onboard under this branch.
+        </p>
+
+        <form method="post" action="{% url 'branches:create_scheme_onboarding_link' branch.id %}" class="mt-4 flex items-center gap-3">
+            {% csrf_token %}
+            <label for="id_expires_days" class="text-sm">Expires in (days)</label>
+            <input id="id_expires_days" name="expires_days" type="number" min="1" max="90" value="7" class="w-24 border rounded px-2 py-1">
+            <button type="submit" class="px-3 py-2 rounded bg-blue-600 text-white">Generate Link</button>
+        </form>
+
+        {% if request.session.latest_scheme_onboarding_link %}
+        <div class="mt-4 p-3 rounded bg-blue-50 border border-blue-200">
+            <p class="text-sm font-semibold">Latest link</p>
+            <p class="text-sm break-all">{{ request.session.latest_scheme_onboarding_link }}</p>
+        </div>
+        {% endif %}
+
+        <div class="mt-4">
+            <h3 class="font-semibold">Recent links</h3>
+            <ul class="list-disc pl-6 mt-2 text-sm">
+                {% for item in onboarding_links %}
+                <li>
+                    Token: {{ item.onboarding_token }} | Status: {{ item.get_status_display }} | Expires: {{ item.expires_at }}
+                </li>
+                {% empty %}
+                <li>No links created yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

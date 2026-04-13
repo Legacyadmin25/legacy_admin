@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Onboarding Step 2</title></head>
+<body>
+    <h1>Step 2: Banking Details</h1>
+    <p>Branch: {{ onboarding.branch.name }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Continue</button>
+    </form>
+</body>
+</html>
