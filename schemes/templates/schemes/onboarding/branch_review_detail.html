@@ -1,29 +1,194 @@
 <!DOCTYPE html>
-<html>
-<head><title>Branch Review</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review: {{ onboarding.company_name|default:'Unnamed Scheme' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root { --brand-primary: #0A2540; --panel-surface: rgba(255,255,255,0.97); }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+      color: #374151;
+    }
+    .page-wrap { max-width: 920px; margin: 0 auto; padding: 36px 20px 60px; }
+    .back { color: #93c5fd; font-size: 0.85rem; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .back:hover { color: #bfdbfe; }
+    h1 { font-size: 1.5rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px; }
+    .sub { font-size: 0.88rem; color: #94a3b8; margin-bottom: 28px; }
+    .card { background: var(--panel-surface); border-radius: 14px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.22); margin-bottom: 24px; overflow: hidden; }
+    .card-header { background: var(--brand-primary); padding: 14px 24px;
+                   font-size: 0.9rem; font-weight: 700; color: #f8fafc; }
+    .card-body { padding: 22px 24px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
+    .dl .dt { font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+              letter-spacing: 0.06em; color: #9ca3af; margin-bottom: 2px; }
+    .dl .dd { font-size: 0.92rem; font-weight: 600; color: #111827; }
+    /* Products table */
+    .warn-banner {
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.5);
+      border-radius: 8px; padding: 10px 16px; font-size: 0.85rem; font-weight: 700;
+      color: #92400e; margin-bottom: 16px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th { padding: 9px 14px; text-align: left; font-size: 0.72rem; font-weight: 700;
+         text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;
+         background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    .flag-below { color: #b45309; font-weight: 700; }
+    .flag-ok    { color: #059669; font-weight: 700; }
+    .empty-note { text-align: center; color: #9ca3af; padding: 22px; font-style: italic; font-size: 0.85rem; }
+    /* Action forms */
+    .actions-bar { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+    .btn { padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 0.88rem;
+           cursor: pointer; border: none; font-family: inherit; }
+    .btn-approve { background: #166534; color: #fff; }
+    .btn-approve:hover { background: #15803d; }
+    .btn-reopen  { background: #991b1b; color: #fff; }
+    .btn-reopen:hover  { background: #b91c1c; }
+    .reopen-form { flex: 1; min-width: 260px; }
+    .reopen-form textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-family: inherit; font-size: 0.85rem; resize: vertical; margin-bottom: 8px;
+    }
+    .status-badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 3px 10px; border-radius: 100px;
+    }
+    .badge-submitted { background:#fef9c3; color:#854d0e; }
+    .badge-approved  { background:#dcfce7; color:#166534; }
+    .badge-reopened  { background:#fee2e2; color:#991b1b; }
+  </style>
+</head>
 <body>
-    <h1>Branch Review: {{ onboarding.company_name|default:'Unnamed Scheme' }}</h1>
-    <p>Status: {{ onboarding.get_status_display }}</p>
-    <p>Branch: {{ onboarding.branch.name }}</p>
-    <p>Email: {{ onboarding.email }}</p>
-    <p>Phone: {{ onboarding.phone }}</p>
-    <p>Registration: {{ onboarding.registration_no }}</p>
-    <p>FSP: {{ onboarding.fsp_number }}</p>
+<div class="page-wrap">
 
-    <form method="post" action="{% url 'scheme_onboarding:branch_approve' pk=onboarding.pk %}">
-        {% csrf_token %}
-        <button type="submit">Approve</button>
-    </form>
+  <a href="{% url 'scheme_onboarding:branch_list' %}" class="back">&larr; Back to list</a>
 
-    <h2>Reopen for corrections</h2>
-    <form method="post" action="{% url 'scheme_onboarding:branch_reopen' pk=onboarding.pk %}">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="reopen">
-        <p>
-            <label for="id_notes">Correction notes</label>
-            <textarea id="id_notes" name="notes" rows="3" required></textarea>
-        </p>
-        <button type="submit">Reopen</button>
-    </form>
+  <h1>{{ onboarding.company_name|default:'Unnamed Scheme' }}</h1>
+  <div class="sub">
+    {{ onboarding.branch.name }} &mdash;
+    <span class="status-badge
+      {% if onboarding.status == 'submitted' %}badge-submitted
+      {% elif onboarding.status == 'approved' %}badge-approved
+      {% elif onboarding.status == 'reopened_for_corrections' %}badge-reopened
+      {% endif %}">{{ onboarding.get_status_display }}</span>
+  </div>
+
+  <!-- ── Company details ── -->
+  <div class="card">
+    <div class="card-header">Company Details</div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="dl"><div class="dt">Company</div><div class="dd">{{ onboarding.company_name|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Registration No</div><div class="dd">{{ onboarding.registration_no|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">FSP Number</div><div class="dd">{{ onboarding.fsp_number|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Email</div><div class="dd">{{ onboarding.email|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Phone</div><div class="dd">{{ onboarding.phone|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Submitted</div><div class="dd">{{ onboarding.submitted_at|date:'d M Y H:i'|default:'—' }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Banking ── -->
+  <div class="card">
+    <div class="card-header">Banking Details</div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="dl"><div class="dt">Account No</div><div class="dd">{{ onboarding.bank_account_no|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Debit Order No</div><div class="dd">{{ onboarding.debit_order_no|default:'—' }}</div></div>
+        <div class="dl"><div class="dt">Account Type</div><div class="dd">{{ onboarding.account_type }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Products ── -->
+  <div class="card">
+    <div class="card-header">Products Submitted ({{ products|length }})</div>
+    <div class="card-body">
+      {% if underpriced_count %}
+        <div class="warn-banner">
+          ⚠ {{ underpriced_count }} product{{ underpriced_count|pluralize }} 
+          {{ underpriced_count|pluralize:'is,are' }} priced below the wholesale rate.
+          Review carefully before approving.
+        </div>
+      {% endif %}
+      {% if products %}
+        <table>
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Based On (Wholesale Plan)</th>
+              <th>Wholesale Rate</th>
+              <th>Their Retail Premium</th>
+              <th>Client Cover</th>
+              <th>Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in products %}
+            <tr>
+              <td><strong>{{ product.product_name }}</strong></td>
+              <td>{{ product.wholesale_plan.name }}</td>
+              <td>R {{ product.wholesale_plan.premium }}</td>
+              <td>
+                {% if product.retail_below_wholesale %}
+                  <span class="flag-below">R {{ product.retail_premium }} ⚠ BELOW</span>
+                {% else %}
+                  <span class="flag-ok">R {{ product.retail_premium }}</span>
+                {% endif %}
+              </td>
+              <td>R {{ product.client_cover_amount }}</td>
+              <td>{{ product.get_policy_type_display }}</td>
+              <td>
+                {% if product.retail_below_wholesale %}
+                  <span class="flag-below">Below wholesale</span>
+                {% else %}
+                  <span class="flag-ok">&#10003; OK</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-note">No products submitted yet. The scheme can configure products once approved.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Actions ── -->
+  {% if onboarding.status == 'submitted' or onboarding.status == 'reopened_for_corrections' %}
+  <div class="card">
+    <div class="card-header">Review Actions</div>
+    <div class="card-body">
+      <div class="actions-bar">
+        <form method="post" action="{% url 'scheme_onboarding:branch_approve' pk=onboarding.pk %}"
+              onsubmit="return confirm('Approve this onboarding?')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-approve">&#10003; Approve Onboarding</button>
+        </form>
+
+        <div class="reopen-form">
+          <form method="post" action="{% url 'scheme_onboarding:branch_reopen' pk=onboarding.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reopen">
+            <textarea name="notes" rows="3" placeholder="Correction notes (required to reopen)"></textarea>
+            <button type="submit" class="btn btn-reopen">&#8635; Reopen for Corrections</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
 </body>
 </html>

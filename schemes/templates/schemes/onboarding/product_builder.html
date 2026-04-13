@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Builder — {{ onboarding.company_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --brand-primary: #0A2540;
+      --brand-secondary: #1E3A8A;
+      --brand-border: rgba(148,163,184,0.18);
+      --brand-muted: #94A3B8;
+      --brand-text: #E2E8F0;
+      --brand-title: #F8FAFC;
+      --panel-surface: rgba(255,255,255,0.97);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: 'Manrope', system-ui, sans-serif;
+      color: var(--brand-text);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 32%),
+        radial-gradient(circle at top right, rgba(14,165,233,0.14), transparent 24%),
+        linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 800; color: var(--brand-title); margin: 0 0 6px; }
+    .page-header p { font-size: 0.9rem; color: var(--brand-muted); margin: 0; }
+
+    /* Flash messages */
+    .msg { padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 0.88rem; font-weight: 600; }
+    .msg-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #6ee7b7; }
+    .msg-warning { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: #fcd34d; }
+    .msg-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.4);  color: #fca5a5; }
+
+    /* Two-column form card */
+    .builder-card {
+      background: var(--panel-surface); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+      margin-bottom: 36px;
+    }
+    .builder-card-header {
+      background: var(--brand-primary); padding: 18px 28px;
+      border-bottom: 1px solid var(--brand-border);
+    }
+    .builder-card-header h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--brand-title); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-left  { padding: 28px; border-right: 1px solid #e5e7eb; }
+    .col-right { padding: 28px; background: #f8fafc; }
+    .col-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: 0.08em; color: #6b7280; margin-bottom: 18px; }
+
+    /* Form elements (left column lives on white panel-surface) */
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-family: inherit; font-size: 0.88rem; color: #111827;
+      background: #ffffff; outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: #3b82f6; }
+    .field textarea { resize: vertical; }
+    .field .help { font-size: 0.76rem; color: #9ca3af; margin-top: 4px; }
+
+    /* Wholesale info panel (right column) */
+    .wholesale-row { margin-bottom: 14px; }
+    .wholesale-row .label { font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-bottom: 2px; }
+    .wholesale-row .value { font-size: 1rem; font-weight: 700; color: #111827; }
+    .wholesale-row .locked-tag {
+      display: inline-block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #ffffff; background: #6b7280;
+      border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: middle;
+    }
+    .wholesale-note {
+      background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 8px; padding: 12px 14px; font-size: 0.8rem; color: #1e40af;
+      margin-bottom: 18px;
+    }
+
+    /* Underprice warning (shown by JS when retail < wholesale) */
+    #underprice-banner {
+      display: none;
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.5);
+      border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #92400e;
+      margin-bottom: 14px; font-weight: 600;
+    }
+
+    /* Submit button */
+    .btn-primary {
+      display: inline-block; padding: 10px 28px; border-radius: 8px;
+      background: #1E3A8A; color: #fff; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; border: none; font-family: inherit; margin-top: 8px;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    /* Existing products table */
+    .products-table-wrap { background: var(--panel-surface); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
+    .products-table-wrap h2 {
+      margin: 0; padding: 18px 24px;
+      background: var(--brand-primary); font-size: 1rem; font-weight: 700; color: var(--brand-title);
+      border-bottom: 1px solid var(--brand-border);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { padding: 10px 16px; text-align: left; font-size: 0.75rem; font-weight: 700;
+         text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;
+         background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .flag-below { color: #b45309; font-weight: 700; }
+    .flag-ok    { color: #059669; font-weight: 700; }
+    .btn-sm {
+      display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer; border: none; font-family: inherit;
+    }
+    .btn-edit   { background: #e0e7ff; color: #3730a3; }
+    .btn-delete { background: #fee2e2; color: #991b1b; }
+    .btn-edit:hover   { background: #c7d2fe; }
+    .btn-delete:hover { background: #fecaca; }
+    .empty-row td { text-align: center; color: #9ca3af; padding: 28px; font-style: italic; }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h1>Product Builder</h1>
+    <p>{{ onboarding.company_name }} &mdash; configure the products you will offer to your members</p>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="msg {% if msg.tags == 'warning' %}msg-warning{% elif msg.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── Add / edit new product form ─────────────────────────── -->
+  <div class="builder-card">
+    <div class="builder-card-header">
+      <h2>Add a Product</h2>
+    </div>
+    <form method="post" id="product-form">
+      {% csrf_token %}
+      <div class="two-col">
+
+        <!-- LEFT: scheme owner's editable fields -->
+        <div class="col-left">
+          <div class="col-title">Your product (what your members see)</div>
+
+          <div id="underprice-banner">
+            ⚠ Your retail premium is below the wholesale rate. Your branch owner will be
+            notified when they review your products.
+          </div>
+
+          {% for field in form %}
+            {% if field.name == 'wholesale_plan' %}
+              <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<p class="help" style="color:#ef4444">{{ field.errors|join:", " }}</p>{% endif %}
+              </div>
+            {% elif field.name in 'product_name,product_description,retail_premium,client_cover_amount,policy_type' %}
+              <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.name == 'retail_premium' %}
+                  <p class="help">Enter the total monthly premium you will charge each member.</p>
+                {% endif %}
+                {% if field.errors %}<p class="help" style="color:#ef4444">{{ field.errors|join:", " }}</p>{% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+
+          <button type="submit" class="btn-primary">Add Product</button>
+        </div>
+
+        <!-- RIGHT: read-only wholesale reference panel -->
+        <div class="col-right">
+          <div class="col-title">Wholesale reference <span class="locked-tag">locked</span></div>
+          <div class="wholesale-note">
+            These values come from your branch's wholesale plan and are locked. Your retail
+            premium must cover at least the wholesale rate to avoid a shortfall.
+          </div>
+
+          <div id="ws-none" style="color:#9ca3af;font-size:0.85rem;">
+            Select a wholesale plan on the left to see rates.
+          </div>
+          <div id="ws-details" style="display:none;">
+            <div class="wholesale-row">
+              <div class="label">Wholesale rate (minimum retail)</div>
+              <div class="value" id="ws-premium">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">UW cover amount <span class="locked-tag">locked</span></div>
+              <div class="value" id="ws-uw-cover">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">UW premium <span class="locked-tag">locked</span></div>
+              <div class="value" id="ws-uw-premium">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">Admin fee <span class="locked-tag">locked</span></div>
+              <div class="value" id="ws-admin-fee">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">Scheme fee <span class="locked-tag">locked</span></div>
+              <div class="value" id="ws-scheme-fee">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">Age range</div>
+              <div class="value" id="ws-age">—</div>
+            </div>
+            <div class="wholesale-row">
+              <div class="label">Members allowed (spouse / child / extended)</div>
+              <div class="value" id="ws-members">—</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.two-col -->
+    </form>
+  </div><!-- /.builder-card -->
+
+  <!-- ── Existing products ────────────────────────────────────── -->
+  <div class="products-table-wrap">
+    <h2>Your Products ({{ products.count }})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Based On</th>
+          <th>Wholesale Rate</th>
+          <th>Your Retail Premium</th>
+          <th>Cover Amount</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td><strong>{{ product.product_name }}</strong>
+            {% if product.product_description %}
+              <br><span style="font-size:0.78rem;color:#9ca3af;">{{ product.product_description|truncatewords:12 }}</span>
+            {% endif %}
+          </td>
+          <td>{{ product.wholesale_plan.name }}</td>
+          <td>R {{ product.wholesale_plan.premium }}</td>
+          <td>
+            {% if product.retail_below_wholesale %}
+              <span class="flag-below">R {{ product.retail_premium }} ⚠</span>
+            {% else %}
+              <span class="flag-ok">R {{ product.retail_premium }}</span>
+            {% endif %}
+          </td>
+          <td>R {{ product.client_cover_amount }}</td>
+          <td>{{ product.get_policy_type_display }}</td>
+          <td>
+            {% if product.retail_below_wholesale %}
+              <span class="flag-below">Below wholesale</span>
+            {% else %}
+              <span class="flag-ok">&#10003; OK</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'scheme_onboarding:product_edit' token=onboarding.onboarding_token product_pk=product.pk %}"
+               class="btn-sm btn-edit">Edit</a>
+            <form method="post"
+                  action="{% url 'scheme_onboarding:product_delete' token=onboarding.onboarding_token product_pk=product.pk %}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Remove {{ product.product_name }}?')">
+              {% csrf_token %}
+              <button type="submit" class="btn-sm btn-delete">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row"><td colspan="8">No products added yet. Add your first product above.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /.page-wrap -->
+
+<!-- Wholesale plan data for JS live-update panel -->
+<script>
+const PLANS = {
+  {% for plan in wholesale_plans %}
+  "{{ plan.pk }}": {
+    premium:    "{{ plan.premium }}",
+    uw_cover:   "{{ plan.main_uw_cover }}",
+    uw_premium: "{{ plan.main_uw_premium }}",
+    admin_fee:  "{{ plan.admin_fee }}",
+    scheme_fee: "{{ plan.scheme_fee }}",
+    min_age:    {{ plan.min_age }},
+    max_age:    {{ plan.max_age }},
+    spouses:    {{ plan.spouses_allowed }},
+    children:   {{ plan.children_allowed }},
+    extended:   {{ plan.extended_allowed }},
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+};
+
+const planSelect     = document.getElementById('id_wholesale_plan');
+const retailInput    = document.getElementById('id_retail_premium');
+const wsNone         = document.getElementById('ws-none');
+const wsDetails      = document.getElementById('ws-details');
+const underpriceFlag = document.getElementById('underprice-banner');
+
+function fmt(v) { return 'R ' + parseFloat(v).toFixed(2); }
+
+function updatePanel() {
+  const pid = planSelect ? planSelect.value : '';
+  if (!pid || !PLANS[pid]) {
+    wsNone.style.display = '';
+    wsDetails.style.display = 'none';
+    underpriceFlag.style.display = 'none';
+    return;
+  }
+  const p = PLANS[pid];
+  wsNone.style.display = 'none';
+  wsDetails.style.display = '';
+  document.getElementById('ws-premium').textContent    = fmt(p.premium);
+  document.getElementById('ws-uw-cover').textContent   = fmt(p.uw_cover);
+  document.getElementById('ws-uw-premium').textContent = fmt(p.uw_premium);
+  document.getElementById('ws-admin-fee').textContent  = fmt(p.admin_fee);
+  document.getElementById('ws-scheme-fee').textContent = fmt(p.scheme_fee);
+  document.getElementById('ws-age').textContent        = p.min_age + ' – ' + p.max_age + ' years';
+  document.getElementById('ws-members').textContent    =
+    p.spouses + ' / ' + p.children + ' / ' + p.extended;
+
+  checkUnderpricing(p.premium);
+}
+
+function checkUnderpricing(wholesaleRate) {
+  const retail = parseFloat(retailInput ? retailInput.value : '');
+  const ws     = parseFloat(wholesaleRate);
+  underpriceFlag.style.display = (!isNaN(retail) && !isNaN(ws) && retail < ws) ? '' : 'none';
+}
+
+if (planSelect)  planSelect.addEventListener('change', updatePanel);
+if (retailInput) retailInput.addEventListener('input', function() {
+  const pid = planSelect ? planSelect.value : '';
+  if (pid && PLANS[pid]) checkUnderpricing(PLANS[pid].premium);
+});
+
+// Run on page load (in case form re-renders with saved values)
+updatePanel();
+</script>
+</body>
+</html>

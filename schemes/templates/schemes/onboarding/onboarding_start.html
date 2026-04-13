@@ -1,21 +1,92 @@
 <!DOCTYPE html>
-<html>
-<head><title>Scheme Onboarding</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheme Onboarding — {{ onboarding.branch.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .card {
+      background: rgba(255,255,255,0.97); border-radius: 18px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.32);
+      padding: 44px 48px; max-width: 520px; width: 100%; margin: 24px;
+    }
+    .branch-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+                    letter-spacing: 0.08em; color: #6b7280; margin-bottom: 6px; }
+    h1 { font-size: 1.55rem; font-weight: 800; color: #0A2540; margin: 0 0 10px; }
+    .status-badge {
+      display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 4px 12px; border-radius: 100px; margin-bottom: 20px;
+    }
+    .badge-draft      { background:#e0f2fe; color:#0369a1; }
+    .badge-submitted  { background:#fef9c3; color:#854d0e; }
+    .badge-approved   { background:#dcfce7; color:#166534; }
+    .badge-reopened   { background:#fee2e2; color:#991b1b; }
+    .badge-rejected   { background:#f3f4f6; color:#6b7280; }
+    p { color: #4b5563; font-size: 0.9rem; line-height: 1.6; margin: 0 0 16px; }
+    .notes-box {
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 20px; font-size: 0.88rem; color: #92400e;
+    }
+    .notes-box strong { display: block; margin-bottom: 4px; }
+    .btn-primary {
+      display: block; width: 100%; padding: 13px; border-radius: 10px;
+      background: #1E3A8A; color: #fff; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; border: none; font-family: inherit; text-align: center;
+      text-decoration: none; margin-top: 6px;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-products {
+      display: block; width: 100%; padding: 13px; border-radius: 10px;
+      background: #166534; color: #fff; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; border: none; font-family: inherit; text-align: center;
+      text-decoration: none; margin-top: 12px;
+    }
+    .btn-products:hover { background: #15803d; }
+  </style>
+</head>
 <body>
-    <h1>Scheme Self-Onboarding</h1>
-    {% if locked %}
-        <p>This onboarding link has already been submitted and is now under review.</p>
-        <p>Status: {{ onboarding.get_status_display }}</p>
-        {% if onboarding.reopened_notes %}
-            <p><strong>Correction notes:</strong> {{ onboarding.reopened_notes }}</p>
-        {% endif %}
-    {% else %}
-        <p>Branch: {{ onboarding.branch.name }}</p>
-        <p>Complete your onboarding details to submit for branch approval.</p>
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit">Start onboarding</button>
-        </form>
+<div class="card">
+  <div class="branch-label">{{ onboarding.branch.name }}</div>
+  <h1>Scheme Onboarding</h1>
+
+  {% if onboarding.status == 'draft' or onboarding.status == 'reopened_for_corrections' %}
+    <span class="status-badge {% if onboarding.status == 'reopened_for_corrections' %}badge-reopened{% else %}badge-draft{% endif %}">
+      {{ onboarding.get_status_display }}
+    </span>
+    {% if onboarding.reopened_notes %}
+      <div class="notes-box">
+        <strong>Correction notes from your branch:</strong>
+        {{ onboarding.reopened_notes }}
+      </div>
     {% endif %}
+    <p>Complete your onboarding details and submit for branch approval. Your information is saved at each step.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary">Start / Continue Onboarding &rarr;</button>
+    </form>
+
+  {% elif onboarding.status == 'submitted' %}
+    <span class="status-badge badge-submitted">Submitted — Under Review</span>
+    <p>Your onboarding has been submitted and is currently under review by the branch. You will be notified if any corrections are required.</p>
+
+  {% elif onboarding.status == 'approved' %}
+    <span class="status-badge badge-approved">&#10003; Approved</span>
+    <p>Your onboarding has been approved. You can now configure the products you will offer to your members.</p>
+    <a href="{% url 'scheme_onboarding:product_builder' token=onboarding.onboarding_token %}"
+       class="btn-products">Configure Products &rarr;</a>
+
+  {% elif onboarding.status == 'rejected' %}
+    <span class="status-badge badge-rejected">Rejected</span>
+    <p>This onboarding has been rejected. Please contact your branch for further information.</p>
+  {% endif %}
+</div>
 </body>
 </html>

@@ -106,3 +106,67 @@ class BranchSchemeOnboarding(models.Model):
         self.reviewed_at = timezone.now()
         self.reopened_notes = notes
         self.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'reopened_notes', 'updated_at'])
+
+
+class SchemeProduct(models.Model):
+    POLICY_TYPE_CHOICES = [
+        ('service', 'Service Based'),
+        ('cash', 'Cash Based'),
+    ]
+
+    onboarding = models.ForeignKey(
+        BranchSchemeOnboarding,
+        on_delete=models.CASCADE,
+        related_name='products',
+    )
+    # The wholesale Plan this product is based on (is_wholesale=True)
+    wholesale_plan = models.ForeignKey(
+        'schemes.Plan',
+        on_delete=models.PROTECT,
+        related_name='scheme_products',
+    )
+
+    # Scheme owner's retail-facing version
+    product_name = models.CharField(max_length=200)
+    product_description = models.TextField(blank=True)
+    retail_premium = models.DecimalField(max_digits=10, decimal_places=2)
+    client_cover_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    policy_type = models.CharField(max_length=20, choices=POLICY_TYPE_CHOICES, default='service')
+
+    # Auto-set: True when retail_premium < wholesale_plan.premium
+    retail_below_wholesale = models.BooleanField(default=False)
+
+    # Snapshot of locked wholesale fields at creation time (audit trail)
+    wholesale_snapshot = models.JSONField(default=dict)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.product_name} (R{self.retail_premium})"
+
+    def save(self, *args, **kwargs):
+        # Auto-flag underpriced products
+        self.retail_below_wholesale = self.retail_premium < self.wholesale_plan.premium
+        # Take a snapshot of the locked wholesale fields when first created
+        if not self.pk and not self.wholesale_snapshot:
+            wp = self.wholesale_plan
+            self.wholesale_snapshot = {
+                'id': wp.pk,
+                'name': wp.name,
+                'premium': str(wp.premium),
+                'main_uw_cover': str(wp.main_uw_cover),
+                'main_uw_premium': str(wp.main_uw_premium),
+                'admin_fee': str(wp.admin_fee),
+                'scheme_fee': str(wp.scheme_fee),
+                'min_age': wp.min_age,
+                'max_age': wp.max_age,
+                'spouses_allowed': wp.spouses_allowed,
+                'children_allowed': wp.children_allowed,
+                'extended_allowed': wp.extended_allowed,
+                'policy_type': wp.policy_type,
+            }
+        super().save(*args, **kwargs)

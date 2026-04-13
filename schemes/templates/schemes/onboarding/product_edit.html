@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Product — {{ product.product_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --brand-primary: #0A2540; --brand-muted: #94A3B8;
+      --brand-title: #F8FAFC; --panel-surface: rgba(255,255,255,0.97);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .page-wrap { max-width: 780px; margin: 0 auto; padding: 40px 20px 60px; }
+    .card { background: var(--panel-surface); border-radius: 16px; overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.28); }
+    .card-header { background: var(--brand-primary); padding: 18px 28px; }
+    .card-header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--brand-title); }
+    .card-body { padding: 28px; }
+    .ws-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+              padding: 16px 20px; margin-bottom: 24px; }
+    .ws-box h3 { margin: 0 0 12px; font-size: 0.8rem; font-weight: 700;
+                 text-transform: uppercase; letter-spacing: 0.06em; color: #0369a1; }
+    .ws-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .ws-item .label { font-size: 0.72rem; color: #6b7280; font-weight: 600; }
+    .ws-item .val   { font-size: 0.95rem; font-weight: 700; color: #111827; }
+    .locked-tag { font-size: 0.62rem; background: #6b7280; color: #fff;
+                  border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-family: inherit; font-size: 0.88rem; color: #111827; outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: #3b82f6; }
+    .field .help { font-size: 0.76rem; color: #9ca3af; margin-top: 3px; }
+    #underprice-banner {
+      display: none; background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.45); border-radius: 8px;
+      padding: 10px 14px; font-size: 0.82rem; color: #92400e; font-weight: 600; margin-bottom: 16px;
+    }
+    .actions { display: flex; gap: 10px; margin-top: 6px; }
+    .btn { padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 0.88rem;
+           cursor: pointer; border: none; font-family: inherit; }
+    .btn-primary { background: #1E3A8A; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #e5e7eb; color: #374151; text-decoration: none; display: inline-flex;
+                     align-items: center; }
+    .btn-secondary:hover { background: #d1d5db; }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="card">
+    <div class="card-header">
+      <h1>Edit Product: {{ product.product_name }}</h1>
+    </div>
+    <div class="card-body">
+
+      <!-- Wholesale locked reference -->
+      <div class="ws-box">
+        <h3>Wholesale reference <span class="locked-tag">locked</span></h3>
+        <div class="ws-grid">
+          <div class="ws-item">
+            <div class="label">Wholesale rate</div>
+            <div class="val">R {{ product.wholesale_plan.premium }}</div>
+          </div>
+          <div class="ws-item">
+            <div class="label">UW cover <span class="locked-tag">locked</span></div>
+            <div class="val">R {{ product.wholesale_plan.main_uw_cover }}</div>
+          </div>
+          <div class="ws-item">
+            <div class="label">UW premium <span class="locked-tag">locked</span></div>
+            <div class="val">R {{ product.wholesale_plan.main_uw_premium }}</div>
+          </div>
+          <div class="ws-item">
+            <div class="label">Admin fee <span class="locked-tag">locked</span></div>
+            <div class="val">R {{ product.wholesale_plan.admin_fee }}</div>
+          </div>
+          <div class="ws-item">
+            <div class="label">Scheme fee <span class="locked-tag">locked</span></div>
+            <div class="val">R {{ product.wholesale_plan.scheme_fee }}</div>
+          </div>
+          <div class="ws-item">
+            <div class="label">Age range</div>
+            <div class="val">{{ product.wholesale_plan.min_age }}–{{ product.wholesale_plan.max_age }} yrs</div>
+          </div>
+        </div>
+      </div><!-- /.ws-box -->
+
+      <div id="underprice-banner">
+        ⚠ Retail premium is below the wholesale rate (R {{ product.wholesale_plan.premium }}).
+        Your branch owner will see this during review.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          {% if field.name != 'wholesale_plan' %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="help" style="color:#ef4444;">{{ field.errors|join:", " }}</p>{% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="{% url 'scheme_onboarding:product_builder' token=onboarding.onboarding_token %}"
+             class="btn btn-secondary">&#8592; Back</a>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const wholesaleRate = parseFloat("{{ product.wholesale_plan.premium }}");
+const retailInput   = document.getElementById('id_retail_premium');
+const banner        = document.getElementById('underprice-banner');
+
+function check() {
+  const val = parseFloat(retailInput ? retailInput.value : '');
+  banner.style.display = (!isNaN(val) && val < wholesaleRate) ? '' : 'none';
+}
+
+if (retailInput) {
+  retailInput.addEventListener('input', check);
+  check(); // run immediately in case form re-renders with existing value
+}
+</script>
+</body>
+</html>

@@ -10,8 +10,9 @@ from .forms import (
     BranchOnboardingReviewForm,
     SchemeOnboardingStep1Form,
     SchemeOnboardingStep2Form,
+    SchemeProductForm,
 )
-from .models import BranchSchemeOnboarding
+from .models import BranchSchemeOnboarding, SchemeProduct
 
 
 def _session_key(token: str) -> str:
@@ -172,6 +173,8 @@ class BranchOnboardingDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['review_form'] = BranchOnboardingReviewForm()
+        context['products'] = self.object.products.select_related('wholesale_plan').all()
+        context['underpriced_count'] = self.object.products.filter(retail_below_wholesale=True).count()
         return context
 
 
@@ -199,3 +202,136 @@ class BranchOnboardingReopenView(LoginRequiredMixin, View):
         onboarding.reopen(request.user, form.cleaned_data['notes'])
         messages.success(request, 'Onboarding reopened for corrections.')
         return redirect(reverse('scheme_onboarding:branch_detail', kwargs={'pk': onboarding.pk}))
+
+
+# ---------------------------------------------------------------------------
+# Product Builder (token-based, accessible after onboarding is approved)
+# ---------------------------------------------------------------------------
+
+def _wholesale_plans_for_branch(branch):
+    """Return all wholesale Plans that belong to the given branch."""
+    from schemes.models import Plan
+    return Plan.objects.filter(is_wholesale=True, scheme__branch=branch, is_active=True)
+
+
+class SchemeProductBuilderView(View):
+    """
+    GET  /scheme-onboarding/products/<token>/
+    Shows existing SchemeProducts for this onboarding + an add form.
+    Only accessible once status is 'approved'.
+    """
+    template_name = 'schemes/onboarding/product_builder.html'
+
+    def _get_approved_onboarding(self, token):
+        onboarding = get_object_or_404(BranchSchemeOnboarding, onboarding_token=token)
+        if onboarding.status != BranchSchemeOnboarding.STATUS_APPROVED:
+            return None
+        return onboarding
+
+    def get(self, request, token):
+        onboarding = self._get_approved_onboarding(token)
+        if onboarding is None:
+            return HttpResponseForbidden('Product builder is only available after your onboarding is approved.')
+
+        wholesale_qs = _wholesale_plans_for_branch(onboarding.branch)
+        form = SchemeProductForm(wholesale_qs=wholesale_qs)
+        products = onboarding.products.select_related('wholesale_plan').all()
+        return render(request, self.template_name, {
+            'onboarding': onboarding,
+            'form': form,
+            'products': products,
+            'wholesale_plans': wholesale_qs,
+        })
+
+    def post(self, request, token):
+        onboarding = self._get_approved_onboarding(token)
+        if onboarding is None:
+            return HttpResponseForbidden('Product builder is only available after your onboarding is approved.')
+
+        wholesale_qs = _wholesale_plans_for_branch(onboarding.branch)
+        form = SchemeProductForm(request.POST, wholesale_qs=wholesale_qs)
+        products = onboarding.products.select_related('wholesale_plan').all()
+
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'onboarding': onboarding,
+                'form': form,
+                'products': products,
+                'wholesale_plans': wholesale_qs,
+            })
+
+        product = form.save(commit=False)
+        product.onboarding = onboarding
+        product.save()
+
+        if product.retail_below_wholesale:
+            messages.warning(
+                request,
+                f'"{product.product_name}" has a retail premium (R{product.retail_premium}) '
+                f'below the wholesale rate (R{product.wholesale_plan.premium}). '
+                'Your branch owner will see this flag during review.'
+            )
+        else:
+            messages.success(request, f'"{product.product_name}" added successfully.')
+
+        return redirect(reverse('scheme_onboarding:product_builder', kwargs={'token': token}))
+
+
+class SchemeProductEditView(View):
+    """POST /scheme-onboarding/products/<token>/<product_pk>/edit/"""
+    template_name = 'schemes/onboarding/product_edit.html'
+
+    def _get_context(self, token, product_pk):
+        onboarding = get_object_or_404(
+            BranchSchemeOnboarding,
+            onboarding_token=token,
+            status=BranchSchemeOnboarding.STATUS_APPROVED,
+        )
+        product = get_object_or_404(SchemeProduct, pk=product_pk, onboarding=onboarding)
+        wholesale_qs = _wholesale_plans_for_branch(onboarding.branch)
+        return onboarding, product, wholesale_qs
+
+    def get(self, request, token, product_pk):
+        onboarding, product, wholesale_qs = self._get_context(token, product_pk)
+        form = SchemeProductForm(instance=product, wholesale_qs=wholesale_qs)
+        return render(request, self.template_name, {
+            'onboarding': onboarding,
+            'product': product,
+            'form': form,
+        })
+
+    def post(self, request, token, product_pk):
+        onboarding, product, wholesale_qs = self._get_context(token, product_pk)
+        form = SchemeProductForm(request.POST, instance=product, wholesale_qs=wholesale_qs)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'onboarding': onboarding,
+                'product': product,
+                'form': form,
+            })
+        product = form.save()
+        if product.retail_below_wholesale:
+            messages.warning(
+                request,
+                f'"{product.product_name}" is still priced below the wholesale rate '
+                f'(R{product.wholesale_plan.premium}). Branch owner will see this flag.'
+            )
+        else:
+            messages.success(request, f'"{product.product_name}" updated.')
+        return redirect(reverse('scheme_onboarding:product_builder', kwargs={'token': token}))
+
+
+class SchemeProductDeleteView(View):
+    """POST /scheme-onboarding/products/<token>/<product_pk>/delete/"""
+
+    def post(self, request, token, product_pk):
+        onboarding = get_object_or_404(
+            BranchSchemeOnboarding,
+            onboarding_token=token,
+            status=BranchSchemeOnboarding.STATUS_APPROVED,
+        )
+        product = get_object_or_404(SchemeProduct, pk=product_pk, onboarding=onboarding)
+        name = product.product_name
+        product.delete()
+        messages.success(request, f'"{name}" removed.')
+        return redirect(reverse('scheme_onboarding:product_builder', kwargs={'token': token}))
