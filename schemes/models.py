@@ -52,7 +52,21 @@ class Scheme(models.Model):
     country = models.CharField(max_length=100, blank=True, null=True)
     postal_code = models.CharField(max_length=20, blank=True, null=True)
     allow_auto_policy_number = models.BooleanField(default=False)
+    bypass_otp = models.BooleanField(
+        default=False,
+        help_text="If enabled, the OTP verification step is skipped for applications under this scheme."
+    )
     active = models.BooleanField(default=True)
+
+    # EasyPay integration — gated by FEATURE_FLAGS['EASYPAY_INTEGRATION']
+    # Each scheme receives a unique biller code from EasyPay.
+    # When set, easypay_reference is auto-generated on each policy in this scheme.
+    easypay_biller_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="EasyPay biller code assigned to this scheme (leave blank if not using EasyPay)",
+    )
 
     def save(self, *args, **kwargs):
         # Update branch_code when bank is set
@@ -105,6 +119,8 @@ class Plan(models.Model):
     manager_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     loyalty_programme = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     other_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    service_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    penalty_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     # Terms & Conditions
     terms_text = models.TextField(blank=True, null=True, help_text="Terms and conditions text if no PDF is available")
@@ -136,6 +152,9 @@ class PlanTier(models.Model):
     age_to = models.PositiveIntegerField(default=100)
     cover_amount = models.DecimalField(max_digits=10, decimal_places=2)
     premium_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    uw_cover = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Underwriter cover amount')
+    uw_premium = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Underwriter premium')
+    tier_admin_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Admin fee for this tier')
     description = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:

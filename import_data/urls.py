@@ -1,4 +1,4 @@
-# import_data/urls.py
+﻿# import_data/urls.py
 
 from django.urls import path
 from . import root_views
@@ -15,7 +15,8 @@ from import_data.views.agent_onboarding import (
 )
 from import_data.views.logs import ImportLogListView
 from import_data.views.errors import download_error_csv
-from import_data.views.bank_statement_import import BankStatementImportView, BankReconciliationPreviewView
+from import_data.views.bank_statement_import import BankReconciliationPreviewView
+from import_data.views.plan_import import PlanImportUploadView, PlanImportPreviewView
 
 app_name = 'import_data'
 
@@ -41,18 +42,23 @@ urlpatterns = [
     path('agents/onboard/template/download/', root_views.download_agent_onboarding_template, name='download_agent_onboarding_template'),
     path('agents/onboard/preview/', AgentOnboardingPreviewView.as_view(), name='agent_onboarding_preview'),
 
-    # Debit Orders - Redirected to unified payment import page
+    # Debit Orders
     path('payments/debit-orders/', root_views.redirect_to_unified_import, {'import_type': 'debit_orders'}, name='debit_order_file_import'),
     path('payments/debit-orders/template/download/', root_views.download_debit_order_template, name='download_debit_order_template'),
 
-    # Easypay - Redirected to unified payment import page
+    # Easypay
     path('payments/easypay/', root_views.redirect_to_unified_import, {'import_type': 'easypay'}, name='easypay_file_import'),
-    path('payments/easypay/template/download/', root_views.download_easypay_template, name='download_easypay_template'),
+    path('payments/easypay/template/download/', root_views.download_easypay_template, name='easypay_template'),
 
-    # Bank Reconciliation - Redirected to unified payment import page
+    # Bank Reconciliation
     path('payments/bank-reconciliation/', root_views.redirect_to_unified_import, {'import_type': 'bank_reconciliation'}, name='bank_statement_import'),
     path('payments/reconciliation-preview/', BankReconciliationPreviewView.as_view(), name='bank_reconciliation_preview'),
     path('payments/bank-reconciliation/template/download/', root_views.download_bank_reconciliation_template, name='download_bank_reconciliation_template'),
+
+    # Plan Import
+    path('plans/import/', PlanImportUploadView.as_view(), name='plan_import_upload'),
+    path('plans/import/preview/', PlanImportPreviewView.as_view(), name='plan_import_preview'),
+    path('plans/import/template/download/', root_views.download_plan_import_template, name='download_plan_import_template'),
 
     # Logs & Errors
     path('logs/', ImportLogListView.as_view(), name='import_logs'),

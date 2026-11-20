@@ -22,8 +22,8 @@ from members.models import Policy
 # Utility function for reading CSV files
 def read_csv(file):
     """Helper function to read CSV and decode its content"""
-    f = file.open('r', encoding='utf-8')
-    text = f.read()
+    f = file.open('rb')
+    text = f.read().decode('utf-8')
     f.close()
     return text.splitlines()
 
@@ -70,7 +70,7 @@ class LapsedPolicyReactivationUploadView(View):
 
         # Create a batch for the uploaded file
         batch = LapsedPolicyReactivationImport.objects.create(
-            file=request.FILES['file'],
+            file=form.cleaned_data['csv_file'],
             uploaded_by=request.user
         )
         return redirect(
@@ -84,7 +84,7 @@ class LapsedPolicyReactivationPreviewView(View):
     """
     Preview & apply lapsed-policy reactivation.
     """
-    template_name = 'import_data/lapsed_policy_reactivation_preview.html'
+    template_name = 'import_data/lapsed_reactivations_preview.html'
 
     def get(self, request, pk):
         batch = get_object_or_404(LapsedPolicyReactivationImport, pk=pk)
@@ -110,10 +110,8 @@ class LapsedPolicyReactivationPreviewView(View):
                 })
                 continue
 
-            # Prepare the updates
+            # Prepare the updates (reactivation = set a fresh cover_date)
             updates = {}
-            if not policy.is_active:
-                updates['is_active'] = True
 
             # Handle date reactivation
             new_start_date = row.get('new_start_date', '').strip()
@@ -169,10 +167,8 @@ class LapsedPolicyReactivationPreviewView(View):
                     )
                     continue
 
-                # Prepare the updates
+                # Prepare the updates (reactivation = set a fresh cover_date)
                 updates = {}
-                if not policy.is_active:
-                    updates['is_active'] = True
 
                 # Handle date reactivation
                 new_start_date = row.get('new_start_date', '').strip()

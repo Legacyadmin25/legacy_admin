@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Import Products</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --brand-primary: #0A2540; --brand-secondary: #1E3A8A;
+      --brand-border: rgba(148,163,184,0.18); --brand-muted: #94A3B8;
+      --brand-text: #E2E8F0; --brand-title: #F8FAFC;
+      --panel-surface: rgba(255,255,255,0.97);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: 'Manrope', system-ui, sans-serif;
+      color: var(--brand-text);
+      background: linear-gradient(160deg, #0A2540 0%, #0d1f35 60%, #0a1628 100%);
+    }
+    .page-wrap { max-width: 800px; margin: 0 auto; padding: 40px 24px 60px; }
+    .back-link { color: #93c5fd; font-size: 0.85rem; text-decoration: none;
+                 display: inline-block; margin-bottom: 24px; }
+    .card { background: var(--panel-surface); border-radius: 16px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.32); }
+    .card-header { background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);\n                   padding: 20px 28px; border-bottom: 1px solid var(--brand-border); }
+    .card-header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--brand-title); }
+    .card-body { padding: 32px; color: #111827; }
+    .card-body p { color: #6b7280; font-size: 0.9rem; line-height: 1.6; margin: 0 0 20px; }
+
+    /* Upload mode */
+    .dropzone {
+      border: 2px dashed #d1d5db; border-radius: 12px; padding: 48px 24px;
+      text-align: center; cursor: pointer; transition: all 0.2s;
+      background: #fafbfc;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--brand-secondary); background: #f0f4ff;
+    }
+    .dropzone-icon { font-size: 2rem; margin-bottom: 12px; }
+    .dropzone-text { font-size: 0.9rem; font-weight: 600; color: #374151; }
+    .dropzone-hint { font-size: 0.8rem; color: #9ca3af; margin-top: 6px; }
+    #import_file { display: none; }
+
+    /* Form errors */
+    .form-errors { background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px;
+                   padding: 12px 16px; color: #991b1b; font-size: 0.85rem; margin-bottom: 20px; }
+    .form-errors ul { margin: 0; padding-left: 20px; }
+    .form-errors li { margin: 4px 0; }
+
+    /* Report mode */
+    .report-header { margin-bottom: 28px; }
+    .report-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .summary-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;
+                   padding: 16px; text-align: center; }
+    .summary-box .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+                          letter-spacing: 0.06em; color: #6b7280; margin-bottom: 6px; }
+    .summary-box .value { font-size: 1.4rem; font-weight: 800; color: #111827; }
+    .summary-box.success .label { color: #047857; }
+    .summary-box.success .value { color: #10b981; }
+    .summary-box.error .label { color: #991b1b; }
+    .summary-box.error .value { color: #ef4444; }
+
+    /* Error table */
+    .errors-wrap { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+                   overflow: hidden; margin-bottom: 24px; }
+    .errors-wrap h3 { margin: 0; padding: 12px 16px; background: #f59e0b;
+                      color: #fff; font-size: 0.9rem; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th { padding: 8px 12px; text-align: left; font-weight: 700; color: #92400e;
+         background: #fffbeb; border-bottom: 1px solid #fde68a; }
+    td { padding: 8px 12px; border-bottom: 1px solid #fde68a; color: #92400e; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Buttons */
+    .actions { display: flex; gap: 12px; margin-top: 28px; }
+    .btn { padding: 12px 32px; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+           cursor: pointer; border: none; font-family: inherit; }
+    .btn-primary { background: var(--brand-secondary); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #e5e7eb; color: #374151; text-decoration: none; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .btn-success { background: #166534; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+  </style>
+</head>
+<body>
+<div class=\"page-wrap\">
+
+  <a href=\"{% url 'scheme_onboarding:product_builder' token=onboarding.onboarding_token %}\" class=\"back-link\">&larr; Back to products</a>
+
+  {% if mode == 'upload' %}
+  <!-- ────────────────────────────────────────────────── UPLOAD MODE ─── -->
+  <div class=\"card\">
+    <div class=\"card-header\">
+      <h1>Bulk Import Products</h1>
+    </div>
+    <div class=\"card-body\">
+      <p>Upload a CSV or Excel file to import multiple products at once. All prices are validated against wholesale rates.</p>
+
+      {% if form.non_field_errors %}
+      <div class=\"form-errors\">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form id=\"import-form\" method=\"post\" enctype=\"multipart/form-data\">
+        {% csrf_token %}
+
+        <div class=\"dropzone\" id=\"dropzone\">
+          <div class=\"dropzone-icon\">📄</div>
+          <div class=\"dropzone-text\">Click to upload or drag & drop</div>
+          <div class=\"dropzone-hint\">CSV or Excel file (max 5 MB)</div>
+        </div>
+
+        {{ form.import_file }}
+
+        {% if form.import_file.errors %}
+        <div class=\"form-errors\" style=\"margin-top:16px;\">
+          {% for error in form.import_file.errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style=\"margin-top: 24px; padding: 16px; background: #f0f9ff; border-radius: 10px; border: 1px solid #bae6fd; font-size: 0.85rem; color: #0369a1;\">
+          <strong>File format:</strong> Your spreadsheet must have these columns:<br>
+          <code style=\"display:block; margin-top:8px; padding:8px; background:#e0f2fe; border-radius:6px; overflow-x:auto;\">
+            wholesale_plan_id | product_name | retail_premium | client_cover_amount | (optional: product_description, policy_type)
+          </code>
+          <strong style=\"display:block; margin-top:8px;\">Notes:</strong>
+          <ul style=\"margin: 6px 0 0; padding-left:20px;\">
+            <li><code>wholesale_plan_id</code>: ID of the wholesale plan this product is based on (must be wholesale + active)</li>
+            <li><code>retail_premium</code>: Your retail rate (will warn if below wholesale)</li>
+            <li><code>policy_type</code>: \"service\" or \"cash\" (default: service)</li>
+          </ul>
+        </div>
+
+        <div class=\"actions\">
+          <button type=\"submit\" class=\"btn btn-primary\" id=\"submit-btn\">Upload & Validate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% elif mode == 'report' %}
+  <!-- ────────────────────────────────────────────────── REPORT MODE ─── -->
+  <div class=\"card\">
+    <div class=\"card-header\">
+      <h1>Import Report</h1>
+    </div>
+    <div class=\"card-body\">
+      {% if result.summary.error_count == 0 and result.summary.valid_rows > 0 %}
+        <h3 class=\"report-header\" style=\"color: #059669; font-size:1.05rem;\">✓ All rows are valid!</h3>
+      {% elif result.summary.error_count == 0 %}
+        <h3 class=\"report-header\" style=\"color: #991b1b; font-size:1.05rem;\">⚠ No valid rows found</h3>
+      {% else %}
+        <h3 class=\"report-header\" style=\"color: #b45309; font-size:1.05rem;\">⚠ Some rows have errors</h3>
+      {% endif %}
+
+      <div class=\"report-summary\">
+        <div class=\"summary-box\">
+          <div class=\"label\">Total rows</div>
+          <div class=\"value\">{{ result.summary.total_rows }}</div>
+        </div>
+        <div class=\"summary-box success\">
+          <div class=\"label\">Valid rows</div>
+          <div class=\"value\">{{ result.summary.valid_rows }}</div>
+        </div>
+        <div class=\"summary-box {% if result.summary.error_count > 0 %}error{% endif %}\">
+          <div class=\"label\">Errors</div>
+          <div class=\"value\">{{ result.summary.error_count }}</div>
+        </div>
+      </div>
+
+      {% if result.errors %}
+      <div class=\"errors-wrap\">
+        <h3>Errors Found</h3>
+        <table>
+          <thead>
+            <tr>\n              <th>Row</th>\n              <th>Field</th>\n              <th>Error</th>\n            </tr>\n          </thead>\n          <tbody>\n            {% for error in result.errors %}\n            <tr>\n              <td><strong>{{ error.row_num }}</strong></td>\n              <td>{{ error.field }}</td>\n              <td>{{ error.message }}</td>\n            </tr>\n            {% endfor %}\n          </tbody>\n        </table>\n      </div>\n      {% endif %}\n\n      {% if result.summary.valid_rows > 0 %}\n      <div style=\"background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 16px; margin-bottom: 24px; color: #166534; font-size: 0.85rem; font-weight: 600;\">\n        ✓ Ready to import {{ result.summary.valid_rows }} product{{ result.summary.valid_rows|pluralize }} into the database.\n      </div>\n      {% endif %}\n\n      <div class=\"actions\">\n        {% if result.summary.valid_rows > 0 %}\n        <form method=\"post\" action=\"{% url 'scheme_onboarding:bulk_import_confirm' pk=onboarding.pk %}\" style=\"display:inline;\">\n          {% csrf_token %}\n          <button type=\"submit\" class=\"btn btn-success\">✓ Confirm & Import</button>\n        </form>\n        {% endif %}\n        <form method=\"get\" style=\"display:inline;\">\n          <button type=\"submit\" class=\"btn btn-secondary\">← Upload Different File</button>\n        </form>\n      </div>\n    </div>\n  </div>\n  {% endif %}\n\n</div>\n\n<script>\nconst dropzone = document.getElementById('dropzone');\nconst fileInput = document.getElementById('id_import_file');\nconst form = document.getElementById('import-form');\n\nif (dropzone && fileInput) {\n  dropzone.addEventListener('click', () => fileInput.click());\n  dropzone.addEventListener('dragover', (e) => {\n    e.preventDefault();\n    dropzone.classList.add('dragover');\n  });\n  dropzone.addEventListener('dragleave', () => {\n    dropzone.classList.remove('dragover');\n  });\n  dropzone.addEventListener('drop', (e) => {\n    e.preventDefault();\n    dropzone.classList.remove('dragover');\n    if (e.dataTransfer.files.length > 0) {\n      fileInput.files = e.dataTransfer.files;\n      form.submit();\n    }\n  });\n  fileInput.addEventListener('change', () => {\n    if (fileInput.files.length > 0) {\n      form.submit();\n    }\n  });\n}\n</script>\n</body>\n</html>

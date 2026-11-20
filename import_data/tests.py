@@ -1,114 +1,135 @@
-### import_data/tests.py
+# import_data/tests.py
+"""Tests for the Policy Amendment import pipeline."""
+from datetime import date
 from io import StringIO
 import csv
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from members.models import Policy, Member
+
+from branches.models import Bank, Branch
+from members.models import Member, Policy
+from schemes.models import Scheme
 from .models import PolicyAmendmentImport, PolicyAmendmentRowLog
 
 User = get_user_model()
 
-class PolicyAmendmentImportTests(TestCase):
-    def setUp(self):
-        # create test user and policy
-        self.user = User.objects.create_user(username='tester', password='pass')
-        self.policy = Policy.objects.create(
-            membership_number='M123',
-            # add required policy fields here:
-        )
-        self.client = Client()
-        self.client.login(username='tester', password='pass')
+UPLOAD_URL = 'import_data:policy_amendments_import'
+PREVIEW_URL = 'import_data:policy_amendments_preview'
 
-    def create_csv(self, rows):
-        buffer = StringIO()
-        writer = csv.DictWriter(buffer, fieldnames=['membership_number', 'contact_number', 'address'])
+
+def _make_member():
+    return Member.objects.create(
+        first_name='Test', last_name='User',
+        gender='Male', date_of_birth=date(1985, 1, 1),
+        phone_number='0710001111',
+    )
+
+
+def _make_scheme():
+    bank = Bank.objects.create(name='FNB', branch_code='250655')
+    branch = Branch.objects.create(bank=bank, name='HQ', location='JHB')
+    return Scheme.objects.create(
+        branch=branch, name='Test Scheme', registration_no='REG1',
+        fsp_number='FSP1', email='s@s.com', phone='0710000000', account_no='0001',
+    )
+
+
+def _make_policy(member=None, scheme=None, membership_number='M123'):
+    if member is None:
+        member = _make_member()
+    if scheme is None:
+        scheme = _make_scheme()
+    return Policy.objects.create(
+        member=member, scheme=scheme,
+        membership_number=membership_number,
+        payment_method='DEBIT_ORDER',
+        start_date=date.today(),
+    )
+
+
+class PolicyAmendmentImportTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_superuser(
+            username='amendadmin', password='pass', email='a@a.com'
+        )
+        cls.policy = _make_policy(membership_number='M123')
+
+    def setUp(self):
+        self.client = Client()
+        self.client.login(username='amendadmin', password='pass')
+
+    def _csv(self, rows, fields=None):
+        fields = fields or ['membership_number', 'lapse_warning']
+        buf = StringIO()
+        writer = csv.DictWriter(buf, fieldnames=fields)
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
-        buffer.seek(0)
-        return buffer
+        return SimpleUploadedFile(
+            'amendments.csv',
+            buf.getvalue().encode('utf-8'),
+            content_type='text/csv',
+        )
 
-    def test_upload_and_preview(self):
-        url = reverse('import_data:policy_amendments')
-        csv_file = self.create_csv([
-            {'membership_number': 'M123', 'contact_number': '0812345678', 'address': 'New Address'},
-            {'membership_number': 'XX', 'contact_number': '000', 'address': 'No Policy'}
+    def test_upload_get(self):
+        response = self.client.get(reverse(UPLOAD_URL))
+        self.assertEqual(response.status_code, 200)
+
+    def test_upload_post_redirects_to_preview(self):
+        csv_file = self._csv([
+            {'membership_number': 'M123', 'lapse_warning': 'note1'},
+            {'membership_number': 'XX',   'lapse_warning': 'note2'},
         ])
-        response = self.client.post(url, {'file': csv_file}, format='multipart')
+        response = self.client.post(
+            reverse(UPLOAD_URL), {'csv_file': csv_file}
+        )
         batch = PolicyAmendmentImport.objects.first()
-        self.assertRedirects(response, reverse('import_data:policy_amendments_preview', args=[batch.pk]))
+        self.assertIsNotNone(batch)
+        self.assertRedirects(
+            response, reverse(PREVIEW_URL, args=[batch.pk])
+        )
 
-        preview_url = reverse('import_data:policy_amendments_preview', args=[batch.pk])
-        response = self.client.get(preview_url)
+    def test_preview_shows_found_and_not_found(self):
+        csv_file = self._csv([
+            {'membership_number': 'M123', 'lapse_warning': 'note'},
+            {'membership_number': 'XX',   'lapse_warning': 'note'},
+        ])
+        self.client.post(reverse(UPLOAD_URL), {'csv_file': csv_file})
+        batch = PolicyAmendmentImport.objects.first()
+        response = self.client.get(reverse(PREVIEW_URL, args=[batch.pk]))
+        self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'M123')
         self.assertContains(response, 'Not Found')
 
-    def test_apply_amendments(self):
-        # upload
-        url = reverse('import_data:policy_amendments')
-        csv_file = self.create_csv([
-            {'membership_number': 'M123', 'contact_number': '0812345678', 'address': 'New Address'}
+    def test_apply_updates_policy_field(self):
+        """Applying amendments with a valid Policy field should update it."""
+        csv_file = self._csv([
+            {'membership_number': 'M123', 'lapse_warning': 'amended'}
         ])
-        resp = self.client.post(url, {'file': csv_file}, format='multipart')
+        self.client.post(reverse(UPLOAD_URL), {'csv_file': csv_file})
         batch = PolicyAmendmentImport.objects.first()
-        # apply
-        preview_url = reverse('import_data:policy_amendments_preview', args=[batch.pk])
-        resp = self.client.post(preview_url)
-        # reload policy
+        self.client.post(reverse(PREVIEW_URL, args=[batch.pk]))
+
         self.policy.refresh_from_db()
-        self.assertEqual(self.policy.contact_number, '0812345678')
-        self.assertEqual(self.policy.address, 'New Address')
-        # log entry
+        self.assertEqual(self.policy.lapse_warning, 'amended')
+
         log = PolicyAmendmentRowLog.objects.get(import_batch=batch)
         self.assertEqual(log.status, 'success')
-        self.assertIn('address', log.changes)
-        self.assertIn('contact_number', log.changes)
+        self.assertIn('lapse_warning', log.changes)
 
-### import_data/tests_lapsed.py
-from io import StringIO
-import csv
-from django.test import TestCase, Client
-from django.contrib.auth import get_user_model
-from django.urls import reverse
-from members.models import Policy
-from .models import LapsedPolicyReactivationImport, LapsedPolicyReactivationRowLog
-
-User = get_user_model()
-
-class LapsedPolicyReactivationTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='tester', password='pass')
-        self.policy_active = Policy.objects.create(membership_number='M1', is_active=True)
-        self.policy_lapsed = Policy.objects.create(membership_number='M2', is_active=False, cover_date=None)
-        self.client = Client()
-        self.client.login(username='tester', password='pass')
-
-    def create_csv(self, rows):
-        buffer = StringIO()
-        writer = csv.DictWriter(buffer, fieldnames=['membership_number', 'new_start_date'])
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-        buffer.seek(0)
-        return buffer
-
-    def test_preview_and_apply(self):
-        url = reverse('import_data:policy_reactivations')
-        csv_file = self.create_csv([
-            {'membership_number': 'M2', 'new_start_date': '2025-05-01'},
-            {'membership_number': 'MX', 'new_start_date': '2025-05-01'}
+    def test_apply_not_found_logged(self):
+        """Rows with unknown membership_number should be logged as not_found."""
+        csv_file = self._csv([
+            {'membership_number': 'ZZZZ', 'lapse_warning': 'note'}
         ])
-        resp = self.client.post(url, {'file': csv_file}, format='multipart')
-        batch = LapsedPolicyReactivationImport.objects.first()
-        preview_url = reverse('import_data:policy_reactivations_preview', args=[batch.pk])
-        resp = self.client.get(preview_url)
-        self.assertContains(resp, 'M2')
-        self.assertContains(resp, 'Not Found')
-        # apply
-        resp = self.client.post(preview_url)
-        self.policy_lapsed.refresh_from_db()
-        self.assertTrue(self.policy_lapsed.is_active)
-        self.assertEqual(str(self.policy_lapsed.cover_date), '2025-05-01')
-        logs = LapsedPolicyReactivationRowLog.objects.filter(import_batch=batch)
-        self.assertEqual(logs.count(), 2)
+        self.client.post(reverse(UPLOAD_URL), {'csv_file': csv_file})
+        batch = PolicyAmendmentImport.objects.first()
+        self.client.post(reverse(PREVIEW_URL, args=[batch.pk]))
+
+        log = PolicyAmendmentRowLog.objects.get(import_batch=batch)
+        self.assertEqual(log.status, 'not_found')

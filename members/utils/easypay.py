@@ -8,8 +8,9 @@ from barcode.writer import ImageWriter
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-# Get the RECEIVER_ID from settings, default to '5047' if not defined
-RECEIVER_ID = getattr(settings, 'EASYPAY_RECEIVER_ID', '5047')
+# Default global receiver ID — used when no per-scheme biller code is set.
+# In production, set EASYPAY_RECEIVER_ID in .env or use scheme.easypay_biller_code.
+DEFAULT_RECEIVER_ID = getattr(settings, 'EASYPAY_RECEIVER_ID', '5047')
 
 def calculate_luhn_check_digit(number_str):
     """
@@ -20,26 +21,35 @@ def calculate_luhn_check_digit(number_str):
     even_sum = sum([sum(divmod(2 * d, 10)) for d in digits[-2::-2]])
     return str((10 - (odd_sum + even_sum) % 10) % 10)
 
-def generate_easypay_number(policy_id: int) -> str:
+def generate_easypay_number(policy_id: int, receiver_id: str = None) -> str:
     """
-    Generate a valid Easypay number using:
-    - Prefix 9 + RECEIVER_ID (from Django settings)
+    Generate a valid EasyPay number using:
+    - Prefix 9 + receiver_id (falls back to DEFAULT_RECEIVER_ID)
     - 12-digit zero-padded account_ref
     - 1-digit Luhn check digit
-    
+
     Format: 9{RECEIVER_ID}{ACCOUNT_REF}{LUHN}
+
+    Pass the scheme's easypay_biller_code as receiver_id for per-scheme references.
     """
-    # Pad the policy ID to 12 digits
+    rid = (receiver_id or DEFAULT_RECEIVER_ID).strip()
     account_ref = str(policy_id).zfill(12)
-    
-    # Create the base number (without check digit)
-    base_number = f"9{RECEIVER_ID}{account_ref}"
-    
-    # Calculate the Luhn check digit
+    base_number = f"9{rid}{account_ref}"
     check_digit = calculate_luhn_check_digit(base_number)
-    
-    # Return the complete Easypay number
     return f"{base_number}{check_digit}"
+
+def generate_qr_code_image(easypay_number: str) -> ContentFile:
+    """
+    Generate a QR code for EasyPay that links to the payment URL.
+    Returns a Django ContentFile (can be saved to ImageField or FileField).
+    """
+    from .links import payment_link
+    payment_url = payment_link(easypay_number, 0)
+    qr = qrcode.make(payment_url)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    return ContentFile(buffer.getvalue(), name=f"{easypay_number}_qr.png")
+
 
 def generate_qr_code_image(easypay_number: str) -> ContentFile:
     """

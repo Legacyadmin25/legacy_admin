@@ -18,8 +18,8 @@ from members.models import Policy
 # Helper function for reading CSV files
 def read_csv(file):
     """Helper function to read and decode CSV content."""
-    f = file.open('r', encoding='utf-8')
-    text = f.read()
+    f = file.open('rb')
+    text = f.read().decode('utf-8')
     f.close()
     return text.splitlines()
 
@@ -65,7 +65,7 @@ class PolicyAmendmentImportView(View):
 
         # Create the batch for uploaded file
         batch = PolicyAmendmentImport.objects.create(
-            file=request.FILES['file'],
+            file=form.cleaned_data['csv_file'],
             uploaded_by=request.user
         )
         return redirect(

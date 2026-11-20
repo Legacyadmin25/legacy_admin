@@ -152,10 +152,22 @@ class Policy(models.Model):
             if self.scheme and self.scheme.name:
                 prefix = self.scheme.name[:3].upper().replace(' ', '')
             self.uw_membership_number = f"{prefix}-{self.pk:06d}"
-            # Save again to update the membership number
-            kwargs['force_insert'] = False  # Make sure it's an update
+            kwargs['force_insert'] = False
             kwargs['force_update'] = True
             super().save(*args, **kwargs)
+
+        # Auto-generate EasyPay number when EASYPAY_INTEGRATION flag is on and
+        # the linked scheme has a biller code assigned.
+        if not self.easypay_number:
+            from django.conf import settings as _settings
+            if _settings.FEATURE_FLAGS.get('EASYPAY_INTEGRATION', False):
+                biller = getattr(self.scheme, 'easypay_biller_code', None) if self.scheme else None
+                if biller:
+                    from members.utils.easypay import generate_easypay_number
+                    self.easypay_number = generate_easypay_number(self.pk, receiver_id=biller)
+                    kwargs['force_insert'] = False
+                    kwargs['force_update'] = True
+                    super().save(*args, **kwargs)
     
     def __str__(self):
         return f"Policy #{self.policy_number or self.pk} for {self.member}"

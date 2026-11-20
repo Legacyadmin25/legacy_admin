@@ -33,6 +33,7 @@ def env_csv(name, default=''):
 # Feature flags for isolated module rollout.
 FEATURE_FLAGS = {
     'SCHEME_SELF_ONBOARDING': env_bool('ENABLE_SCHEME_SELF_ONBOARDING', False),
+    'EASYPAY_INTEGRATION': env_bool('ENABLE_EASYPAY_INTEGRATION', False),
 }
 
 # ─── Base directory ───────────────────────────────────────────────────────────

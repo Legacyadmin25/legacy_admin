@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Plan Import{% endblock %}
+
+{% block content %}
+<div class="w-full px-6 py-8 max-w-2xl">
+  <h1 class="text-2xl font-semibold mb-2">Bulk Plan Import</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Upload the 2-sheet XLSX file (<em>Plan Setup</em> + <em>Plan Creator</em>) to
+    create or update plan records in bulk.
+  </p>
+
+  <div class="mb-4">
+    <a href="{% url 'import_data:download_plan_import_template' %}"
+       class="inline-block px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm">
+      Download XLSX template
+    </a>
+  </div>
+
+  {% if messages %}
+    <ul class="mb-4 space-y-1">
+      {% for msg in messages %}
+        <li class="px-3 py-2 rounded text-sm
+          {% if msg.tags == 'error' %}bg-red-100 text-red-700
+          {% elif msg.tags == 'success' %}bg-green-100 text-green-700
+          {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+          {{ msg }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="space-y-5">
+    {% csrf_token %}
+
+    <!-- Scheme -->
+    <div>
+      <label for="{{ form.scheme.id_for_label }}" class="block text-sm font-medium text-gray-700">
+        Scheme
+      </label>
+      {% render_field form.scheme class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring" %}
+      {% if form.scheme.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.scheme.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <!-- File -->
+    <div>
+      <label for="{{ form.import_file.id_for_label }}" class="block text-sm font-medium text-gray-700">
+        Excel file (.xlsx)
+      </label>
+      {% render_field form.import_file class="mt-1 block w-full" %}
+      <p class="mt-1 text-xs text-gray-500">{{ form.import_file.help_text }}</p>
+      {% if form.import_file.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.import_file.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Flags -->
+    <div class="flex items-center gap-6">
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        {% render_field form.is_wholesale %}
+        Wholesale plans
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        {% render_field form.update_existing %}
+        Update existing plans (match by name)
+      </label>
+    </div>
+
+    <button type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300">
+      Upload &amp; Preview
+    </button>
+  </form>
+</div>
+{% endblock %}

@@ -14,6 +14,9 @@ urlpatterns = [
     path('branch/<int:pk>/', views.BranchOnboardingDetailView.as_view(), name='branch_detail'),
     path('branch/<int:pk>/approve/', views.BranchOnboardingApproveView.as_view(), name='branch_approve'),
     path('branch/<int:pk>/reopen/', views.BranchOnboardingReopenView.as_view(), name='branch_reopen'),
+    # Bulk import
+    path('branch/<int:pk>/bulk-import/', views.BulkProductImportView.as_view(), name='bulk_import'),
+    path('branch/<int:pk>/bulk-import/confirm/', views.BulkProductImportConfirmView.as_view(), name='bulk_import_confirm'),
     # Product builder (token-based, no login — accessible after onboarding is approved)
     path('products/<str:token>/', views.SchemeProductBuilderView.as_view(), name='product_builder'),
     path('products/<str:token>/<int:product_pk>/edit/', views.SchemeProductEditView.as_view(), name='product_edit'),

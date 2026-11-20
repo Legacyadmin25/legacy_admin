@@ -66,3 +66,32 @@ class SchemeProductForm(forms.ModelForm):
                 # Warn but do NOT block — branch owner sees the flag on review
                 self.add_warning = True  # template reads this to show yellow banner
         return cleaned
+
+
+class BulkProductImportForm(forms.Form):
+    """
+    Form for branch owners to bulk import SchemeProducts from CSV/XLSX.
+    File format: 
+      wholesale_plan_id | product_name | product_description | retail_premium | client_cover_amount | policy_type
+    """
+    import_file = forms.FileField(
+        label='CSV or Excel file',
+        help_text='Upload a .csv or .xlsx file with product data. See template for format.',
+        widget=forms.FileInput(attrs={
+            'accept': '.csv,.xlsx,.xls',
+            'class': 'form-control-file',
+        })
+    )
+
+    def clean_import_file(self):
+        f = self.cleaned_data.get('import_file')
+        if f:
+            # Check file extension
+            name = f.name.lower()
+            if not (name.endswith('.csv') or name.endswith('.xlsx') or name.endswith('.xls')):
+                raise forms.ValidationError('Only CSV and Excel (.xlsx, .xls) files are allowed.')
+            # Check file size (max 5MB)
+            if f.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('File size must not exceed 5 MB.')
+        return f
+

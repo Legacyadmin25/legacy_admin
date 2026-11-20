@@ -4,6 +4,8 @@ Context processors for the accounts app.
 This module provides context processors that add useful variables to the template context.
 """
 
+from django.conf import settings as django_settings
+
 from config.permissions import (
     can_view_all_members_report,
     can_view_amendments_report,
@@ -45,4 +47,7 @@ def user_permissions(request):
         'can_view_payment_admin_report': can_view_payment_allocation_report(user, 'admin'),
         'can_view_payment_scheme_report': can_view_payment_allocation_report(user, 'scheme'),
         'can_view_amendments_report': can_view_amendments_report(user),
+        # Feature flags exposed to templates
+        'feature_scheme_self_onboarding': django_settings.FEATURE_FLAGS.get('SCHEME_SELF_ONBOARDING', False),
+        'feature_easypay': django_settings.FEATURE_FLAGS.get('EASYPAY_INTEGRATION', False),
     }

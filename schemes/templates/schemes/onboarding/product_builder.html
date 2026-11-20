@@ -230,7 +230,12 @@
 
   <!-- ── Existing products ────────────────────────────────────── -->
   <div class="products-table-wrap">
-    <h2>Your Products ({{ products.count }})</h2>
+    <h2>Your Products ({{ products.count }})
+      <a href="{% url 'scheme_onboarding:bulk_import' pk=onboarding.pk %}" 
+         style="display:inline-block; font-size:0.75rem; background:#1E3A8A; color:#fff; padding:4px 10px; border-radius:6px; text-decoration:none; margin-left:12px; font-weight:700;">
+        📥 Bulk Import
+      </a>
+    </h2>
     <table>
       <thead>
         <tr>

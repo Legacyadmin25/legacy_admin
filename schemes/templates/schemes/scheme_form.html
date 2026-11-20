@@ -150,6 +150,35 @@
       </div>
     </div>
 
+    <!-- Application Settings -->
+    <div class="bg-white p-6 rounded shadow space-y-4">
+      <h2 class="text-xl font-semibold">Application Settings</h2>
+      <div class="space-y-3">
+        <label class="flex items-center gap-3 cursor-pointer">
+          {{ form.allow_auto_policy_number }}
+          <span class="font-medium">{{ form.allow_auto_policy_number.label }}</span>
+          {% if form.allow_auto_policy_number.errors %}
+            <span class="text-sm text-red-600">{{ form.allow_auto_policy_number.errors.0 }}</span>
+          {% endif %}
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          {{ form.bypass_otp }}
+          <span class="font-medium">{{ form.bypass_otp.label }}</span>
+          <span class="text-sm text-gray-500">— Skip the OTP verification step during applications for this scheme.</span>
+          {% if form.bypass_otp.errors %}
+            <span class="text-sm text-red-600">{{ form.bypass_otp.errors.0 }}</span>
+          {% endif %}
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          {{ form.active }}
+          <span class="font-medium">{{ form.active.label }}</span>
+          {% if form.active.errors %}
+            <span class="text-sm text-red-600">{{ form.active.errors.0 }}</span>
+          {% endif %}
+        </label>
+      </div>
+    </div>
+
     <div class="flex justify-end space-x-2">
       <a href="{% url 'schemes:scheme_list' %}"
          class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">

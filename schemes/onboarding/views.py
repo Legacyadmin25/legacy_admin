@@ -6,11 +6,13 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, DetailView
 
+from .bulk_import import parse_bulk_import_file, create_products_from_import
 from .forms import (
     BranchOnboardingReviewForm,
     SchemeOnboardingStep1Form,
     SchemeOnboardingStep2Form,
     SchemeProductForm,
+    BulkProductImportForm,
 )
 from .models import BranchSchemeOnboarding, SchemeProduct
 
@@ -335,3 +337,136 @@ class SchemeProductDeleteView(View):
         product.delete()
         messages.success(request, f'"{name}" removed.')
         return redirect(reverse('scheme_onboarding:product_builder', kwargs={'token': token}))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Bulk Import (access from branch review detail page or dedicated import view)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class BulkProductImportView(LoginRequiredMixin, View):
+    """
+    GET  /scheme-onboarding/branch/<pk>/bulk-import/
+    Show upload form for bulk CSV/XLSX import.
+    POST: Parse file, validate, and show report.
+    """
+    template_name = 'schemes/onboarding/bulk_import.html'
+
+    def _can_import(self, user, onboarding):
+        """Check if user can import for this onboarding."""
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser or user.is_staff:
+            return True
+        return bool(getattr(user, 'branch_id', None) == onboarding.branch_id)
+
+    def get(self, request, pk):
+        """Show bulk import form."""
+        onboarding = get_object_or_404(BranchSchemeOnboarding, pk=pk)
+        if not _can_review(request.user, onboarding):
+            return HttpResponseForbidden('You do not have permission to manage this onboarding.')
+        if onboarding.status != BranchSchemeOnboarding.STATUS_APPROVED:
+            return HttpResponseForbidden('Products can only be imported after onboarding is approved.')
+
+        form = BulkProductImportForm()
+        return render(request, self.template_name, {
+            'onboarding': onboarding,
+            'form': form,
+            'mode': 'upload',
+        })
+
+    def post(self, request, pk):
+        """Process uploaded file and show validation report."""
+        onboarding = get_object_or_404(BranchSchemeOnboarding, pk=pk)
+        if not _can_review(request.user, onboarding):
+            return HttpResponseForbidden('You do not have permission to manage this onboarding.')
+        if onboarding.status != BranchSchemeOnboarding.STATUS_APPROVED:
+            return HttpResponseForbidden('Products can only be imported after onboarding is approved.')
+
+        form = BulkProductImportForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'onboarding': onboarding,
+                'form': form,
+                'mode': 'upload',
+            })
+
+        # Parse and validate file
+        import_result = parse_bulk_import_file(request.FILES['import_file'], onboarding.branch)
+
+        # Store in session for confirmation
+        request.session[f'bulk_import_pending_{pk}'] = {
+            'rows': [
+                {
+                    'wholesale_plan_id': row['wholesale_plan'].pk,
+                    'product_name': row['product_name'],
+                    'product_description': row['product_description'],
+                    'retail_premium': str(row['retail_premium']),
+                    'client_cover_amount': str(row['client_cover_amount']),
+                    'policy_type': row['policy_type'],
+                }
+                for row in import_result.rows
+            ],
+            'summary': import_result.summary,
+        }
+
+        return render(request, self.template_name, {
+            'onboarding': onboarding,
+            'form': form,
+            'mode': 'report',
+            'result': import_result,
+        })
+
+
+class BulkProductImportConfirmView(LoginRequiredMixin, View):
+    """POST /scheme-onboarding/branch/<pk>/bulk-import/confirm/"""
+
+    def post(self, request, pk):
+        onboarding = get_object_or_404(BranchSchemeOnboarding, pk=pk)
+        if not _can_review(request.user, onboarding):
+            return HttpResponseForbidden('You do not have permission.')
+        if onboarding.status != BranchSchemeOnboarding.STATUS_APPROVED:
+            return HttpResponseForbidden('Only approved onboardings can import.')
+
+        # Retrieve pending import from session
+        session_key = f'bulk_import_pending_{pk}'
+        pending = request.session.get(session_key)
+        if not pending:
+            messages.error(request, 'No pending import found. Please upload again.')
+            return redirect(reverse('scheme_onboarding:bulk_import', kwargs={'pk': pk}))
+
+        # Re-fetch wholesale plans to ensure they still exist
+        from schemes.models import Plan
+        
+        rows_to_create = []
+        for row_data in pending['rows']:
+            try:
+                plan = Plan.objects.get(
+                    pk=row_data['wholesale_plan_id'],
+                    is_wholesale=True,
+                    scheme__branch=onboarding.branch,
+                    is_active=True,
+                )
+                rows_to_create.append({
+                    'wholesale_plan': plan,
+                    'product_name': row_data['product_name'],
+                    'product_description': row_data['product_description'],
+                    'retail_premium': row_data['retail_premium'],
+                    'client_cover_amount': row_data['client_cover_amount'],
+                    'policy_type': row_data['policy_type'],
+                })
+            except Plan.DoesNotExist:
+                # Plan was deleted since upload—skip it
+                pass
+
+        # Bulk create products
+        products = create_products_from_import(onboarding, rows_to_create)
+        
+        # Clean up session
+        request.session.pop(session_key, None)
+
+        messages.success(
+            request,
+            f'✓ Successfully imported {len(products)} product{"s" if len(products) != 1 else ""}. '
+            f'{len(pending["rows"]) - len(products)} rows could not be found (plans may have been deleted).'
+        )
+        return redirect(reverse('scheme_onboarding:product_builder', kwargs={'token': onboarding.onboarding_token}))

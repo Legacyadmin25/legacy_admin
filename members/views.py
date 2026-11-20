@@ -839,6 +839,14 @@ def step7_otp_verification(request, pk):
     from members.utils.sms_sender import send_otp
     from members.utils.otp import generate_otp, hash_otp, verify_otp
     from django.utils import timezone
+
+    # Check if the scheme has OTP bypass enabled
+    scheme = policy.plan.scheme if (policy.plan and hasattr(policy.plan, 'scheme')) else None
+    if scheme and scheme.bypass_otp:
+        policy.otp_confirmed = True
+        policy.save()
+        messages.success(request, "OTP verification skipped for this scheme.")
+        return redirect('members:step8_policy_summary', pk=policy.pk)
     
     # Check if OTP verification already exists, create if not
     otp_verification, created = OtpVerification.objects.get_or_create(

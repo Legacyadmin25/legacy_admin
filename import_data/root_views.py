@@ -1,8 +1,11 @@
 # import_data/root_views.py
 
 import csv
+import io
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 
 
 # Helper function to generate CSV response with headers
@@ -504,3 +507,85 @@ def easypay_import(request):
     return render(request, 'import_data/easypay_import.html', {
         'form': form,
     })
+
+
+@login_required
+def download_plan_import_template(request):
+    """
+    Generate and return a 2-sheet XLSX template matching the Net Christal
+    Plans Import format:
+
+      Sheet 1 "Plan Setup"   — one row per plan (main member rates + fee breakdown)
+      Sheet 2 "Plan Creator" — one row per dependent tier (Spouse / Child / Extended)
+    """
+    wb = openpyxl.Workbook()
+
+    header_font = Font(bold=True, color='FFFFFF')
+    header_fill_blue = PatternFill(fill_type='solid', fgColor='2563EB')
+    header_fill_green = PatternFill(fill_type='solid', fgColor='16A34A')
+    center = Alignment(horizontal='center')
+
+    def style_header_row(ws, fill):
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = fill
+            cell.alignment = center
+
+    def auto_width(ws):
+        for col in ws.columns:
+            max_len = max((len(str(c.value or '')) for c in col), default=10)
+            ws.column_dimensions[col[0].column_letter].width = max(max_len + 4, 14)
+
+    # ── Sheet 1: Plan Setup ───────────────────────────────────────────────────
+    ws1 = wb.active
+    ws1.title = 'Plan Setup'
+
+    plan_headers = [
+        'Plan Name', 'Plan Description', 'Main Premium', 'Main Cover',
+        'Main U/W Premium', 'Main U/W Cover', 'Main Age From', 'Main Age To',
+        'Waiting Period', 'Lapse Period', 'Maximum Dependents', 'Underwriter Name',
+        'U/W Premium + Admin Fee Total', 'Admin Fee Total', 'Premium Total', 'U/W Premium Total',
+        'Admin Fee', 'Agent Commission', 'Scheme Fee', 'Manager Fee', 'Office Fee',
+        'Loyalty Programme', 'Other Fees', 'Cash Payout', 'Service Fee', 'Penalty Fee',
+    ]
+    ws1.append(plan_headers)
+    ws1.append([
+        'EXAMPLE PLAN - (18-64) - R5 000', 'Example plan description',
+        41.50, 5000, 10.60, 5000, 18, 64, 6, 2, 14, 'Underwriter Name',
+        '', '', '', '',
+        4.16, 0, 6.24, 0, 0, 0, 0, 0, 0, 0,
+    ])
+    style_header_row(ws1, header_fill_blue)
+    auto_width(ws1)
+
+    # ── Sheet 2: Plan Creator ─────────────────────────────────────────────────
+    ws2 = wb.create_sheet(title='Plan Creator')
+    tier_headers = [
+        'Plan Name', 'User Type', 'Age From', 'Age To',
+        'Cover Amount', 'Premium', 'U/W Cover', 'U/W Premium', 'Admin Fee',
+    ]
+    ws2.append(tier_headers)
+    examples = [
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Spouse', 18, 84, 5000, 0, 5000, 0, 0),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Child', 0, 0, 625, 0, 625, 0, 0),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Child', 1, 5, 1250, 0, 1250, 0, 0),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Child', 6, 13, 2500, 0, 2500, 0, 0),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Child', 14, 21, 5000, 0, 5000, 0, 0),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Extended', 21, 64, 5000, 23.40, 5000, 10.60, 2.40),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Extended', 65, 74, 5000, 86.40, 5000, 29.75, 18.25),
+        ('EXAMPLE PLAN - (18-64) - R5 000', 'Extended', 75, 84, 5000, 153.00, 5000, 50.20, 34.80),
+    ]
+    for ex in examples:
+        ws2.append(list(ex))
+    style_header_row(ws2, header_fill_green)
+    auto_width(ws2)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="plan_import_template.xlsx"'
+    return response

@@ -68,7 +68,7 @@
             <div style="font-size:0.8rem; color:#9ca3af; margin-top:3px;">{{ onboarding.branch.name }}</div>
           </td>
           <td>
-            <div style="font-size:0.88rem;">{{ onboarding.email|default:'—' }}</div>
+            <div style="font-size:0.88rem;">{{ onboarding.submitted_by|default:onboarding.email|default:'—' }}</div>
             <div class="email-text">{{ onboarding.phone|default:'—' }}</div>
           </td>
           <td>

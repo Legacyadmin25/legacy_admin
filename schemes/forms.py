@@ -9,12 +9,13 @@ class SchemeForm(forms.ModelForm):
             'branch', 'name', 'prefix', 'registration_no', 'fsp_number', 'logo', 'terms',
             'bank', 'branch_code', 'account_no', 'account_type',
             'address', 'city', 'province', 'postal_code',
-            'allow_auto_policy_number', 'active',
+            'allow_auto_policy_number', 'bypass_otp', 'active',
             'phone', 'email',
         ]
         widgets = {
             'terms': forms.Textarea(attrs={'rows': 3, 'class': 'w-full px-4 py-2 border rounded'}),
             'allow_auto_policy_number': forms.CheckboxInput(attrs={'class': 'form-checkbox h-5 w-5 text-blue-600'}),
+            'bypass_otp': forms.CheckboxInput(attrs={'class': 'form-checkbox h-5 w-5 text-orange-600'}),
             'active': forms.CheckboxInput(attrs={'class': 'form-checkbox h-5 w-5 text-blue-600'}),
             'bank': forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded bank-select'}),
             'branch_code': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded bg-gray-100', 'readonly': True}),

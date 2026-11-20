@@ -339,6 +339,13 @@
                   <i class="fa-solid fa-building mr-2"></i> Branch Setup
                 </a>
               </li>
+              {% if feature_scheme_self_onboarding %}
+              <li>
+                <a href="{% url 'scheme_onboarding:branch_list' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Scheme Onboarding Review">
+                  <i class="fa-solid fa-file-signature mr-2"></i> Onboarding Review
+                </a>
+              </li>
+              {% endif %}
               <li>
 <a href="{% url 'schemes:scheme_list' %}" class="flex items-center rounded-xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Scheme Setup">
                   <i class="fa-solid fa-cogs mr-2"></i> Scheme Setup
