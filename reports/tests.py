@@ -190,16 +190,59 @@ class PaymentAllocationReportTests(TestCase):
         self.assertEqual(worksheet['A4'].value, '2026-04-15')
 
     def test_all_members_report_exports_excel(self):
+        from members.models import Dependent
+
+        Dependent.objects.create(
+            policy=self.policy,
+            relationship='Child',
+            first_name='Jimmy',
+            last_name='Doe',
+            gender='Male',
+            date_of_birth=date(2015, 6, 15),
+        )
+
         response = self.client.get(reverse('reports:all_members_report'), {
             'scheme': self.scheme.id,
             'export': 'excel',
         })
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
         workbook = load_workbook(io.BytesIO(response.content))
         worksheet = workbook.active
-        self.assertEqual(worksheet['A1'].value, 'All Members Report')
-        self.assertEqual(worksheet['A4'].value, 'Test Scheme')
+
+        merged_ranges = {str(cell_range) for cell_range in worksheet.merged_cells.ranges}
+        self.assertTrue({'A1:F1', 'G1:H1', 'A3:AE3'}.issubset(merged_ranges))
+
+        self.assertEqual(worksheet['A3'].value, 'All Members Report')
+
+        expected_headers = [
+            'Scheme', 'Branch', 'Start/Inception Date', 'Cover Date', 'Policy Number',
+            'Underwriter Membership Number', 'Relationship Type', 'Client Name', 'Client Surname',
+            'ID Number', 'Date Of Birth', 'Passport No', 'Gender', 'Phone', 'Email Address',
+            'Street Address', 'City', 'Province', 'Postal Code', 'Plan', 'Plan Code',
+            'Product Type', 'Retail Rate', 'Cover Amount', 'Gross Underwriter Premium',
+            'Underwriter Cover', 'Payment Method', 'Beneficiary Names', 'Beneficiary Surname',
+            'Agent Name', 'Agent Code',
+        ]
+        actual_headers = [worksheet.cell(row=5, column=col).value for col in range(1, 32)]
+        self.assertEqual(len(actual_headers), 31)
+        self.assertEqual(actual_headers, expected_headers)
+
+        self.assertEqual(worksheet['A6'].value, 'Test Scheme')
+        self.assertEqual(worksheet['E6'].value, self.policy.policy_number)
+        self.assertEqual(worksheet['G6'].value, 'A Main member')
+        self.assertEqual(worksheet['H6'].value, 'Jane')
+        self.assertEqual(worksheet['I6'].value, 'Doe')
+
+        self.assertEqual(worksheet['A7'].value, 'Test Scheme')
+        self.assertEqual(worksheet['E7'].value, self.policy.policy_number)
+        self.assertEqual(worksheet['G7'].value, 'Child')
+        self.assertEqual(worksheet['H7'].value, 'Jimmy')
+        self.assertEqual(worksheet['I7'].value, 'Doe')
 
     def test_all_members_report_lists_policy_and_member_details(self):
         response = self.client.get(reverse('reports:all_members_report'), {

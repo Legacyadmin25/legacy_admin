@@ -1,10 +1,13 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 import io
 import csv
+import os
+from pathlib import Path
 from urllib.parse import urlencode
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
@@ -14,7 +17,9 @@ from django.urls import reverse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 from django.contrib.contenttypes.models import ContentType
 from django.utils.html import escape
 from weasyprint import HTML
@@ -220,6 +225,285 @@ def build_all_members_dataset(policies, title='All Members Report'):
         for policy in policies
     ]
     return title, headers, rows
+
+
+def build_all_members_workbook(policies, selected_scheme=None, selected_branch=None, date_from=None, date_to=None):
+    def _excel_safe(value):
+        if value is None:
+            return ''
+        if isinstance(value, datetime):
+            return timezone.make_naive(value) if timezone.is_aware(value) else value
+        if isinstance(value, date):
+            return value
+        if isinstance(value, Decimal):
+            return float(value)
+        return value
+
+    def _resolve_field_file_path(file_field):
+        if not file_field:
+            return None
+        try:
+            name = getattr(file_field, 'name', '')
+            if not name:
+                return None
+            file_path = file_field.path
+            if file_path and os.path.isfile(file_path):
+                return file_path
+        except (ValueError, NotImplementedError, OSError):
+            return None
+        return None
+
+    def _resolve_logo_path(scheme_obj, branch_obj):
+        branch_logo = getattr(branch_obj, 'logo', None) if branch_obj else None
+        branch_logo_path = _resolve_field_file_path(branch_logo)
+        if branch_logo_path:
+            return branch_logo_path
+
+        scheme_logo = getattr(scheme_obj, 'logo', None) if scheme_obj else None
+        scheme_logo_path = _resolve_field_file_path(scheme_logo)
+        if scheme_logo_path:
+            return scheme_logo_path
+
+        candidate_paths = []
+        base_dir = getattr(settings, 'BASE_DIR', None)
+        if base_dir:
+            candidate_paths.append(Path(base_dir) / 'static' / 'images' / 'default-logo.png')
+        for static_dir in getattr(settings, 'STATICFILES_DIRS', []):
+            candidate_paths.append(Path(static_dir) / 'images' / 'default-logo.png')
+
+        for candidate in candidate_paths:
+            if candidate and os.path.isfile(candidate):
+                return str(candidate)
+        return None
+
+    def _format_header_date(value):
+        if not value:
+            return 'All'
+        if isinstance(value, (date, datetime)):
+            return value.strftime('%Y-%m-%d')
+        return str(value)
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'All Members Report'
+
+    scheme_obj = selected_scheme
+    branch_obj = selected_branch or (scheme_obj.branch if scheme_obj and getattr(scheme_obj, 'branch_id', None) else None)
+
+    scheme_name = scheme_obj.name if scheme_obj else 'All Schemes'
+    branch_name = branch_obj.name if branch_obj else 'All Branches'
+    fsp_number = scheme_obj.fsp_number if scheme_obj and scheme_obj.fsp_number else ''
+
+    contact_parts = []
+    if scheme_obj:
+        if scheme_obj.phone:
+            contact_parts.append(scheme_obj.phone)
+        if scheme_obj.email:
+            contact_parts.append(scheme_obj.email)
+    elif branch_obj:
+        if branch_obj.phone:
+            contact_parts.append(branch_obj.phone)
+        if branch_obj.cell:
+            contact_parts.append(branch_obj.cell)
+    contacts_text = ' | '.join(contact_parts)
+
+    address_parts = []
+    if scheme_obj:
+        address_parts = [
+            part for part in (
+                scheme_obj.address,
+                scheme_obj.city,
+                scheme_obj.province,
+                scheme_obj.postal_code,
+            ) if part
+        ]
+    elif branch_obj:
+        address_parts = [
+            part for part in (
+                branch_obj.physical_address or branch_obj.street,
+                branch_obj.town,
+                branch_obj.province,
+                branch_obj.postal_code,
+            ) if part
+        ]
+    address_text = ', '.join(address_parts)
+
+    header_lines = [
+        f"Scheme Name: {scheme_name}",
+        f"Branch Name: {branch_name}",
+        f"Date From: {_format_header_date(date_from)} | Date To: {_format_header_date(date_to)}",
+        f"FSP Number: {fsp_number}" if fsp_number else "FSP Number: -",
+        f"Contacts: {contacts_text}" if contacts_text else "Contacts: -",
+        f"Address: {address_text}" if address_text else "Address: -",
+    ]
+
+    worksheet.merge_cells('A1:F1')
+    header_cell = worksheet['A1']
+    header_cell.value = '\n'.join(header_lines)
+    header_cell.alignment = Alignment(wrap_text=True, vertical='top', horizontal='left')
+    header_cell.font = Font(size=10, bold=False)
+    worksheet.row_dimensions[1].height = 95
+
+    worksheet.merge_cells('G1:H1')
+    logo_path = _resolve_logo_path(scheme_obj, branch_obj)
+    if logo_path:
+        try:
+            logo_img = XLImage(logo_path)
+            logo_img.width = 140
+            logo_img.height = 80
+            worksheet.add_image(logo_img, 'G1')
+        except Exception:
+            pass
+
+    worksheet.merge_cells('A3:AE3')
+    title_cell = worksheet['A3']
+    title_cell.value = 'All Members Report'
+    title_cell.fill = PatternFill(fill_type='solid', fgColor='1F4E78')
+    title_cell.font = Font(bold=True, color='FFFFFF', size=12)
+    title_cell.alignment = Alignment(horizontal='left', vertical='center')
+
+    headers = [
+        'Scheme', 'Branch', 'Start/Inception Date', 'Cover Date', 'Policy Number',
+        'Underwriter Membership Number', 'Relationship Type', 'Client Name', 'Client Surname',
+        'ID Number', 'Date Of Birth', 'Passport No', 'Gender', 'Phone', 'Email Address',
+        'Street Address', 'City', 'Province', 'Postal Code', 'Plan', 'Plan Code',
+        'Product Type', 'Retail Rate', 'Cover Amount', 'Gross Underwriter Premium',
+        'Underwriter Cover', 'Payment Method', 'Beneficiary Names', 'Beneficiary Surname',
+        'Agent Name', 'Agent Code',
+    ]
+
+    header_fill = PatternFill(fill_type='solid', fgColor='D9EAF7')
+    header_font = Font(bold=True)
+    for col_idx, header in enumerate(headers, start=1):
+        cell = worksheet.cell(row=5, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    row_idx = 6
+    for policy in policies:
+        member = policy.member
+        scheme = policy.scheme
+        branch = scheme.branch if scheme and getattr(scheme, 'branch_id', None) else None
+        plan = policy.plan
+        agent = policy.underwritten_by
+
+        beneficiaries = list(policy.beneficiaries.all())
+        beneficiary_names = ', '.join(
+            b.first_name for b in beneficiaries if getattr(b, 'first_name', '')
+        )
+        beneficiary_surnames = ', '.join(
+            b.last_name for b in beneficiaries if getattr(b, 'last_name', '')
+        )
+
+        scheme_label = scheme.name if scheme else ''
+        branch_label = branch.name if branch else ''
+        start_or_inception = policy.start_date or policy.inception_date
+        cover_date = policy.cover_date
+        policy_num = policy.policy_number or policy.unique_policy_number or ''
+        uw_membership_num = policy.uw_membership_number or ''
+        plan_name = plan.name if plan else ''
+        plan_code = plan.template_code if plan else ''
+        product_type = plan.get_policy_type_display() if plan else ''
+        retail_rate = float(plan.premium if plan else (policy.premium_amount or 0))
+        cover_amount = float(plan.main_cover if plan else (policy.cover_amount or 0))
+        gross_uw_premium = float(plan.main_uw_premium if plan else 0)
+        uw_cover = float(plan.main_uw_cover if plan else 0)
+        payment_method = policy.get_payment_method_display() if policy.payment_method else ''
+        agent_name = agent.full_name if agent else ''
+        agent_code = agent.code if agent else ''
+
+        province_value = ''
+        if scheme and scheme.province:
+            province_value = scheme.province
+        elif branch and branch.province:
+            province_value = branch.province
+
+        main_row = [
+            scheme_label,
+            branch_label,
+            start_or_inception,
+            cover_date,
+            policy_num,
+            uw_membership_num,
+            'A Main member',
+            member.first_name if member else '',
+            member.last_name if member else '',
+            (member.id_number or '') if member else '',
+            member.date_of_birth if member else None,
+            (member.passport_number or '') if member else '',
+            (member.gender or '') if member else '',
+            (member.phone_number or '') if member else '',
+            (member.email or '') if member else '',
+            (member.physical_address_line_1 or '') if member else '',
+            (member.physical_address_city or '') if member else '',
+            province_value,
+            (member.physical_address_postal_code or '') if member else '',
+            plan_name,
+            plan_code,
+            product_type,
+            retail_rate,
+            cover_amount,
+            gross_uw_premium,
+            uw_cover,
+            payment_method,
+            beneficiary_names,
+            beneficiary_surnames,
+            agent_name,
+            agent_code,
+        ]
+        for col_idx, val in enumerate(main_row, start=1):
+            worksheet.cell(row=row_idx, column=col_idx, value=_excel_safe(val))
+        row_idx += 1
+
+        for dep in policy.dependents.all():
+            dep_row = [
+                scheme_label,
+                branch_label,
+                start_or_inception,
+                cover_date,
+                policy_num,
+                uw_membership_num,
+                dep.relationship or 'Extended',
+                dep.first_name or '',
+                dep.last_name or '',
+                dep.id_number or '',
+                dep.date_of_birth,
+                '',
+                dep.gender or '',
+                '',
+                '',
+                '',
+                '',
+                province_value,
+                '',
+                plan_name,
+                plan_code,
+                product_type,
+                retail_rate,
+                cover_amount,
+                gross_uw_premium,
+                uw_cover,
+                payment_method,
+                beneficiary_names,
+                beneficiary_surnames,
+                agent_name,
+                agent_code,
+            ]
+            for col_idx, val in enumerate(dep_row, start=1):
+                worksheet.cell(row=row_idx, column=col_idx, value=_excel_safe(val))
+            row_idx += 1
+
+    for col_idx in range(1, len(headers) + 1):
+        col_letter = get_column_letter(col_idx)
+        max_length = len(str(headers[col_idx - 1]))
+        for r in range(5, row_idx):
+            cell_val = worksheet.cell(row=r, column=col_idx).value
+            if cell_val is not None:
+                max_length = max(max_length, len(str(cell_val)))
+        worksheet.column_dimensions[col_letter].width = min(max_length + 2, 32)
+
+    worksheet.freeze_panes = 'A6'
+    return workbook
 
 
 def export_payment_allocation_report(allocations, cover_month, report_version):
@@ -571,9 +855,16 @@ def all_members_report(request):
     filter_agent = request.GET.get('agent', '').strip()
     filter_status = request.GET.get('status', '').strip()
     search_term = request.GET.get('search', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+
+    selected_scheme = schemes.filter(pk=filter_scheme).first() if filter_scheme else None
+    selected_branch = branches.filter(pk=filter_branch).first() if filter_branch else None
 
     policies = filter_by_user_scope(
-        Policy.objects.select_related('member', 'scheme', 'scheme__branch', 'plan', 'underwritten_by').annotate(
+        Policy.objects.select_related(
+            'member', 'scheme', 'scheme__branch', 'plan', 'underwritten_by'
+        ).prefetch_related('dependents', 'beneficiaries').annotate(
             dependents_count=Count('dependents', distinct=True),
             beneficiaries_count=Count('beneficiaries', distinct=True),
         ),
@@ -584,6 +875,18 @@ def all_members_report(request):
         policies = policies.filter(scheme__branch_id=filter_branch)
     if filter_agent:
         policies = policies.filter(underwritten_by_id=filter_agent)
+    if date_from:
+        try:
+            parsed_date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            policies = policies.filter(start_date__gte=parsed_date_from)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            parsed_date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            policies = policies.filter(start_date__lte=parsed_date_to)
+        except ValueError:
+            pass
     if search_term:
         policies = policies.filter(
             Q(member__first_name__icontains=search_term)
@@ -596,9 +899,16 @@ def all_members_report(request):
 
     export_format = request.GET.get('export')
     if export_format:
-        title, headers, rows = build_all_members_dataset(policies)
         if export_format == 'excel':
-            return workbook_response(build_report_workbook(title, headers, rows), 'all-members-report.xlsx')
+            workbook = build_all_members_workbook(
+                policies,
+                selected_scheme=selected_scheme,
+                selected_branch=selected_branch,
+                date_from=date_from or None,
+                date_to=date_to or None,
+            )
+            return workbook_response(workbook, 'all-members-report.xlsx')
+        title, headers, rows = build_all_members_dataset(policies)
         if export_format == 'csv':
             return csv_response(headers, rows, 'all-members-report.csv')
         if export_format == 'pdf':
@@ -609,12 +919,18 @@ def all_members_report(request):
         'agents': agents,
         'schemes': schemes,
         'policies': policies,
+        'selected_scheme': selected_scheme,
+        'selected_branch': selected_branch,
+        'date_from': date_from,
+        'date_to': date_to,
         'report_hub_url': build_hub_url('all_members', {
             'branch': filter_branch,
             'scheme': filter_scheme,
             'agent': filter_agent,
             'status': filter_status,
             'search': search_term,
+            'date_from': date_from,
+            'date_to': date_to,
         }),
         'filter_branch': filter_branch,
         'filter_agent': filter_agent,
